@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indigo Analysis API</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🔬 Indigo Analysis API</h1>
+            <p>Run analysis jobs and track results in real-time</p>
+        </header>
+
+        <div id="messages"></div>
+
+        <div class="main-content">
+            <!-- Left Column: Analyses Selection -->
+            <div class="card">
+                <h2>Available Analyses</h2>
+                <div id="analyses-list" class="analyses-list">
+                    <div class="no-results">Loading analyses...</div>
+                </div>
+            </div>
+
+            <!-- Right Column: Input Form -->
+            <div class="card">
+                <h2>Analysis Parameters</h2>
+                <div id="dynamic-inputs" class="dynamic-inputs">
+                    <div class="info-message">Select an analysis from the left to view parameters</div>
+                </div>
+                <button id="submit-btn" class="btn-primary">Submit Analysis</button>
+                <button id="clear-btn" class="btn-secondary">Clear History</button>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="card full-width">
+            <h2>Results & History</h2>
+            <div id="results-container" class="scrollable">
+                <div class="no-results">No analysis results yet</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+
+</html>
