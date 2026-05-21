@@ -7,7 +7,7 @@ import click
 import uvicorn
 
 from indigoapi.config import Config
-from indigoapi.main import start_api
+from indigoapi.server import start_api
 
 from ._version import __version__
 
@@ -61,7 +61,7 @@ def serve(ctx: click.Context):
     logger.info(f"port {config.server.port}")
 
     uvicorn.run(
-        f"indigoapi.main:{start_api.__name__}",
+        f"indigoapi.server:{start_api.__name__}",
         factory=True,
         host=config.server.host,
         port=int(config.server.port),

@@ -2,7 +2,7 @@ from collections.abc import Sequence
 
 import numpy as np
 
-from indigoapi.analyses.decorator import analysis
+from indigoapi.analysis_core.decorator import analysis
 
 
 @analysis()

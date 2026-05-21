@@ -3,8 +3,8 @@ import inspect
 
 import pytest
 
-from indigoapi.analyses.decorator import analysis
-from indigoapi.analyses.registry import (
+from indigoapi.analysis_core.decorator import analysis
+from indigoapi.analysis_core.registry import (
     ANALYSIS_REGISTRY,
     get_analysis,
     register_analysis,

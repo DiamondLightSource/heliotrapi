@@ -4,8 +4,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from indigoapi.config import Config
-from indigoapi.main import start_api
 from indigoapi.models import AnalysisRequest
+from indigoapi.server import start_api
 
 
 def test_analysis_flow_with_post():

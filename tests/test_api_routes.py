@@ -3,8 +3,8 @@ from datetime import datetime
 
 from fastapi.testclient import TestClient
 
-from indigoapi.main import start_api
 from indigoapi.models import AnalysisResult
+from indigoapi.server import start_api
 
 
 def test_api_health_and_endpoints_routes():
