@@ -461,17 +461,41 @@ class AnalysisUI {
     convertArrayElements(arr, annotation) {
         const ann = annotation.toLowerCase();
 
-        let elementType = 'string';
+        // Integer arrays
+        if (
+            ann.includes('int')
+        ) {
+            return arr.map(v => {
+                const n = parseInt(v, 10);
 
-        if (ann.includes('int')) elementType = 'int';
-        else if (ann.includes('float')) elementType = 'float';
+                if (isNaN(n)) {
+                    throw new Error(`Invalid integer value: ${v}`);
+                }
 
-        return arr.map(v => {
-            if (elementType === 'int') return parseInt(v, 10);
-            if (elementType === 'float') return parseFloat(v);
+                return n;
+            });
+        }
 
-            return String(v);
-        });
+        // Float-like arrays
+        if (
+            ann.includes('float') ||
+            ann.includes('ndarray') ||
+            ann.includes('numpy') ||
+            ann.includes('array')
+        ) {
+            return arr.map(v => {
+                const n = parseFloat(v);
+
+                if (isNaN(n)) {
+                    throw new Error(`Invalid float value: ${v}`);
+                }
+
+                return n;
+            });
+        }
+
+        // Default: strings
+        return arr.map(v => String(v));
     }
 
     startPollingForResult(requestId) {

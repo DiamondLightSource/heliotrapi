@@ -83,7 +83,7 @@ async def result(request: Request, request_id: UUID):
     queue: QueueManager = request.app.state.queue_manager
     if request_id not in queue.results:
         raise HTTPException(404, "Result not found")
-    result, duration = queue.results[request_id]
+    result = queue.results[request_id]
     return result
 
 
@@ -105,6 +105,6 @@ async def get_endpoints():
 async def get_all_results(request: Request):
     queue: QueueManager = request.app.state.queue_manager
     # Return all jobs (pending, running, completed, failed), sorted by created_at
-    results = [r[0] for r in queue.all_jobs.values()]
+    results = list(queue.results.values())
     results.sort(key=lambda r: getattr(r, "created_at", None) or 0, reverse=True)
     return results

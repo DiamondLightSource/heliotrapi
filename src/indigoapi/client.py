@@ -15,6 +15,7 @@ from indigoapi.api.routes import (
     HEALTH_ROUTE,
     RESULT_BY_ID_ROUTE,
     RESULT_LATEST_ROUTE,
+    RESULTS_ALL_ROUTE,
 )
 from indigoapi.models import AnalysisRequest, AnalysisResult
 from indigoapi.utils.serialisers import serialise
@@ -170,6 +171,11 @@ class AnalysisClient:
         resp.raise_for_status()
         return resp.json()
 
+    def get_all_results(self):
+        resp = self.session.get(f"{self.base_url}{RESULTS_ALL_ROUTE}")
+        resp.raise_for_status()
+        return resp.json()
+
     def get_request_id_result(
         self,
         request_id: UUID,
@@ -202,11 +208,18 @@ if __name__ == "__main__":
 
     client = AnalysisClient()
 
-    client.submit("gaussian_fit", x=x, y=y)
+    for i in range(5):
+        id = client.submit("double", number=i)
+
+        print(id)
+
+        result = client.get_request_id_result(id)
+    # client.submit("gaussian_fit", x=x, y=y)
 
     # client.submit("beam_energy_to_wavelength", beam_energy=15)
 
-    print(client.get_result())
+    # for i in client.get_all_results():
+    #     print(i, "\n")
 
     # print(client.get_endpoints())
     # for i in client.list_analyses()[0:4]:

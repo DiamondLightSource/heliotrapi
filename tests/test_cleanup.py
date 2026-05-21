@@ -15,7 +15,6 @@ async def test_cleanup_results_removes_expired(monkeypatch):
     now = time.time() - 10
     fake_queue = FakeQueue()
     fake_queue.results = {uuid.uuid4(): (None, now)}  # type: ignore
-    fake_queue.all_jobs = {uuid.uuid4(): (None, now)}  # type: ignore
 
     async def fake_sleep(interval):
         raise asyncio.CancelledError
