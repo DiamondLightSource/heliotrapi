@@ -18,6 +18,9 @@ class QueueManager:
     def __init__(self, workers: int = 2, messenger: Messenger | None = None):
         self.queue: asyncio.Queue[AnalysisRequest] = asyncio.Queue(maxsize=0)  # 0 = inf
         self.results: dict[UUID, tuple[AnalysisResult, float]] = {}
+        self.all_jobs: dict[
+            UUID, tuple[AnalysisResult, float]
+        ] = {}  # Track all jobs (pending, running, completed, failed) with timestamps
         self.workers = workers
         self.latest_result: AnalysisResult | None = None
         self.messenger = messenger
@@ -27,6 +30,16 @@ class QueueManager:
     async def enqueue(self, job: AnalysisRequest):
         job.created_at = datetime.now()
         logger.info(job)
+        # Track the job immediately as running (pending)
+        pending_result = AnalysisResult(
+            request_id=job.request_id,
+            analysis_name=job.analysis_name,
+            status="running",
+            result=None,
+            created_at=job.created_at,
+            finished_at=None,
+        )
+        self.all_jobs[job.request_id] = (pending_result, time.time())
         await self.queue.put(job)
 
     async def worker(self):
@@ -67,5 +80,7 @@ class QueueManager:
                     )
 
             self.results[job.request_id] = (analysis_result, time.time())
+            # store in both results (for backward compatibility) and all_jobs
+            self.all_jobs[job.request_id] = (analysis_result, time.time())
             # store latest result
             self.latest_result = analysis_result

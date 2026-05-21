@@ -18,6 +18,8 @@ RESULT_LATEST_ROUTE = "/result/latest"
 RESULT_BY_ID_ROUTE = "/result/id/{request_id}"
 ENDPOINTS_ROUTE = "/endpoints"
 
+RESULTS_ALL_ROUTE = "/results/all"
+
 
 @ROUTER.get(HEALTH_ROUTE)
 async def health():
@@ -96,3 +98,13 @@ async def get_endpoints():
         for route in ROUTER.routes
         if isinstance(route, APIRoute)
     ]
+
+
+# New endpoint to return all jobs/results if enabled in config
+@ROUTER.get(RESULTS_ALL_ROUTE)
+async def get_all_results(request: Request):
+    queue: QueueManager = request.app.state.queue_manager
+    # Return all jobs (pending, running, completed, failed), sorted by created_at
+    results = [r[0] for r in queue.all_jobs.values()]
+    results.sort(key=lambda r: getattr(r, "created_at", None) or 0, reverse=True)
+    return results

@@ -21,5 +21,8 @@ async def cleanup_results(queue_manager, ttl: int, interval: int):
 
         for rid in expired:
             del queue_manager.results[rid]
+            # Also remove from all_jobs
+            if rid in queue_manager.all_jobs:
+                del queue_manager.all_jobs[rid]
 
         await asyncio.sleep(interval)

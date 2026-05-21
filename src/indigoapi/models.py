@@ -23,7 +23,7 @@ class AnalysisResult(AnalysisBaseModel):
     analysis_name: str
     result: Any
     created_at: datetime
-    finished_at: datetime
+    finished_at: datetime | None = None
 
 
 if __name__ == "__main__":

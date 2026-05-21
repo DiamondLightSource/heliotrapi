@@ -51,6 +51,11 @@ class PluginsConfig(BaseModel):
     register_all: bool = False
 
 
+# New config for web UI options
+class WebUIConfig(BaseModel):
+    hide_non_webui_jobs: bool = False
+
+
 class Config(BaseSettings):
     server: ServerConfig = ServerConfig()
     queue: QueueConfig = QueueConfig()
@@ -58,6 +63,7 @@ class Config(BaseSettings):
     cleanup: CleanupConfig = CleanupConfig()
     plugins: PluginsConfig = PluginsConfig()
     rabbitmq: RabbitMQConfig = RabbitMQConfig()
+    webui: WebUIConfig = WebUIConfig()
 
     model_config = SettingsConfigDict(
         env_nested_delimiter="__",

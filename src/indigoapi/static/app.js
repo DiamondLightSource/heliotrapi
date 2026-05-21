@@ -3,6 +3,13 @@ class AnalysisAPI {
         this.baseURL = baseURL || window.location.origin;
     }
 
+    // New: fetch all jobs if allowed by backend
+    async getAllResults() {
+        const response = await fetch(`${this.baseURL}/results/all`);
+        if (!response.ok) throw new Error('Not allowed or failed to fetch all results');
+        return response.json();
+    }
+
     async getAnalyses() {
         const response = await fetch(`${this.baseURL}/get_analyses`);
         if (!response.ok) throw new Error('Failed to fetch analyses');
@@ -62,8 +69,34 @@ class AnalysisUI {
 
         // Load analyses
         await this.loadAnalyses();
+
+        // Try to load all jobs from backend if allowed
+        let loadedFromBackend = false;
+        try {
+            const allResults = await this.api.getAllResults();
+            console.log('Loaded jobs from backend:', allResults);
+            if (Array.isArray(allResults) && allResults.length > 0) {
+                // Convert backend results to requestHistory format, handle missing fields gracefully
+                this.requestHistory = allResults.map(r => ({
+                    requestId: r.request_id || r.id || '',
+                    analysisName: r.analysis_name || r.name || 'Unknown',
+                    inputs: r.inputs || {},
+                    status: r.status || 'unknown',
+                    result: typeof r.result !== 'undefined' ? r.result : null,
+                    createdAt: r.created_at || r.createdAt || '',
+                    finishedAt: r.finished_at || r.finishedAt || ''
+                }));
+                this.renderResults();
+                loadedFromBackend = true;
+            }
+        } catch (e) {
+            console.error('Error loading jobs from backend:', e);
+            // Fallback to local storage if not allowed (403 or not implemented)
+        }
+        if (!loadedFromBackend) {
+            this.loadHistoryFromStorage();
+        }
         this.setupEventListeners();
-        this.loadHistoryFromStorage();
     }
 
     async loadAnalyses() {
@@ -372,30 +405,37 @@ class AnalysisUI {
     renderResults() {
         const container = document.getElementById('results-container');
 
-        if (this.requestHistory.length === 0) {
+        if (!Array.isArray(this.requestHistory) || this.requestHistory.length === 0) {
             container.innerHTML = '<div class="no-results">No analysis results yet</div>';
             return;
         }
 
-        container.innerHTML = this.requestHistory.map((entry, index) => `
-      <div class="result-item">
-        <div class="result-header">
-          <div>
-            <strong>${entry.analysisName}</strong>
-            <span class="status-badge status-${entry.status}">${entry.status}</span>
-            ${entry.status === 'running' ? '<span class="loading-spinner"></span>' : ''}
-          </div>
-          <button class="btn-danger" onclick="ui.deleteResult(${index})">Delete</button>
-        </div>
-        <div class="result-id">Request ID: ${entry.requestId}</div>
-        ${entry.inputs ? `<div class="result-content"><strong>Inputs:</strong> ${JSON.stringify(entry.inputs)}</div>` : ''}
-        ${entry.result !== null ? `<div class="result-content"><strong>Result:</strong> ${this.formatResult(entry.result)}</div>` : ''}
-        <div class="result-time">
-          ${entry.createdAt ? `Submitted: ${new Date(entry.createdAt).toLocaleString()}` : ''}
-          ${entry.finishedAt ? ` | Finished: ${new Date(entry.finishedAt).toLocaleString()}` : ''}
-        </div>
-      </div>
-    `).join('');
+        container.innerHTML = this.requestHistory.map((entry, index) => {
+            let statusHtml = `<span class="status-badge status-${entry.status}">${entry.status}</span>`;
+            if (entry.status === 'running') {
+                statusHtml += '<span class="loading-spinner"></span>';
+            } else if (entry.status === 'failed' || entry.status === 'error') {
+                statusHtml += ' <span class="error-message">Error</span>';
+            }
+            return `
+            <div class="result-item">
+                <div class="result-header">
+                    <div>
+                        <strong>${entry.analysisName || 'Unknown'}</strong>
+                        ${statusHtml}
+                    </div>
+                    <button class="btn-danger" onclick="ui.deleteResult(${index})">Delete</button>
+                </div>
+                <div class="result-id">Request ID: ${entry.requestId || ''}</div>
+                ${entry.inputs && Object.keys(entry.inputs).length > 0 ? `<div class="result-content"><strong>Inputs:</strong> ${JSON.stringify(entry.inputs)}</div>` : ''}
+                ${typeof entry.result !== 'undefined' && entry.result !== null ? `<div class="result-content"><strong>Result:</strong> ${this.formatResult(entry.result)}</div>` : ''}
+                <div class="result-time">
+                    ${entry.createdAt ? `Submitted: ${new Date(entry.createdAt).toLocaleString()}` : ''}
+                    ${entry.finishedAt ? ` | Finished: ${new Date(entry.finishedAt).toLocaleString()}` : ''}
+                </div>
+            </div>
+        `;
+        }).join('');
     }
 
     formatResult(result) {
