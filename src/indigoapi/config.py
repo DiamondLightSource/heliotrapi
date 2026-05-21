@@ -48,6 +48,7 @@ class CleanupConfig(BaseModel):
 class PluginsConfig(BaseModel):
     paths: list[str] = []
     github_repos: list[str] | None = []
+    register_all: bool = False
 
 
 class Config(BaseSettings):

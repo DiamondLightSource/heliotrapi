@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from xrpd_toolbox.utils.messenger import Messenger
 
-from indigoapi.analyses import MODULE_NAMES
+from indigoapi.analyses import MODULE_NAMES, initialize_analyses
 from indigoapi.api.routes import ROUTER
 from indigoapi.cleanup import cleanup_results
 from indigoapi.config import Config
@@ -83,6 +83,7 @@ async def lifespan(app: FastAPI):
 def start_api() -> FastAPI:
 
     logger = logging.getLogger(__name__)
+    initialize_analyses(register_all=config.plugins.register_all)
     logger.info(f"{MODULE_NAMES} have been loaded")
     logger.info(f"version: {__version__}")
 

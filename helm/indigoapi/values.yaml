@@ -60,6 +60,7 @@ config:
     paths:
       - ./plugins
     github_repos: []
+    register_all: True # whether to register all analyses found in plugins or only those decorated
   rabbitmq:
     enabled: true
     host: "ixx-rabbitmq-daq.diamond.ac.uk"

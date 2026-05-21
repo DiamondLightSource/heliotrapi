@@ -35,7 +35,7 @@ async def available_analyses() -> list[dict[str, Any]]:
             params.append(
                 {
                     "name": p.name,
-                    "default": p.default
+                    "default": repr(p.default)
                     if p.default != inspect.Parameter.empty
                     else None,
                     "annotation": str(p.annotation)
@@ -43,7 +43,18 @@ async def available_analyses() -> list[dict[str, Any]]:
                     else "Any",
                 }
             )
-        analyses_info.append({"name": name, "parameters": params})
+        return_annotation = (
+            str(sig.return_annotation)
+            if sig.return_annotation != inspect.Signature.empty
+            else "Any"
+        )
+        analyses_info.append(
+            {
+                "name": name,
+                "parameters": params,
+                "return_annotation": return_annotation,
+            }
+        )
     return analyses_info
 
 

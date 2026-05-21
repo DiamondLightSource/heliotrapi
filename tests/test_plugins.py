@@ -2,7 +2,11 @@ import numpy as np
 import pytest
 
 from indigoapi.analyses.peak_fitting import gaussian
-from indigoapi.analyses.registry import get_analysis, list_analyses
+from indigoapi.analyses.registry import (
+    AnalysisNotFoundError,
+    get_analysis,
+    list_analyses,
+)
 
 
 @pytest.mark.asyncio
@@ -63,5 +67,5 @@ async def test_async_with_gauss():
 @pytest.mark.asyncio
 async def test_invalid_analysis_name():
 
-    with pytest.raises(KeyError):
+    with pytest.raises(AnalysisNotFoundError):
         get_analysis("nonexistent")
