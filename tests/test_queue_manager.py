@@ -5,7 +5,7 @@ import pytest
 from xrpd_toolbox.utils.messenger import Messenger
 
 from indigoapi.models import AnalysisRequest
-from indigoapi.queue_manager import QueueManager
+from indigoapi.queue import QueueManager
 
 
 async def wait_for_result(queue_manager, request_id, timeout=1.0):
@@ -26,7 +26,7 @@ async def test_queue_manager_worker_success(monkeypatch):
         return number * 2
 
     monkeypatch.setattr(
-        "indigoapi.analyses.registry.get_analysis", lambda name: fake_analysis
+        "indigoapi.analysis_core.registry.get_analysis", lambda name: fake_analysis
     )
 
     job = AnalysisRequest(analysis_name="double", inputs={"number": 2})
@@ -60,7 +60,7 @@ async def test_queue_manager_worker_failure_sends_message(monkeypatch):
     )
 
     monkeypatch.setattr(
-        "indigoapi.analyses.registry.get_analysis",
+        "indigoapi.analysis_core.registry.get_analysis",
         lambda name: (_ for _ in ()).throw(KeyError("missing")),
     )
 

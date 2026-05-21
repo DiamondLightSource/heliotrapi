@@ -10,7 +10,7 @@ from typing import ParamSpec, TypeVar
 
 from git import Repo
 
-from indigoapi.analyses.registry import register_analysis
+from indigoapi.analysis_core.registry import register_analysis
 from indigoapi.config import Config
 
 logger = logging.getLogger(__name__)
@@ -127,7 +127,7 @@ def load_plugins(config: Config, register_all: bool = False):
 
 
 # if __name__ == "__main__":
-#     from indigoapi.analyses.registry import list_analyses
+#     from indigoapi.analysis_core.registry import list_analyses
 
 #     load_plugins(Config.load_config())
 

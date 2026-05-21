@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.optimize import curve_fit
 
-from indigoapi.analyses.decorator import analysis
+from indigoapi.analysis_core.decorator import analysis
 
 
 def gaussian(x: np.ndarray, amplitude: float, x0: float, sigma: float) -> np.ndarray:

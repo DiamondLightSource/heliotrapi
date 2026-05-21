@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from indigoapi.analyses.peak_fitting import gaussian
-from indigoapi.analyses.registry import (
+from indigoapi.analysis_core.registry import (
     AnalysisNotFoundError,
     get_analysis,
     list_analyses,

@@ -5,9 +5,9 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.routing import APIRoute
 
-from indigoapi.analyses.registry import get_analysis, list_analyses
+from indigoapi.analysis_core.registry import get_analysis, list_analyses
 from indigoapi.models import AnalysisRequest, AnalysisResult
-from indigoapi.queue_manager import QueueManager
+from indigoapi.queue import QueueManager
 
 ROUTER = APIRouter()
 

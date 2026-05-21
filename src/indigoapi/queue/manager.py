@@ -6,7 +6,7 @@ from uuid import UUID
 
 from xrpd_toolbox.utils.messenger import DEFAULT_DII_PROCESSED_DESTINATION, Messenger
 
-from indigoapi.analyses.registry import get_analysis
+from indigoapi.analysis_core.registry import get_analysis
 from indigoapi.models import AnalysisRequest, AnalysisResult
 
 logging.basicConfig(level=logging.INFO)

@@ -7,12 +7,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from xrpd_toolbox.utils.messenger import Messenger
 
-from indigoapi.analyses import MODULE_NAMES, initialize_analyses
+from indigoapi.analysis_core import MODULE_NAMES, initialize_analyses
 from indigoapi.api.routes import ROUTER
-from indigoapi.cleanup import cleanup_results
 from indigoapi.config import Config
-from indigoapi.queue_manager import QueueManager
-from indigoapi.rabbitmq_listener import RabbitMQListener
+from indigoapi.queue import QueueManager, RabbitMQListener, cleanup_results
 
 from . import __version__
 
@@ -88,7 +86,7 @@ def start_api() -> FastAPI:
     logger.info(f"version: {__version__}")
 
     app = FastAPI(
-        title="IndigoAPI",
+        title="indigoapi",
         version=__version__,
         description="An API for fast data analysis jobs",
         lifespan=lifespan,
