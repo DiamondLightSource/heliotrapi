@@ -17,7 +17,7 @@ from indigoapi.api.routes import (
     RESULT_LATEST_ROUTE,
 )
 from indigoapi.models import AnalysisRequest, AnalysisResult
-from indigoapi.serialisers import serialise
+from indigoapi.utils.serialisers import serialise
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
