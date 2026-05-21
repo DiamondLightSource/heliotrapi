@@ -1,10 +1,15 @@
-import importlib
 import logging
 from collections.abc import Callable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
-ANALYSIS_REGISTRY = {}
+
+class AnalysisNotFoundError(Exception):
+    """Raised when a requested analysis cannot be found or imported."""
+
+
+ANALYSIS_REGISTRY: dict[str, Callable[..., Any]] = {}
 
 
 def register_analysis(name: str, fn: Callable) -> None:
@@ -15,20 +20,12 @@ def register_analysis(name: str, fn: Callable) -> None:
 
 
 def list_analyses() -> list[str]:
-
     return list(ANALYSIS_REGISTRY.keys())
 
 
 def get_analysis(name: str) -> Callable:
     if name not in ANALYSIS_REGISTRY:
-        try:
-            mod = importlib.import_module(f"indigoapi.analyses.{name}")
-            func = getattr(mod, name)
-            ANALYSIS_REGISTRY[name] = func
-        except Exception as e:
-            print(f"Unknown analysis '{name}': {e}")
-            print("Available analyses:")
-            for analysis in list_analyses():
-                print(analysis)
+        msg = f"Unknown analysis '{name}': analysis not found"
+        raise AnalysisNotFoundError(msg)
 
     return ANALYSIS_REGISTRY[name]

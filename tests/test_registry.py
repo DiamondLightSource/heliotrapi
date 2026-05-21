@@ -1,5 +1,4 @@
 import asyncio
-from types import SimpleNamespace
 
 import pytest
 
@@ -34,28 +33,6 @@ def test_registry_register_duplicate_raises():
         register_analysis("duplicate_test", lambda x: x)
         with pytest.raises(ValueError):
             register_analysis("duplicate_test", lambda x: x)
-    finally:
-        ANALYSIS_REGISTRY.clear()
-        ANALYSIS_REGISTRY.update(original_registry)
-
-
-def test_registry_imports_missing_module(monkeypatch):
-    original_registry = ANALYSIS_REGISTRY.copy()
-    if "double" in ANALYSIS_REGISTRY:
-        del ANALYSIS_REGISTRY["double"]
-
-    def fake_import(module_name):
-        return SimpleNamespace(double=lambda x: x * 2)
-
-    monkeypatch.setattr(
-        "indigoapi.analyses.registry.importlib.import_module",
-        fake_import,
-    )
-
-    try:
-        fn = get_analysis("double")
-        assert callable(fn)
-        assert fn(3) == 6
     finally:
         ANALYSIS_REGISTRY.clear()
         ANALYSIS_REGISTRY.update(original_registry)

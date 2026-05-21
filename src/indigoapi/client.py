@@ -226,6 +226,6 @@ if __name__ == "__main__":
 
     print(client.get_result())
 
-    print(client.get_endpoints())
-    for i in client.list_analyses()[0:4]:
-        print(i)
+    # print(client.get_endpoints())
+    # for i in client.list_analyses()[0:4]:
+    #     print(i)
