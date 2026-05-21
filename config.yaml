@@ -16,7 +16,7 @@ plugins:
     - ./plugins # local folder for plugins
   github_repos: # list of Https GitHub repos with analysis code (ending with .git)
     - https://github.com/DiamondLightSource/xrpd-toolbox.git
-  register_all: True # whether to register all analyses found in plugins or only those decorated
+  register_all: False # whether to register all analyses found in plugins or only those decorated
 rabbitmq:
   enabled: True
   host: "i15-1-rabbitmq-daq.diamond.ac.uk"

@@ -1,5 +1,8 @@
 import importlib
+import logging
 from collections.abc import Callable
+
+logger = logging.getLogger(__name__)
 
 ANALYSIS_REGISTRY = {}
 
@@ -8,6 +11,7 @@ def register_analysis(name: str, fn: Callable) -> None:
     if name in ANALYSIS_REGISTRY:
         raise ValueError(f"Analysis '{name}' already registered")
     ANALYSIS_REGISTRY[name] = fn
+    logger.info(f"Registered analysis: {name}")
 
 
 def list_analyses() -> list[str]:

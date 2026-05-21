@@ -39,10 +39,36 @@ class AnalysisClient:
         self.latest_request_id: UUID | None = None
         self.session = session or requests.Session()
 
-    def list_analyses(self) -> list[dict[str, Any]]:
+    def list_analyses(
+        self, as_strings: bool = True
+    ) -> list[dict[str, Any]] | list[str]:
         resp = self.session.get(f"{self.base_url}{ANALYSES_ROUTE}")
         resp.raise_for_status()
-        return resp.json()
+        analyses = resp.json()
+        if as_strings:
+            return [self._format_analysis_signature(analysis) for analysis in analyses]
+        return analyses
+
+    def _format_analysis_signature(self, analysis: dict[str, Any]) -> str:
+        params = []
+        for param in analysis.get("parameters", []):
+            param_str = f"{param['name']}: {param['annotation']}"
+            if param.get("default") is not None:
+                param_str += f" = {param['default']}"
+            params.append(param_str)
+
+        return_annotation = analysis.get("return_annotation", "Any")
+        if params:
+            params_block = ",\n        ".join(params)
+            signature = (
+                f"{analysis['name']}(\n"
+                f"        {params_block},\n"
+                f"    ) -> {return_annotation}:"
+            )
+        else:
+            signature = f"{analysis['name']}() -> {return_annotation}:"
+
+        return signature
 
     def health(self) -> dict[str, Any]:
         resp = self.session.get(f"{self.base_url}{HEALTH_ROUTE}")
@@ -201,5 +227,5 @@ if __name__ == "__main__":
     print(client.get_result())
 
     print(client.get_endpoints())
-    for i in client.list_analyses():
+    for i in client.list_analyses()[0:4]:
         print(i)
