@@ -17,6 +17,7 @@ from indigoapi.api.routes import (
     RESULT_LATEST_ROUTE,
 )
 from indigoapi.models import AnalysisRequest, AnalysisResult
+from indigoapi.serialisers import serialise
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -75,25 +76,6 @@ class AnalysisClient:
         resp.raise_for_status()
         return resp.json()
 
-    def _convert_to_serialisable(self, obj: Any) -> Any:
-
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-
-        if isinstance(obj, np.integer):
-            return int(obj)
-
-        if isinstance(obj, np.floating):
-            return float(obj)
-
-        if isinstance(obj, dict):
-            return {k: self._convert_to_serialisable(v) for k, v in obj.items()}
-
-        if isinstance(obj, (list, tuple, set)):
-            return [self._convert_to_serialisable(v) for v in obj]
-
-        return obj
-
     def submit(self, analysis: str | Callable, **inputs: Any) -> UUID:
         """
         Submit an analysis job.
@@ -102,7 +84,7 @@ class AnalysisClient:
         client.submit("gaussian_fit", x=x, y=y)
         """
 
-        inputs = self._convert_to_serialisable(inputs)
+        inputs = serialise(inputs)
 
         analysis_name = (
             analysis.__name__ if isinstance(analysis, Callable) else analysis
@@ -220,9 +202,9 @@ if __name__ == "__main__":
 
     client = AnalysisClient()
 
-    # client.submit(gaussian_fit.__name__, x=x, y=y)
+    client.submit("gaussian_fit", x=x, y=y)
 
-    client.submit("beam_energy_to_wavelength", beam_energy=15)
+    # client.submit("beam_energy_to_wavelength", beam_energy=15)
 
     print(client.get_result())
 

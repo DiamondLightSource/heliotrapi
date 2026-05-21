@@ -8,6 +8,7 @@ from xrpd_toolbox.utils.messenger import DEFAULT_DII_PROCESSED_DESTINATION, Mess
 
 from indigoapi.analysis_core.registry import get_analysis
 from indigoapi.models import AnalysisRequest, AnalysisResult
+from indigoapi.serialisers import serialise
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -36,6 +37,9 @@ class QueueManager:
                 analysis_fn = get_analysis(job.analysis_name)
 
                 result_value = await analysis_fn(**job.inputs)
+
+                # Convert numpy and other non-JSON-serializable types
+                result_value = serialise(result_value)
 
                 analysis_result = AnalysisResult(
                     request_id=job.request_id,

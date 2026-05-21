@@ -6,12 +6,12 @@ import pytest
 
 from indigoapi.client import AnalysisClient
 from indigoapi.models import AnalysisResult
+from indigoapi.serialisers import serialise
 
 
-def test_client_convert_to_serialisable():
-    client = AnalysisClient(session=Mock())
+def test_serialise():
 
-    converted = client._convert_to_serialisable(
+    converted = serialise(
         {
             "x": np.array([1, 2]),
             "n": np.int64(3),
