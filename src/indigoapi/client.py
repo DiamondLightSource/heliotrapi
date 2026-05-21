@@ -210,16 +210,13 @@ if __name__ == "__main__":
 
     for i in range(5):
         id = client.submit("double", number=i)
-
-        print(id)
-
         result = client.get_request_id_result(id)
     # client.submit("gaussian_fit", x=x, y=y)
 
     # client.submit("beam_energy_to_wavelength", beam_energy=15)
 
-    # for i in client.get_all_results():
-    #     print(i, "\n")
+    for i in client.get_all_results():
+        print(i, "\n")
 
     # print(client.get_endpoints())
     # for i in client.list_analyses()[0:4]:
