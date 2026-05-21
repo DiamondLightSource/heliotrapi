@@ -3,8 +3,10 @@ import importlib
 import inspect
 import logging
 import pkgutil
+from collections.abc import Awaitable, Callable
 from functools import wraps
 from pathlib import Path
+from typing import ParamSpec, TypeVar
 
 from git import Repo
 
@@ -25,12 +27,16 @@ def load_analyses(package):
     return module_names
 
 
-def get_async_function(func):
+P = ParamSpec("P")
+R = TypeVar("R")
+
+
+def get_async_function(func: Callable[P, R]) -> Callable[P, Awaitable[R]]:
     if inspect.iscoroutinefunction(func):
-        return func
+        return func  # type: ignore[return-value]
 
     @wraps(func)
-    async def async_fn(*args, **kwargs):
+    async def async_fn(*args: P.args, **kwargs: P.kwargs) -> R:
         return await asyncio.to_thread(func, *args, **kwargs)
 
     return async_fn

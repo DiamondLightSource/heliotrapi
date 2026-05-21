@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from indigoapi.client import AnalysisClient
+from indigoapi.models import AnalysisResult
 
 
 def test_client_convert_to_serialisable():
@@ -119,3 +120,49 @@ def test_client_list_analyses_as_strings():
     assert isinstance(signatures[0], str)
     assert signatures[0].startswith("gaussian_fit(\n")
     assert "-> AnalysisResult:" in signatures[0]
+
+
+def test_client_get_result_success():
+    response = Mock()
+    response.raise_for_status = Mock()
+    response.json.return_value = {
+        "request_id": str(uuid.uuid4()),
+        "analysis_name": "double",
+        "status": "completed",
+        "result": 4,
+        "created_at": "2024-01-01T00:00:00",
+        "finished_at": "2024-01-01T00:00:01",
+    }
+
+    session = Mock()
+    session.get.return_value = response
+
+    client = AnalysisClient(session=session)
+    result = client.get_result(timeout=0.5, poll_interval=0.01)
+
+    assert isinstance(result, AnalysisResult)
+    assert result.analysis_name == "double"
+
+
+def test_client_get_last_submitted_result():
+    request_id = uuid.uuid4()
+    response = Mock()
+    response.raise_for_status = Mock()
+    response.json.return_value = {
+        "request_id": str(request_id),
+        "analysis_name": "double",
+        "status": "completed",
+        "result": 4,
+        "created_at": "2024-01-01T00:00:00",
+        "finished_at": "2024-01-01T00:00:01",
+    }
+
+    session = Mock()
+    session.get.return_value = response
+
+    client = AnalysisClient(session=session)
+    client.latest_request_id = request_id
+    result = client.get_last_submitted_result(timeout=0.5, poll_interval=0.01)
+
+    assert isinstance(result, AnalysisResult)
+    assert result.request_id == request_id
