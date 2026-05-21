@@ -8,7 +8,7 @@ from xrpd_toolbox.utils.messenger import DEFAULT_DII_PROCESSED_DESTINATION, Mess
 
 from indigoapi.analysis_core.registry import get_analysis
 from indigoapi.models import AnalysisRequest, AnalysisResult
-from indigoapi.serialisers import serialise
+from indigoapi.utils.serialisers import serialise
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

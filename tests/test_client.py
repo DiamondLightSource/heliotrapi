@@ -6,7 +6,7 @@ import pytest
 
 from indigoapi.client import AnalysisClient
 from indigoapi.models import AnalysisResult
-from indigoapi.serialisers import serialise
+from indigoapi.utils.serialisers import serialise
 
 
 def test_serialise():
