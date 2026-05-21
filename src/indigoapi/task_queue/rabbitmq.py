@@ -9,7 +9,7 @@ import stomp
 from pydantic import BaseModel, Field
 
 from indigoapi.models import AnalysisRequest
-from indigoapi.queue import QueueManager
+from indigoapi.task_queue import QueueManager
 
 logger = logging.getLogger(__name__)
 

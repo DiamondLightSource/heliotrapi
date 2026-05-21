@@ -7,8 +7,8 @@ from unittest.mock import Mock
 import pytest
 
 from indigoapi.models import AnalysisRequest
-from indigoapi.queue import QueueManager
-from indigoapi.queue.rabbitmq import _StompListener
+from indigoapi.task_queue import QueueManager
+from indigoapi.task_queue.rabbitmq import _StompListener
 
 
 @pytest.mark.filterwarnings("ignore::ResourceWarning")

@@ -10,7 +10,7 @@ from xrpd_toolbox.utils.messenger import Messenger
 from indigoapi.analysis_core import MODULE_NAMES, initialize_analyses
 from indigoapi.api.routes import ROUTER
 from indigoapi.config import Config
-from indigoapi.queue import QueueManager, RabbitMQListener, cleanup_results
+from indigoapi.task_queue import QueueManager, RabbitMQListener, cleanup_results
 
 from . import __version__
 

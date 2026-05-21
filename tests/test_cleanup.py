@@ -4,7 +4,7 @@ import uuid
 
 import pytest
 
-from indigoapi.queue import cleanup_results
+from indigoapi.task_queue import cleanup_results
 
 
 @pytest.mark.asyncio

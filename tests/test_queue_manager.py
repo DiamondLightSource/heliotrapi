@@ -5,7 +5,7 @@ import pytest
 from xrpd_toolbox.utils.messenger import Messenger
 
 from indigoapi.models import AnalysisRequest
-from indigoapi.queue import QueueManager
+from indigoapi.task_queue import QueueManager
 
 
 async def wait_for_result(queue_manager, request_id, timeout=1.0):
