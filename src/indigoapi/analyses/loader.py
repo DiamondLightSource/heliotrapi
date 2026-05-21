@@ -126,9 +126,9 @@ def load_plugins(config: Config, register_all: bool = False):
                 logger.error(f"Unable to load {repo}: {e}")
 
 
-if __name__ == "__main__":
-    from indigoapi.analyses.registry import list_analyses
+# if __name__ == "__main__":
+#     from indigoapi.analyses.registry import list_analyses
 
-    load_plugins(Config.load_config())
+#     load_plugins(Config.load_config())
 
-    print(list_analyses()[0:4])
+#     print(list_analyses()[0:4])
