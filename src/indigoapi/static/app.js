@@ -1,3 +1,5 @@
+const REFRESH_INTERVAL_MS = 5000; // Configurable refresh interval
+
 class AnalysisAPI {
     constructor(baseURL = '') {
         this.baseURL = baseURL || window.location.origin;
@@ -25,24 +27,28 @@ class AnalysisAPI {
                 inputs: inputs
             })
         });
+
         if (!response.ok) throw new Error('Failed to submit analysis');
         return response.json();
     }
 
     async getResult(requestId) {
         const response = await fetch(`${this.baseURL}/result/id/${requestId}`);
+
         if (!response.ok) throw new Error('Result not found');
         return response.json();
     }
 
     async getLatestResult() {
         const response = await fetch(`${this.baseURL}/result/latest`);
+
         if (!response.ok) throw new Error('No results available');
         return response.json();
     }
 
     async getHealth() {
         const response = await fetch(`${this.baseURL}/health`);
+
         if (!response.ok) throw new Error('API not available');
         return response.json();
     }
@@ -55,6 +61,7 @@ class AnalysisUI {
         this.selectedAnalysis = null;
         this.requestHistory = [];
         this.pollIntervals = new Map();
+
         this.init();
     }
 
@@ -72,11 +79,14 @@ class AnalysisUI {
 
         // Try to load all jobs from backend if allowed
         let loadedFromBackend = false;
+
         try {
             const allResults = await this.api.getAllResults();
+
             console.log('Loaded jobs from backend:', allResults);
+
             if (Array.isArray(allResults) && allResults.length > 0) {
-                // Convert backend results to requestHistory format, handle missing fields gracefully
+                // Convert backend results to requestHistory format
                 this.requestHistory = allResults.map(r => ({
                     requestId: r.request_id || r.id || '',
                     analysisName: r.analysis_name || r.name || 'Unknown',
@@ -86,16 +96,20 @@ class AnalysisUI {
                     createdAt: r.created_at || r.createdAt || '',
                     finishedAt: r.finished_at || r.finishedAt || ''
                 }));
+
                 this.renderResults();
                 loadedFromBackend = true;
             }
         } catch (e) {
             console.error('Error loading jobs from backend:', e);
-            // Fallback to local storage if not allowed (403 or not implemented)
+
+            // Fallback to local storage if not allowed
         }
+
         if (!loadedFromBackend) {
             this.loadHistoryFromStorage();
         }
+
         this.setupEventListeners();
     }
 
@@ -110,6 +124,7 @@ class AnalysisUI {
 
     renderAnalysesList() {
         const list = document.getElementById('analyses-list');
+
         list.innerHTML = '';
 
         if (this.analyses.length === 0) {
@@ -117,9 +132,11 @@ class AnalysisUI {
             return;
         }
 
-        this.analyses.forEach((analysis, index) => {
+        this.analyses.forEach((analysis) => {
             const item = document.createElement('div');
+
             item.className = 'analysis-item';
+
             if (this.selectedAnalysis?.name === analysis.name) {
                 item.classList.add('selected');
             }
@@ -129,78 +146,105 @@ class AnalysisUI {
                 .join(', ');
 
             item.innerHTML = `
-        <div class="analysis-item-name">${analysis.name}</div>
-        <div class="analysis-item-params">${paramsText || 'No parameters'}</div>
-      `;
+                <div class="analysis-item-name">${analysis.name}</div>
+                <div class="analysis-item-params">${paramsText || 'No parameters'}</div>
+            `;
 
             item.addEventListener('click', () => this.selectAnalysis(analysis));
+
             list.appendChild(item);
         });
     }
 
     selectAnalysis(analysis) {
         this.selectedAnalysis = analysis;
+
         this.renderAnalysesList();
         this.renderInputForm();
     }
 
     renderInputForm() {
         const form = document.getElementById('dynamic-inputs');
+
         form.innerHTML = '';
 
         if (!this.selectedAnalysis) {
-            form.innerHTML = '<div class="info-message">Select an analysis to view its parameters</div>';
+            form.innerHTML =
+                '<div class="info-message">Select an analysis to view its parameters</div>';
             return;
         }
 
         const params = this.selectedAnalysis.parameters;
+
         if (params.length === 0) {
-            form.innerHTML = '<div class="info-message">This analysis has no parameters</div>';
+            form.innerHTML =
+                '<div class="info-message">This analysis has no parameters</div>';
             return;
         }
 
         params.forEach(param => {
             const group = document.createElement('div');
+
             group.className = 'form-group';
 
             const label = document.createElement('label');
             label.textContent = param.name;
 
             const inputType = this.getUIInputType(param.annotation);
+
             let input;
 
             if (inputType === 'textarea') {
-                // Multi-value input (array/list)
                 input = document.createElement('textarea');
-                input.placeholder = `Enter values (comma-separated or JSON array):\ne.g., [1.0, 2.5, 3.7, 4.2]`;
+
+                input.placeholder =
+                    `Enter values (comma-separated or JSON array):\n` +
+                    `e.g., [1.0, 2.5, 3.7, 4.2]`;
+
                 input.className = 'array-input';
                 input.rows = 4;
+
             } else if (inputType === 'checkbox') {
+
                 input = document.createElement('input');
+
                 input.type = 'checkbox';
                 input.className = 'checkbox-input';
+
             } else if (inputType === 'json') {
-                // JSON input for complex types
+
                 input = document.createElement('textarea');
-                input.placeholder = `Enter JSON value:\ne.g., {"key": "value"}`;
+
+                input.placeholder =
+                    `Enter JSON value:\n` +
+                    `e.g., {"key": "value"}`;
+
                 input.className = 'json-input';
                 input.rows = 3;
+
             } else {
+
                 input = document.createElement('input');
+
                 input.type = inputType;
-                input.placeholder = param.default ? `Default: ${param.default}` : `Enter ${param.name}`;
+
+                input.placeholder = param.default
+                    ? `Default: ${param.default}`
+                    : `Enter ${param.name}`;
             }
 
             input.id = `param-${param.name}`;
             input.dataset.type = param.annotation;
 
             const typeHint = document.createElement('div');
+
             typeHint.className = 'parameter-type';
             typeHint.textContent = `Type: ${param.annotation}`;
 
             group.appendChild(label);
             group.appendChild(input);
             group.appendChild(typeHint);
+
             form.appendChild(group);
         });
     }
@@ -209,18 +253,27 @@ class AnalysisUI {
         const ann = annotation.toLowerCase();
 
         // Check for list/array types
-        if (ann.includes('list') || ann.includes('sequence') || ann.includes('ndarray') || ann.includes('array')) {
+        if (
+            ann.includes('list') ||
+            ann.includes('sequence') ||
+            ann.includes('ndarray') ||
+            ann.includes('array')
+        ) {
             return 'textarea';
         }
 
-        // Check for primitive types
+        // Primitive types
         if (ann.includes('int')) return 'number';
         if (ann.includes('float')) return 'number';
         if (ann.includes('bool')) return 'checkbox';
         if (ann.includes('str')) return 'text';
 
-        // For complex types (Any, dict, object, etc.) use JSON
-        if (ann.includes('dict') || ann.includes('any') || ann.includes('object')) {
+        // Complex types
+        if (
+            ann.includes('dict') ||
+            ann.includes('any') ||
+            ann.includes('object')
+        ) {
             return 'json';
         }
 
@@ -228,11 +281,16 @@ class AnalysisUI {
     }
 
     setupEventListeners() {
-        document.getElementById('submit-btn').addEventListener('click', () => this.submitAnalysis());
-        document.getElementById('clear-btn').addEventListener('click', () => this.clearHistory());
+        document
+            .getElementById('submit-btn')
+            .addEventListener('click', () => this.submitAnalysis());
 
-        // Poll for results every 2 seconds
-        setInterval(() => this.pollForUpdates(), 2000);
+        document
+            .getElementById('clear-btn')
+            .addEventListener('click', () => this.clearHistory());
+
+        // Refresh every N seconds
+        setInterval(() => this.pollForUpdates(), REFRESH_INTERVAL_MS);
     }
 
     async submitAnalysis() {
@@ -242,16 +300,25 @@ class AnalysisUI {
         }
 
         const inputs = this.gatherInputs();
+
         if (!inputs) return;
 
         const submitBtn = document.getElementById('submit-btn');
+
         const originalText = submitBtn.textContent;
+
         submitBtn.disabled = true;
         submitBtn.textContent = 'Submitting...';
 
         try {
-            const result = await this.api.submitAnalysis(this.selectedAnalysis.name, inputs);
-            this.showSuccess(`Analysis submitted! Request ID: ${result.request_id}`);
+            const result = await this.api.submitAnalysis(
+                this.selectedAnalysis.name,
+                inputs
+            );
+
+            this.showSuccess(
+                `Analysis submitted! Request ID: ${result.request_id}`
+            );
 
             const requestEntry = {
                 requestId: result.request_id,
@@ -263,12 +330,20 @@ class AnalysisUI {
             };
 
             this.requestHistory.unshift(requestEntry);
+
             this.saveHistoryToStorage();
             this.renderResults();
+
             this.startPollingForResult(result.request_id);
+
         } catch (error) {
-            this.showError('Failed to submit analysis: ' + error.message);
+
+            this.showError(
+                'Failed to submit analysis: ' + error.message
+            );
+
         } finally {
+
             submitBtn.disabled = false;
             submitBtn.textContent = originalText;
         }
@@ -280,12 +355,14 @@ class AnalysisUI {
 
         for (const param of params) {
             const input = document.getElementById(`param-${param.name}`);
+
             if (!input) continue;
 
             let value;
+
             const ann = param.annotation.toLowerCase();
 
-            // Handle checkbox specially
+            // Checkbox
             if (input.type === 'checkbox') {
                 value = input.checked;
             } else {
@@ -297,36 +374,59 @@ class AnalysisUI {
                 return null;
             }
 
-            // Convert to appropriate type
-            if (ann.includes('list') || ann.includes('sequence') || ann.includes('ndarray') || ann.includes('array')) {
-                // Parse array/list inputs
+            // Convert type
+            if (
+                ann.includes('list') ||
+                ann.includes('sequence') ||
+                ann.includes('ndarray') ||
+                ann.includes('array')
+            ) {
+
                 value = this.parseArrayInput(value, ann);
+
                 if (value === null) {
-                    this.showError(`Invalid array format for ${param.name}. Use comma-separated values or JSON format.`);
+                    this.showError(
+                        `Invalid array format for ${param.name}.`
+                    );
                     return null;
                 }
+
             } else if (ann.includes('int')) {
+
                 value = parseInt(value, 10);
+
                 if (isNaN(value)) {
                     this.showError(`${param.name} must be a valid integer`);
                     return null;
                 }
+
             } else if (ann.includes('float')) {
+
                 value = parseFloat(value);
+
                 if (isNaN(value)) {
                     this.showError(`${param.name} must be a valid number`);
                     return null;
                 }
-            } else if (ann.includes('dict') || ann.includes('object') || (ann.includes('any') && input.classList.contains('json-input'))) {
-                // Parse JSON input
+
+            } else if (
+                ann.includes('dict') ||
+                ann.includes('object') ||
+                (
+                    ann.includes('any') &&
+                    input.classList.contains('json-input')
+                )
+            ) {
+
                 try {
                     value = JSON.parse(value);
                 } catch (e) {
-                    this.showError(`${param.name} must be valid JSON: ${e.message}`);
+                    this.showError(
+                        `${param.name} must be valid JSON: ${e.message}`
+                    );
                     return null;
                 }
             }
-            // String and bool are already in correct format
 
             inputs[param.name] = value;
         }
@@ -335,18 +435,24 @@ class AnalysisUI {
     }
 
     parseArrayInput(value, annotation) {
-        // Try to parse as JSON first
+        // Try JSON first
         try {
             const parsed = JSON.parse(value);
+
             if (Array.isArray(parsed)) {
                 return this.convertArrayElements(parsed, annotation);
             }
+
         } catch (e) {
-            // Not JSON, try comma-separated
+            // Ignore
         }
 
-        // Parse as comma-separated values
-        const values = value.split(',').map(v => v.trim()).filter(v => v.length > 0);
+        // Fallback to comma-separated
+        const values = value
+            .split(',')
+            .map(v => v.trim())
+            .filter(v => v.length > 0);
+
         if (values.length === 0) return null;
 
         return this.convertArrayElements(values, annotation);
@@ -355,14 +461,15 @@ class AnalysisUI {
     convertArrayElements(arr, annotation) {
         const ann = annotation.toLowerCase();
 
-        // Determine element type from annotation
         let elementType = 'string';
+
         if (ann.includes('int')) elementType = 'int';
         else if (ann.includes('float')) elementType = 'float';
 
         return arr.map(v => {
             if (elementType === 'int') return parseInt(v, 10);
             if (elementType === 'float') return parseFloat(v);
+
             return String(v);
         });
     }
@@ -373,11 +480,16 @@ class AnalysisUI {
         const interval = setInterval(async () => {
             try {
                 const result = await this.api.getResult(requestId);
-                const entry = this.requestHistory.find(r => r.requestId === requestId);
+
+                const entry = this.requestHistory.find(
+                    r => r.requestId === requestId
+                );
+
                 if (entry) {
                     entry.status = result.status;
                     entry.result = result.result;
                     entry.finishedAt = result.finished_at;
+
                     this.saveHistoryToStorage();
                     this.renderResults();
 
@@ -386,55 +498,138 @@ class AnalysisUI {
                         this.pollIntervals.delete(requestId);
                     }
                 }
+
             } catch (error) {
-                // Still waiting for result
+                // Still waiting
             }
-        }, 2000);
+
+        }, REFRESH_INTERVAL_MS);
 
         this.pollIntervals.set(requestId, interval);
     }
 
-    pollForUpdates() {
-        this.requestHistory.forEach(entry => {
-            if (entry.status === 'running') {
-                this.startPollingForResult(entry.requestId);
+    async pollForUpdates() {
+        try {
+            // Reload all results from backend
+            const allResults = await this.api.getAllResults();
+
+            if (Array.isArray(allResults)) {
+                this.requestHistory = allResults.map(r => ({
+                    requestId: r.request_id || r.id || '',
+                    analysisName: r.analysis_name || r.name || 'Unknown',
+                    inputs: r.inputs || {},
+                    status: r.status || 'unknown',
+                    result: typeof r.result !== 'undefined' ? r.result : null,
+                    createdAt: r.created_at || r.createdAt || '',
+                    finishedAt: r.finished_at || r.finishedAt || ''
+                }));
+
+                this.saveHistoryToStorage();
+                this.renderResults();
             }
-        });
+
+        } catch (error) {
+            console.error('Auto-refresh failed:', error);
+
+            // Fallback:
+            // continue polling local running jobs
+            this.requestHistory.forEach(entry => {
+                if (entry.status === 'running') {
+                    this.startPollingForResult(entry.requestId);
+                }
+            });
+        }
     }
 
     renderResults() {
         const container = document.getElementById('results-container');
 
-        if (!Array.isArray(this.requestHistory) || this.requestHistory.length === 0) {
-            container.innerHTML = '<div class="no-results">No analysis results yet</div>';
+        if (
+            !Array.isArray(this.requestHistory) ||
+            this.requestHistory.length === 0
+        ) {
+            container.innerHTML =
+                '<div class="no-results">No analysis results yet</div>';
+
             return;
         }
 
         container.innerHTML = this.requestHistory.map((entry, index) => {
-            let statusHtml = `<span class="status-badge status-${entry.status}">${entry.status}</span>`;
+
+            let statusHtml =
+                `<span class="status-badge status-${entry.status}">` +
+                `${entry.status}</span>`;
+
             if (entry.status === 'running') {
                 statusHtml += '<span class="loading-spinner"></span>';
-            } else if (entry.status === 'failed' || entry.status === 'error') {
-                statusHtml += ' <span class="error-message">Error</span>';
+
+            } else if (
+                entry.status === 'failed' ||
+                entry.status === 'error'
+            ) {
+                statusHtml +=
+                    ' <span class="error-message">Error</span>';
             }
+
             return `
-            <div class="result-item">
-                <div class="result-header">
-                    <div>
-                        <strong>${entry.analysisName || 'Unknown'}</strong>
-                        ${statusHtml}
+                <div class="result-item">
+                    <div class="result-header">
+                        <div>
+                            <strong>${entry.analysisName || 'Unknown'}</strong>
+                            ${statusHtml}
+                        </div>
+
+                        <button
+                            class="btn-danger"
+                            onclick="ui.deleteResult(${index})"
+                        >
+                            Delete
+                        </button>
                     </div>
-                    <button class="btn-danger" onclick="ui.deleteResult(${index})">Delete</button>
+
+                    <div class="result-id">
+                        Request ID: ${entry.requestId || ''}
+                    </div>
+
+                    ${entry.inputs &&
+                    Object.keys(entry.inputs).length > 0
+                    ? `
+                                <div class="result-content">
+                                    <strong>Inputs:</strong>
+                                    ${JSON.stringify(entry.inputs)}
+                                </div>
+                              `
+                    : ''
+                }
+
+                    ${typeof entry.result !== 'undefined' &&
+                    entry.result !== null
+                    ? `
+                                <div class="result-content">
+                                    <strong>Result:</strong>
+                                    ${this.formatResult(entry.result)}
+                                </div>
+                              `
+                    : ''
+                }
+
+                    <div class="result-time">
+                        ${entry.createdAt
+                    ? `Submitted: ${new Date(
+                        entry.createdAt
+                    ).toLocaleString()}`
+                    : ''
+                }
+
+                        ${entry.finishedAt
+                    ? ` | Finished: ${new Date(
+                        entry.finishedAt
+                    ).toLocaleString()}`
+                    : ''
+                }
+                    </div>
                 </div>
-                <div class="result-id">Request ID: ${entry.requestId || ''}</div>
-                ${entry.inputs && Object.keys(entry.inputs).length > 0 ? `<div class="result-content"><strong>Inputs:</strong> ${JSON.stringify(entry.inputs)}</div>` : ''}
-                ${typeof entry.result !== 'undefined' && entry.result !== null ? `<div class="result-content"><strong>Result:</strong> ${this.formatResult(entry.result)}</div>` : ''}
-                <div class="result-time">
-                    ${entry.createdAt ? `Submitted: ${new Date(entry.createdAt).toLocaleString()}` : ''}
-                    ${entry.finishedAt ? ` | Finished: ${new Date(entry.finishedAt).toLocaleString()}` : ''}
-                </div>
-            </div>
-        `;
+            `;
         }).join('');
     }
 
@@ -442,42 +637,58 @@ class AnalysisUI {
         if (typeof result === 'object') {
             return JSON.stringify(result, null, 2);
         }
+
         return String(result);
     }
 
     deleteResult(index) {
         const requestId = this.requestHistory[index].requestId;
+
         if (this.pollIntervals.has(requestId)) {
             clearInterval(this.pollIntervals.get(requestId));
             this.pollIntervals.delete(requestId);
         }
+
         this.requestHistory.splice(index, 1);
+
         this.saveHistoryToStorage();
         this.renderResults();
     }
 
     clearHistory() {
         if (confirm('Are you sure you want to clear all results?')) {
+
             this.pollIntervals.forEach(interval => clearInterval(interval));
+
             this.pollIntervals.clear();
+
             this.requestHistory = [];
+
             this.saveHistoryToStorage();
             this.renderResults();
+
             this.showSuccess('History cleared');
         }
     }
 
     saveHistoryToStorage() {
-        localStorage.setItem('analysisHistory', JSON.stringify(this.requestHistory));
+        localStorage.setItem(
+            'analysisHistory',
+            JSON.stringify(this.requestHistory)
+        );
     }
 
     loadHistoryFromStorage() {
         const stored = localStorage.getItem('analysisHistory');
+
         if (stored) {
             try {
-                this.requestHistory = JSON.parse(stored).slice(0, 50); // Keep last 50
+                this.requestHistory = JSON.parse(stored).slice(0, 50);
+
                 this.renderResults();
+
             } catch (error) {
+
                 console.error('Failed to load history:', error);
             }
         }
@@ -493,9 +704,12 @@ class AnalysisUI {
 
     showMessage(message, className) {
         const container = document.getElementById('messages');
+
         const msg = document.createElement('div');
+
         msg.className = className;
         msg.textContent = message;
+
         container.appendChild(msg);
 
         setTimeout(() => msg.remove(), 5000);
@@ -504,6 +718,7 @@ class AnalysisUI {
 
 // Initialize UI when DOM is ready
 let ui;
+
 document.addEventListener('DOMContentLoaded', () => {
     ui = new AnalysisUI();
 });
