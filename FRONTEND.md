@@ -1,6 +1,6 @@
 # Web Frontend for Indigo Analysis API
 
-The API now includes a modern, responsive web frontend hosted at the root path (`/`).
+The API includes a web frontend hosted at the root path (`/`).
 
 ## Features
 
@@ -16,7 +16,7 @@ The API now includes a modern, responsive web frontend hosted at the root path (
 Once the API server is running:
 
 ```bash
-python -m indigoapi serve
+indigoapi serve
 ```
 
 Open your browser and navigate to:
@@ -32,7 +32,6 @@ http://localhost:8000
 4. **View Results**: Results appear in the bottom panel and update in real-time
 5. **Track History**: All submitted jobs are displayed with their status and results
 
-## Architecture
 
 ### Frontend Files
 
@@ -51,20 +50,6 @@ The frontend communicates with the following API endpoints:
 - `GET /health` - Check API availability
 - `GET /endpoints` - Get all available endpoints
 
-### Features
-
-- **Async/Await**: Uses modern async JavaScript for clean code
-- **LocalStorage**: Persists job history across browser sessions (max 50 entries)
-- **Auto-Polling**: Automatically polls for result updates every 2 seconds
-- **Responsive Design**: Works on desktop, tablet, and mobile devices
-- **Error Handling**: Clear error messages and status badges
-
-## Technology Stack
-
-- **Frontend**: Vanilla JavaScript (ES6+), HTML5, CSS3
-- **Backend**: FastAPI with static file serving
-- **Data Format**: JSON
-- **Storage**: Browser localStorage for history
 
 ## Example Workflow
 
@@ -78,9 +63,3 @@ The frontend communicates with the following API endpoints:
 8. Frontend polls for updates every 2 seconds
 9. When complete, status changes and result is displayed
 10. History is persisted automatically
-
-## Browser Support
-
-- Modern browsers (Chrome, Firefox, Safari, Edge)
-- Requires ES6+ support
-- LocalStorage support for history persistence
