@@ -1,8 +1,8 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: indigoapi
-  title: indigoapi
+  name: heliotrapi
+  title: heliotrapi
   description: An API for small fast data analysis jobs at Diamond Light Source
 spec:
   type: service

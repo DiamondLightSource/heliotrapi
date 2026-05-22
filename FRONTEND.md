@@ -16,7 +16,7 @@ The API includes a web frontend hosted at the root path (`/`).
 Once the API server is running:
 
 ```bash
-indigoapi serve
+heliotrapi serve
 ```
 
 Open your browser and navigate to:

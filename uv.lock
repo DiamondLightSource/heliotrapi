@@ -792,7 +792,7 @@ wheels = [
 ]
 
 [[package]]
-name = "indigoapi"
+name = "heliotrapi"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi" },

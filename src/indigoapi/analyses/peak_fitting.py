@@ -1,7 +1,6 @@
 import numpy as np
+from heliotrapi.analysis_core.decorator import analysis
 from scipy.optimize import curve_fit
-
-from indigoapi.analysis_core.decorator import analysis
 
 
 def gaussian(x: np.ndarray, amplitude: float, x0: float, sigma: float) -> np.ndarray:

@@ -1,21 +1,20 @@
-"""Interface for `python -m indigoapi`."""
+"""Interface for `python -m heliotrapi`."""
 
 import asyncio
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import heliotrapi
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from heliotrapi._version import __version__
+from heliotrapi.analysis_core import MODULE_NAMES, initialize_analyses
+from heliotrapi.api.routes import ROUTER
+from heliotrapi.config import Config
+from heliotrapi.task_queue import QueueManager, RabbitMQListener, cleanup_results
 from xrpd_toolbox.utils.messenger import Messenger
-
-import indigoapi
-from indigoapi._version import __version__
-from indigoapi.analysis_core import MODULE_NAMES, initialize_analyses
-from indigoapi.api.routes import ROUTER
-from indigoapi.config import Config
-from indigoapi.task_queue import QueueManager, RabbitMQListener, cleanup_results
 
 config: Config = Config.load_config()
 
@@ -89,7 +88,7 @@ def start_api() -> FastAPI:
     logger.info(f"version: {__version__}")
 
     app = FastAPI(
-        title=indigoapi.__name__.capitalize(),
+        title=heliotrapi.__name__.capitalize(),
         version=__version__,
         description="An API for fast data analysis jobs",
         lifespan=lifespan,
@@ -109,6 +108,6 @@ def start_api() -> FastAPI:
         index_file = Path(__file__).parent / "templates" / "index.html"
         if index_file.exists():
             return FileResponse(index_file)
-        return {"message": "Indigo Analysis API. Visit /docs for API documentation"}
+        return {"message": "HeliotrAPI Analysis. Visit /docs for API documentation"}
 
     return app

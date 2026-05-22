@@ -1,36 +1,36 @@
-[![CI](https://github.com/DiamondLightSource/indigoapi/actions/workflows/ci.yml/badge.svg)](https://github.com/DiamondLightSource/indigoapi/actions/workflows/ci.yml)
-[![Coverage](https://codecov.io/gh/DiamondLightSource/indigoapi/branch/main/graph/badge.svg)](https://codecov.io/gh/DiamondLightSource/indigoapi)
-[![PyPI](https://img.shields.io/pypi/v/indigoapi.svg)](https://pypi.org/project/indigoapi)
+[![CI](https://github.com/DiamondLightSource/heliotrapi/actions/workflows/ci.yml/badge.svg)](https://github.com/DiamondLightSource/heliotrapi/actions/workflows/ci.yml)
+[![Coverage](https://codecov.io/gh/DiamondLightSource/heliotrapi/branch/main/graph/badge.svg)](https://codecov.io/gh/DiamondLightSource/heliotrapi)
+[![PyPI](https://img.shields.io/pypi/v/heliotrapi.svg)](https://pypi.org/project/heliotrapi)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
-# indigoapi
+# heliotrapi
 
 An API for small fast data analysis jobs at Diamond Light Source.
 
-`indigoapi` exposes an HTTP API to submit analysis jobs, return queued results, and optionally consume messages from RabbitMQ.
+`heliotrapi` exposes an HTTP API to submit analysis jobs, return queued results, and optionally consume messages from RabbitMQ.
 
-Source          | <https://github.com/DiamondLightSource/indigoapi>
+Source          | <https://github.com/DiamondLightSource/heliotrapi>
 :---:           | :---:
-PyPI            | `pip install indigoapi`
-Docker          | `docker run ghcr.io/diamondlightsource/indigoapi:latest`
-Releases        | <https://github.com/DiamondLightSource/indigoapi/releases>
+PyPI            | `pip install heliotrapi`
+Docker          | `docker run ghcr.io/diamondlightsource/heliotrapi:latest`
+Releases        | <https://github.com/DiamondLightSource/heliotrapi/releases>
 
 Example Python usage:
 
 ```python
-from indigoapi import __version__
+from heliotrapi import __version__
 
-print(f"Hello indigoapi {__version__}")
+print(f"Hello heliotrapi {__version__}")
 ```
 
 To start the api server in dev mode on local host:
 
 ```bash
-uvicorn indigoapi.main:start_api --reload --factory --host 127.0.0.1 --port 8000
+uvicorn heliotrapi.main:start_api --reload --factory --host 127.0.0.1 --port 8000
 
 or
 
-indigoapi serve
+heliotrapi serve
 
 ```
 
@@ -42,7 +42,7 @@ The app accepts analysis jobs via HTTP or the client and stores results in memor
 
 ```python
 
-    from indigoapi.client import AnalysisClient
+    from heliotrapi.client import AnalysisClient
 
     client = AnalysisClient("ixx-analysis.diamond.ac.uk")
 
@@ -73,7 +73,7 @@ You can also navigate to the url or the ip address to be met with:
                      AnalysisClient ─────--────────────────
                         │ ▲                │              │
                         ▼ │                ▼              ▼
-        Analysis <-── IndigoAPI ──---►  RabbitMQ ──---► Results
+        Analysis <-── heliotrapi ──---►  RabbitMQ ──---► Results
            Job   ─---►    ▲                │
                           │                │
                           │                │   
@@ -82,7 +82,7 @@ You can also navigate to the url or the ip address to be met with:
 
 ## Kubernetes deployment
 
-This repository includes a Helm chart under `./helm/helm/indigoapi`.
+This repository includes a Helm chart under `./helm/helm/heliotrapi`.
 
 ### Config support
 
@@ -124,26 +124,26 @@ config:
 1. Build and push your Docker image
 
 ```bash
-podman build -t ghcr.io/diamondlightsource/indigoapi:latest .
-podman push ghcr.io/diamondlightsource/indigoapi:latest
+podman build -t ghcr.io/diamondlightsource/heliotrapi:latest .
+podman push ghcr.io/diamondlightsource/heliotrapi:latest
 ```
 
 2. Render the chart
 
 ```bash
-helm template indigoapi ./helm/helm/indigoapi
+helm template heliotrapi ./helm/helm/heliotrapi
 ```
 
 3. Dry-run validation
 
 ```bash
-helm template indigoapi ./helm/helm/indigoapi | kubectl apply --dry-run=client -f -
+helm template heliotrapi ./helm/helm/heliotrapi | kubectl apply --dry-run=client -f -
 ```
 
 4. Install the chart
 
 ```bash
-helm install indigoapi ./helm/helm/indigoapi
+helm install heliotrapi ./helm/helm/heliotrapi
 ```
 
 5. Verify the deployment
@@ -156,7 +156,7 @@ kubectl get svc
 6. Test the API
 
 ```bash
-kubectl port-forward svc/indigoapi 8000:8000
+kubectl port-forward svc/heliotrapi 8000:8000
 ```
 
 Then open:
@@ -167,6 +167,6 @@ http://localhost:8000/docs
 
 ## Notes
 
-- The chart name has been updated to `indigoapi`.
+- The chart name has been updated to `heliotrapi`.
 - The config file is mounted via a `ConfigMap` and loaded from `/etc/config/config.yaml`.
 - The Helm chart currently creates a `Deployment`, `Service`, and `ConfigMap`.

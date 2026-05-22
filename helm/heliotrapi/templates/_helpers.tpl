@@ -1,14 +1,14 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "indigoapi.name" -}}
+{{- define "heliotrapi.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "indigoapi.fullname" -}}
+{{- define "heliotrapi.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -24,16 +24,16 @@ Expand the name of the chart.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "indigoapi.chart" -}}
+{{- define "heliotrapi.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "indigoapi.labels" -}}
-helm.sh/chart: {{ include "indigoapi.chart" . }}
-{{ include "indigoapi.selectorLabels" . }}
+{{- define "heliotrapi.labels" -}}
+helm.sh/chart: {{ include "heliotrapi.chart" . }}
+{{ include "heliotrapi.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -43,17 +43,17 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Selector labels
 */}}
-{{- define "indigoapi.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "indigoapi.name" . }}
+{{- define "heliotrapi.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "heliotrapi.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
 Create the name of the service account to use
 */}}
-{{- define "indigoapi.serviceAccountName" -}}
+{{- define "heliotrapi.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create }}
-{{- default (include "indigoapi.fullname" .) .Values.serviceAccount.name }}
+{{- default (include "heliotrapi.fullname" .) .Values.serviceAccount.name }}
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
