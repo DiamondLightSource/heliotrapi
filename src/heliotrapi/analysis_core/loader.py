@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import ParamSpec, TypeVar
 
 from git import Repo
-
 from indigoapi.analysis_core.registry import register_analysis
 from indigoapi.config import Config
 

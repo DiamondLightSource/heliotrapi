@@ -6,6 +6,7 @@ from typing import Any
 from uuid import UUID
 
 import requests
+
 from heliotrapi.api.routes import (
     ANALYSE_ROUTE,
     ANALYSES_ROUTE,

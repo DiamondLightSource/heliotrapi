@@ -4,11 +4,10 @@ import logging
 from datetime import datetime
 from uuid import UUID
 
-from xrpd_toolbox.utils.messenger import DEFAULT_DII_PROCESSED_DESTINATION, Messenger
-
 from indigoapi.analysis_core.registry import get_analysis
 from indigoapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
 from indigoapi.utils.serialisers import deserialise, serialise
+from xrpd_toolbox.utils.messenger import DEFAULT_DII_PROCESSED_DESTINATION, Messenger
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

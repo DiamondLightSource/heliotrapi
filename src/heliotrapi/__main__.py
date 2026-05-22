@@ -5,6 +5,7 @@ from pathlib import Path
 
 import click
 import uvicorn
+
 from heliotrapi.config import Config
 from heliotrapi.server import start_api
 

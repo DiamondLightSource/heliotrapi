@@ -5,16 +5,17 @@ import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-import heliotrapi
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from xrpd_toolbox.utils.messenger import Messenger
+
+import heliotrapi
 from heliotrapi._version import __version__
 from heliotrapi.analysis_core import MODULE_NAMES, initialize_analyses
 from heliotrapi.api.routes import ROUTER
 from heliotrapi.config import Config
 from heliotrapi.task_queue import QueueManager, RabbitMQListener, cleanup_results
-from xrpd_toolbox.utils.messenger import Messenger
 
 config: Config = Config.load_config()
 
