@@ -4,9 +4,9 @@ from typing import cast
 import pytest
 from xrpd_toolbox.utils.messenger import Messenger
 
-from indigoapi.models import AnalysisRequest
-from indigoapi.task_queue import QueueManager
-from indigoapi.task_queue.manager import validate_inputs
+from heliotrapi.models import AnalysisRequest
+from heliotrapi.task_queue import QueueManager
+from heliotrapi.task_queue.manager import validate_inputs
 
 
 @pytest.mark.asyncio
@@ -17,7 +17,7 @@ async def test_queue_manager_worker_success(monkeypatch):
         return number * 2
 
     monkeypatch.setattr(
-        "indigoapi.analysis_core.registry.get_analysis", lambda name: fake_analysis
+        "heliotrapi.analysis_core.registry.get_analysis", lambda name: fake_analysis
     )
 
     job = AnalysisRequest(analysis_name="double", inputs={"number": 2})
@@ -54,7 +54,7 @@ async def test_queue_manager_enqueue_success_sends_message(monkeypatch):
         return number * 2
 
     monkeypatch.setattr(
-        "indigoapi.analysis_core.registry.get_analysis", lambda name: fake_analysis
+        "heliotrapi.analysis_core.registry.get_analysis", lambda name: fake_analysis
     )
 
     job = AnalysisRequest(analysis_name="double", inputs={"number": 2})
@@ -107,7 +107,7 @@ async def test_queue_manager_worker_failure_sends_message(monkeypatch):
         raise KeyError("missing")
 
     monkeypatch.setattr(
-        "indigoapi.analysis_core.registry.get_analysis",
+        "heliotrapi.analysis_core.registry.get_analysis",
         lambda name: failing_analysis,
     )
 
@@ -144,7 +144,7 @@ async def test_queue_manager_enqueue_failure_sets_latest_result_and_sends_messag
     )
 
     monkeypatch.setattr(
-        "indigoapi.analysis_core.registry.get_analysis",
+        "heliotrapi.analysis_core.registry.get_analysis",
         lambda name: (_ for _ in ()).throw(KeyError("missing")),
     )
 

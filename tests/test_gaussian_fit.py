@@ -1,9 +1,9 @@
 import numpy as np
 from fastapi.testclient import TestClient
 
-from indigoapi.analyses.peak_fitting import gaussian, gaussian_fit
-from indigoapi.client import AnalysisClient
-from indigoapi.server import start_api
+from heliotrapi.analyses.peak_fitting import gaussian, gaussian_fit
+from heliotrapi.client import AnalysisClient
+from heliotrapi.server import start_api
 
 
 def test_gaussian_fit_with_client():
