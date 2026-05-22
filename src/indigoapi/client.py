@@ -191,12 +191,9 @@ class AnalysisClient:
 
 
 if __name__ == "__main__":
-    import numpy as np
-
     from indigoapi.analyses.peak_fitting import gaussian
 
     x = np.linspace(0, 20, 200)
-
     y = gaussian(x, 10, 5, 1) + (np.random.rand(x.shape[-1]) / 5)
 
     client = AnalysisClient()
@@ -204,9 +201,7 @@ if __name__ == "__main__":
     for i in range(5):
         id = client.submit("double", number=i)
         result = client.get_request_id_result(id)
-    # client.submit("gaussian_fit", x=x, y=y)
-
-    # client.submit("beam_energy_to_wavelength", beam_energy=15)
+    client.submit("gaussian_fit", x=x, y=y)
 
     for i in client.get_all_results():
         print(i, "\n")
@@ -216,6 +211,5 @@ if __name__ == "__main__":
     for analysis in available_analyses:
         print(analysis)
 
-    # print(client.get_endpoints())
-    # for i in client.list_analyses()[0:4]:
-    #     print(i)
+    client.submit("gaussian_fit", num=x, y=y)
+    print(client.get_result())

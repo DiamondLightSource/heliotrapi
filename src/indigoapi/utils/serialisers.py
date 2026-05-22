@@ -1,6 +1,7 @@
 """Utilities for serializing and converting data types."""
 
-from typing import Any
+import inspect
+from typing import Any, get_args, get_origin
 
 import numpy as np
 
@@ -44,3 +45,51 @@ def serialise(result: Any) -> Any:
 
     # Return other types as-is
     return result
+
+
+def deserialise(value: Any, annotation: Any) -> Any:
+    """
+    Convert a JSON-deserialized value into the expected Python type
+    based on a function parameter annotation.
+    """
+
+    if annotation is inspect.Parameter.empty:
+        return value
+
+    ann_str = str(annotation).lower()
+
+    if annotation is np.ndarray or "ndarray" in ann_str or "numpy" in ann_str:
+        return np.array(value, dtype=float)
+
+    if annotation is int:
+        return int(value)
+
+    if annotation is float:
+        return float(value)
+
+    if annotation is bool:
+        return bool(value)
+
+    if annotation is str:
+        return str(value)
+
+    origin = get_origin(annotation)
+
+    if origin is list:
+        item_type = get_args(annotation)[0]
+
+        return [deserialise(v, item_type) for v in value]
+
+    if origin is tuple:
+        item_types = get_args(annotation)
+
+        return tuple(deserialise(v, t) for v, t in zip(value, item_types, strict=True))
+
+    if origin is dict:
+        key_type, val_type = get_args(annotation)
+
+        return {
+            deserialise(k, key_type): deserialise(v, val_type) for k, v in value.items()
+        }
+
+    return value

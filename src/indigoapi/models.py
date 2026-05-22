@@ -12,7 +12,7 @@ class AnalysisBaseModel(BaseModel):
 
 class AnalysisRequest(AnalysisBaseModel):
     analysis_name: str
-    inputs: dict
+    inputs: dict[str, Any]
     request_id: UUID = Field(default_factory=uuid4)
     created_at: datetime = Field(default_factory=datetime.now)
 
@@ -28,5 +28,3 @@ class AnalysisResult(AnalysisBaseModel):
 
 if __name__ == "__main__":
     request = AnalysisRequest(analysis_name="double", inputs={"number": 5})
-
-    print(request.request_id)

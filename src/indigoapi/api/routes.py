@@ -63,8 +63,8 @@ async def available_analyses() -> list[dict[str, Any]]:
 @ROUTER.post(ANALYSE_ROUTE)
 async def analyse(request: Request, job: AnalysisRequest):
     queue: QueueManager = request.app.state.queue_manager
-    await queue.enqueue(job)
-    return {"request_id": job.request_id}
+    pending_result = await queue.enqueue(job)
+    return {"request_id": pending_result.request_id}
 
 
 @ROUTER.get(RESULT_LATEST_ROUTE, response_model=AnalysisResult)
