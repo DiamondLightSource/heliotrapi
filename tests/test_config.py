@@ -1,4 +1,4 @@
-from indigoapi.config import Config
+from indigoapi.config import Config, RabbitMQConfig
 
 
 def test_config_loads_path_from_env(tmp_path, monkeypatch):
@@ -23,3 +23,10 @@ def test_config_default_values():
     cfg = Config()
     assert cfg.results.ttl_seconds == 3600
     assert cfg.cleanup.interval_seconds == 300
+
+
+def test_rabbitmq_address_property():
+    cfg = RabbitMQConfig(
+        host="example.com", username="alice", password="secret", port=1234
+    )
+    assert cfg.address == "stomp://alice:secret@example.com:1234/"

@@ -102,7 +102,7 @@ class QueueManager:
             validate_inputs(analysis_fn, job.inputs)  # will raise if inputs are invalid
             self.results[job.request_id] = pending_result
             await self.queue.put(job)
-            return AnalysisResponse(
+            analysis_response = AnalysisResponse(
                 request_id=job.request_id,
                 analysis_name=job.analysis_name,
                 inputs=job.inputs,
@@ -110,17 +110,27 @@ class QueueManager:
             )
 
         except Exception as e:
-            pending_result.status = "error"
+            pending_result.status = "failed"
             pending_result.result = str(e)
             pending_result.finished_at = datetime.now()
             self.results[job.request_id] = pending_result
-            return AnalysisResponse(
+            self.latest_result = pending_result
+
+            analysis_response = AnalysisResponse(
                 request_id=job.request_id,
                 analysis_name=job.analysis_name,
                 details=str(e),
                 inputs=job.inputs,
                 accepted=False,
             )
+
+        if self.messenger is not None:
+            self.messenger.send_message(
+                DEFAULT_DII_PROCESSED_DESTINATION,
+                analysis_response.model_dump_json(),
+            )
+
+        return analysis_response
 
     async def worker(self):
         while True:

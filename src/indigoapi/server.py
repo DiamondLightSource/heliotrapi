@@ -104,11 +104,11 @@ def start_api() -> FastAPI:
         app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
     # Serve index.html for the root path
-    @app.get("/", response_class=FileResponse)
+    @app.get("/")
     async def serve_index():
         index_file = Path(__file__).parent / "templates" / "index.html"
         if index_file.exists():
-            return index_file
+            return FileResponse(index_file)
         return {"message": "Indigo Analysis API. Visit /docs for API documentation"}
 
     return app

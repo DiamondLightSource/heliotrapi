@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from unittest.mock import Mock
 
 import numpy as np
@@ -31,7 +32,11 @@ def test_serialise():
 def test_client_submit_and_latest_request_id():
     response_id = str(uuid.uuid4())
     response = Mock()
-    response.json.return_value = {"request_id": response_id}
+    response.json.return_value = {
+        "request_id": response_id,
+        "analysis_name": "double",
+        "accepted": True,
+    }
     response.raise_for_status = Mock()
 
     session = Mock()
@@ -43,6 +48,31 @@ def test_client_submit_and_latest_request_id():
     assert str(request_id) == response_id
     assert client.latest_request_id == request_id
     session.post.assert_called_once()
+
+
+def test_client_submit_with_callable_analysis_uses_function_name():
+    response_id = str(uuid.uuid4())
+    response = Mock()
+    response.json.return_value = {
+        "request_id": response_id,
+        "analysis_name": "fake_analysis",
+        "accepted": True,
+    }
+    response.raise_for_status = Mock()
+
+    session = Mock()
+    session.post.return_value = response
+
+    def fake_analysis(x):
+        return x
+
+    client = AnalysisClient(base_url="http://test", session=session)
+    request_id = client.submit(fake_analysis, x=1)
+
+    assert request_id == uuid.UUID(response_id)
+    assert client.latest_request_id == request_id
+    session.post.assert_called_once()
+    assert session.post.call_args.kwargs["json"]["analysis_name"] == "fake_analysis"
 
 
 def test_client_request_result_404():
@@ -96,6 +126,81 @@ def test_client_health_and_endpoints():
     client = AnalysisClient(base_url="http://test", session=session)
     assert client.health() == {"status": "ok"}
     assert client.get_endpoints() == [{"path": "/health", "methods": ["GET"]}]
+
+
+def test_client_available_analyses_raw():
+    response = Mock()
+    response.status_code = 200
+    response.raise_for_status = Mock()
+    response.json.return_value = [
+        {
+            "name": "gaussian_fit",
+            "parameters": [],
+            "annotations": "AnalysisResult",
+        }
+    ]
+
+    session = Mock()
+    session.get.return_value = response
+
+    client = AnalysisClient(base_url="http://test", session=session)
+    analyses = client.available_analyses(as_strings=False)
+
+    assert isinstance(analyses, list)
+
+
+def test_client_get_all_results():
+    response = Mock()
+    response.status_code = 200
+    response.raise_for_status = Mock()
+    response.json.return_value = [
+        {
+            "request_id": str(uuid.uuid4()),
+            "analysis_name": "double",
+            "status": "completed",
+            "result": 4,
+            "created_at": "2024-01-01T00:00:00",
+            "finished_at": "2024-01-01T00:00:01",
+        }
+    ]
+
+    session = Mock()
+    session.get.return_value = response
+
+    client = AnalysisClient(session=session)
+    results = client.get_all_results()
+
+    assert isinstance(results, list)
+    assert results[0]["analysis_name"] == "double"
+
+
+def test_client_get_last_submitted_result_no_latest():
+    client = AnalysisClient(session=Mock())
+    result = client.get_last_submitted_result(timeout=0.01, poll_interval=0.01)
+
+    assert result.status == "error"
+    assert result.analysis_name == ""
+
+
+def test_client_get_request_id_result_success(monkeypatch):
+    request_id = uuid.uuid4()
+    expected_result = AnalysisResult(
+        request_id=request_id,
+        analysis_name="double",
+        status="completed",
+        inputs={"number": 2},
+        result=4,
+        created_at=datetime.now(),
+        finished_at=datetime.now(),
+    )
+
+    client = AnalysisClient(session=Mock())
+    client.request_result = Mock(return_value=expected_result)
+
+    result = client.get_request_id_result(request_id, timeout=0.1, poll_interval=0.01)
+
+    assert result is expected_result
+    client.request_result.assert_called_once_with(request_id)
 
 
 def test_client_list_analyses_as_strings():
