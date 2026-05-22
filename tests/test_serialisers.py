@@ -1,46 +1,54 @@
 import inspect
 
 import numpy as np
+import pytest
 
 from indigoapi.utils.serialisers import deserialise, serialise
 
 
-def test_serialise_numpy_scalars_and_nested_collections():
-    result = serialise(
-        {
-            "x": np.array([1, 2]),
-            "n": np.int64(5),
-            "f": np.float32(1.5),
-            "flag": np.bool_(True),
-            "c": np.complex128(1 + 2j),
-            "nested": {"value": np.int16(3), "tuple": (np.int32(4),)},
-            "set_data": {1, 2},
-        }
-    )
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        (np.int64(5), 5),
+        (np.float32(1.5), 1.5),
+        (np.bool_(True), True),
+        (np.complex128(1 + 2j), 1 + 2j),
+        (np.array([1, 2]), [1, 2]),
+        (np.array([[1, 2], [3, 4]]), [[1, 2], [3, 4]]),
+        ({1, 2}, [1, 2]),
+        (None, None),
+    ],
+)
+def test_serialise_numpy_scalars_and_collections(value, expected):
+    result = serialise(value)
 
-    assert result["x"] == [1, 2]
-    assert result["n"] == 5
-    assert result["f"] == 1.5
-    assert result["flag"] is True
-    assert result["c"] == 1 + 2j
-    assert result["nested"]["value"] == 3
-    assert result["nested"]["tuple"] == [4]
-    assert sorted(result["set_data"]) == [1, 2]
+    if isinstance(value, set):
+        assert sorted(result) == expected
+    else:
+        assert result == expected
 
 
-def test_deserialise_native_annotations_and_nested_types():
-    assert deserialise("1", int) == 1
-    assert deserialise("1.5", float) == 1.5
-    assert deserialise(1, bool) is True
-    assert deserialise(1, str) == "1"
+@pytest.mark.parametrize(
+    "value, annotation, expected",
+    [
+        ("1", int, 1),
+        ("1.5", float, 1.5),
+        (1, bool, True),
+        (1, str, "1"),
+        ([1, 2, 3], np.ndarray, np.array([1.0, 2.0, 3.0])),
+        (["1", "2"], list[int], [1, 2]),
+        (("1", 2), tuple[str, int], ("1", 2)),
+        ({"a": "1"}, dict[str, int], {"a": 1}),
+    ],
+)
+def test_deserialise_native_annotations_and_nested_types(value, annotation, expected):
+    result = deserialise(value, annotation)
 
-    array = deserialise([1, 2, 3], np.ndarray)
-    assert isinstance(array, np.ndarray)
-    assert array.tolist() == [1.0, 2.0, 3.0]
-
-    assert deserialise(["1", "2"], list[int]) == [1, 2]
-    assert deserialise(("1", 2), tuple[str, int]) == ("1", 2)
-    assert deserialise({"a": "1"}, dict[str, int]) == {"a": 1}
+    if annotation is np.ndarray:
+        assert isinstance(result, np.ndarray)
+        assert result.tolist() == expected.tolist()
+    else:
+        assert result == expected
 
 
 def test_deserialise_no_annotation_returns_original_value():

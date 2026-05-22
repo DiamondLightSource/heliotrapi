@@ -271,3 +271,102 @@ def test_client_get_last_submitted_result():
 
     assert isinstance(result, AnalysisResult)
     assert result.request_id == request_id
+
+
+def test_client_request_result_success():
+    request_id = uuid.uuid4()
+    response = Mock(status_code=200)
+    response.raise_for_status = Mock()
+    response.json.return_value = {
+        "request_id": str(request_id),
+        "analysis_name": "double",
+        "status": "completed",
+        "result": 4,
+        "created_at": "2024-01-01T00:00:00",
+        "finished_at": "2024-01-01T00:00:01",
+    }
+
+    session = Mock()
+    session.get.return_value = response
+
+    client = AnalysisClient(session=session)
+    result = client.request_result(request_id)
+
+    assert isinstance(result, AnalysisResult)
+    assert result.request_id == request_id
+    assert result.status == "completed"
+
+
+def test_client_get_result_retries_after_failure(monkeypatch):
+    failure_response = Mock()
+    failure_response.raise_for_status.side_effect = RuntimeError("temporary failure")
+
+    success_response = Mock()
+    success_response.raise_for_status = Mock()
+    success_response.json.return_value = {
+        "request_id": str(uuid.uuid4()),
+        "analysis_name": "double",
+        "status": "completed",
+        "result": 4,
+        "created_at": "2024-01-01T00:00:00",
+        "finished_at": "2024-01-01T00:00:01",
+    }
+
+    session = Mock()
+    session.get.side_effect = [failure_response, success_response]
+
+    client = AnalysisClient(session=session)
+    monkeypatch.setattr("indigoapi.client.time.sleep", lambda _: None)
+
+    result = client.get_result(timeout=1.0, poll_interval=0.01)
+
+    assert isinstance(result, AnalysisResult)
+    assert result.analysis_name == "double"
+    assert session.get.call_count == 2
+
+
+def test_client_submit_rejected_analysis_raises_value_error():
+    response = Mock()
+    response.raise_for_status = Mock()
+    response.json.return_value = {
+        "request_id": str(uuid.uuid4()),
+        "analysis_name": "bad_analysis",
+        "inputs": {"x": 1},
+        "details": "Invalid input",
+        "accepted": False,
+    }
+
+    session = Mock()
+    session.post.return_value = response
+
+    client = AnalysisClient(base_url="http://test", session=session)
+
+    with pytest.raises(ValueError, match="was not accepted for processing"):
+        client.submit("bad_analysis", x=1)
+
+
+def test_client_format_analysis_signature_variants():
+    client = AnalysisClient(session=Mock())
+
+    no_params_signature = client._format_analysis_signature(
+        {
+            "name": "ping",
+            "parameters": [],
+            "annotations": "bool",
+        }
+    )
+    assert no_params_signature == "ping() -> bool:"
+
+    param_signature = client._format_analysis_signature(
+        {
+            "name": "gaussian_fit",
+            "parameters": [
+                {"name": "x", "annotation": "np.ndarray", "default": None},
+                {"name": "scale", "annotation": "float", "default": 1.0},
+            ],
+            "annotations": "AnalysisResult",
+        }
+    )
+    assert "x: np.ndarray" in param_signature
+    assert "scale: float = 1.0" in param_signature
+    assert param_signature.endswith("-> AnalysisResult:")
