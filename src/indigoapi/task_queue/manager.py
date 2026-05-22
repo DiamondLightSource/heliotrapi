@@ -153,11 +153,14 @@ class QueueManager:
                     finished_at=datetime.now(),
                 )
 
-                if self.messenger is not None:
-                    self.messenger.send_message(
-                        DEFAULT_DII_PROCESSED_DESTINATION,
-                        analysis_result.model_dump_json(),
-                    )
+            finally:
+                self.queue.task_done()
+
+            if self.messenger is not None:
+                self.messenger.send_message(
+                    DEFAULT_DII_PROCESSED_DESTINATION,
+                    analysis_result.model_dump_json(),
+                )
 
             self.results[job.request_id] = analysis_result
             # store latest result

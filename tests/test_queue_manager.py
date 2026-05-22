@@ -8,16 +8,6 @@ from indigoapi.models import AnalysisRequest
 from indigoapi.task_queue import QueueManager
 
 
-async def wait_for_result(queue_manager, request_id, timeout=1.0):
-    start = asyncio.get_running_loop().time()
-    while True:
-        if request_id in queue_manager.results:
-            return
-        if asyncio.get_running_loop().time() - start > timeout:
-            raise TimeoutError()
-        await asyncio.sleep(0.01)
-
-
 @pytest.mark.asyncio
 async def test_queue_manager_worker_success(monkeypatch):
     queue_manager = QueueManager(workers=1)
@@ -33,7 +23,7 @@ async def test_queue_manager_worker_success(monkeypatch):
     await queue_manager.enqueue(job)
 
     worker_task = asyncio.create_task(queue_manager.worker())
-    await asyncio.wait_for(wait_for_result(queue_manager, job.request_id), timeout=1.0)
+    await asyncio.wait_for(queue_manager.queue.join(), timeout=1.0)
 
     assert job.request_id in queue_manager.results
     assert queue_manager.latest_result is not None
@@ -68,8 +58,7 @@ async def test_queue_manager_worker_failure_sends_message(monkeypatch):
     await queue_manager.enqueue(job)
 
     worker_task = asyncio.create_task(queue_manager.worker())
-    await asyncio.wait_for(wait_for_result(queue_manager, job.request_id), timeout=1.0)
-
+    await asyncio.wait_for(queue_manager.queue.join(), timeout=1.0)
     assert job.request_id in queue_manager.results
     assert queue_manager.latest_result is not None
     assert queue_manager.latest_result.status == "failed"
