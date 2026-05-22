@@ -17,7 +17,6 @@ ANALYSE_ROUTE = "/analyse"
 RESULT_LATEST_ROUTE = "/result/latest"
 RESULT_BY_ID_ROUTE = "/result/id/{request_id}"
 ENDPOINTS_ROUTE = "/endpoints"
-
 RESULTS_ALL_ROUTE = "/results/all"
 
 
@@ -45,7 +44,7 @@ async def available_analyses() -> list[dict[str, Any]]:
                     else "Any",
                 }
             )
-        return_annotation = (
+        annotations = (
             str(sig.return_annotation)
             if sig.return_annotation != inspect.Signature.empty
             else "Any"
@@ -54,7 +53,8 @@ async def available_analyses() -> list[dict[str, Any]]:
             {
                 "name": name,
                 "parameters": params,
-                "return_annotation": return_annotation,
+                "annotations": annotations,
+                "docstring": func.__doc__ or "",
             }
         )
     return analyses_info

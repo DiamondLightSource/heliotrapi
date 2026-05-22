@@ -41,7 +41,7 @@ def test_client_lists_analyses():
         # Now queue_manager exists
         client = AnalysisClient(base_url=str(client_http.base_url), session=client_http)  # type: ignore
 
-        client.list_analyses()
+        client.available_analyses()
 
 
 def test_client_lists_analyses_as_strings():
@@ -51,7 +51,7 @@ def test_client_lists_analyses_as_strings():
     with TestClient(app) as client_http:
         client = AnalysisClient(base_url=str(client_http.base_url), session=client_http)  # type: ignore
 
-        signatures = client.list_analyses(as_strings=True)
+        signatures = client.available_analyses(as_strings=True)
 
         assert isinstance(signatures, list)
         assert any(isinstance(sig, str) for sig in signatures)

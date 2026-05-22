@@ -107,14 +107,14 @@ def test_client_list_analyses_as_strings():
                 {"name": "x", "annotation": "np.ndarray", "default": None},
                 {"name": "y", "annotation": "np.ndarray", "default": None},
             ],
-            "return_annotation": "AnalysisResult",
+            "annotations": "AnalysisResult",
         }
     ]
     session.get.return_value.status_code = 200
     session.get.return_value.raise_for_status = Mock()
 
     client = AnalysisClient(base_url="http://test", session=session)
-    signatures = client.list_analyses(as_strings=True)
+    signatures = client.available_analyses(as_strings=True)
 
     assert isinstance(signatures, list)
     assert isinstance(signatures[0], str)
