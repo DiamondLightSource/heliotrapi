@@ -11,7 +11,7 @@ The API includes a web frontend hosted at the root path (`/`).
 - **Type-Aware Inputs**: Automatically converts form inputs to appropriate types (int, float, bool, list)
 - **Beautiful UI**: Modern gradient design with smooth animations and transitions
 
-## Accessing the Frontend
+## Accessing the Frontend 
 
 Once the API server is running:
 
