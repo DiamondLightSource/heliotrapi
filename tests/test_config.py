@@ -1,4 +1,4 @@
-from indigoapi.config import Config, RabbitMQConfig
+from heliotrapi.config import Config, RabbitMQConfig
 
 
 def test_config_loads_path_from_env(tmp_path, monkeypatch):

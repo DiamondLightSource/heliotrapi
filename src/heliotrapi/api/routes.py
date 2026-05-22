@@ -4,9 +4,10 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.routing import APIRoute
-from indigoapi.analysis_core.registry import get_analysis, list_analyses
-from indigoapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
-from indigoapi.task_queue import QueueManager
+
+from heliotrapi.analysis_core.registry import get_analysis, list_analyses
+from heliotrapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
+from heliotrapi.task_queue import QueueManager
 
 ROUTER = APIRouter()
 

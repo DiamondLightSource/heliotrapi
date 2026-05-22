@@ -2,7 +2,7 @@ from datetime import datetime
 
 import pytest
 
-from indigoapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
+from heliotrapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
 
 
 def test_analysis_request_item_access():

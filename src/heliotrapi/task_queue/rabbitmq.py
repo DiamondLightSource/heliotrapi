@@ -6,9 +6,10 @@ import time
 from typing import Any
 
 import stomp
-from indigoapi.models import AnalysisRequest
-from indigoapi.task_queue import QueueManager
 from pydantic import BaseModel, Field
+
+from heliotrapi.models import AnalysisRequest
+from heliotrapi.task_queue import QueueManager
 
 logger = logging.getLogger(__name__)
 

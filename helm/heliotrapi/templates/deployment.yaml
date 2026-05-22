@@ -1,14 +1,14 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "indigoapi.fullname" . }}
+  name: {{ include "heliotrapi.fullname" . }}
   labels:
-    {{- include "indigoapi.labels" . | nindent 4 }}
+    {{- include "heliotrapi.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "indigoapi.selectorLabels" . | nindent 6 }}
+      {{- include "heliotrapi.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -16,7 +16,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "indigoapi.labels" . | nindent 8 }}
+        {{- include "heliotrapi.labels" . | nindent 8 }}
         {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -71,7 +71,7 @@ spec:
           projected:
             sources:
             - configMap:
-                name: {{ include "indigoapi.fullname" . }}-config
+                name: {{ include "heliotrapi.fullname" . }}-config
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -84,7 +84,7 @@ spec:
                   - key: app.kubernetes.io/name
                     operator: In
                     values:
-                      - indigoapi
+                      - heliotrapi
                   - key: app.kubernetes.io/instance
                     operator: In
                     values:

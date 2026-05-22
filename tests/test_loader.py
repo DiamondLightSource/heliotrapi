@@ -1,12 +1,12 @@
 import sys
 
-from indigoapi.analysis_core.loader import (
+from heliotrapi.analysis_core.loader import (
     clone_github_repo,
     load_plugins,
     load_plugins_from_dir,
 )
-from indigoapi.analysis_core.registry import ANALYSIS_REGISTRY, list_analyses
-from indigoapi.config import Config
+from heliotrapi.analysis_core.registry import ANALYSIS_REGISTRY, list_analyses
+from heliotrapi.config import Config
 
 
 def test_loader_load_plugins_from_dir(tmp_path):
@@ -28,7 +28,7 @@ def test_loader_load_plugins_from_dir(tmp_path):
 def test_loader_load_plugins_registers_decorated_functions(tmp_path):
     plugin_path = tmp_path / "custom_plugin.py"
     plugin_path.write_text(
-        "from indigoapi.analysis_core.decorator import analysis\n"
+        "from heliotrapi.analysis_core.decorator import analysis\n"
         "@analysis()\n"
         "def hello(name: str) -> str:\n"
         "    return f'hello {name}'\n"
@@ -71,5 +71,5 @@ def test_loader_load_plugins_handles_clone_error(monkeypatch):
     def fake_clone(repo_url, dest_dir):
         raise RuntimeError("unable to clone")
 
-    monkeypatch.setattr("indigoapi.analysis_core.loader.clone_github_repo", fake_clone)
+    monkeypatch.setattr("heliotrapi.analysis_core.loader.clone_github_repo", fake_clone)
     load_plugins(cfg)
