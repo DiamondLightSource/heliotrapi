@@ -17,7 +17,7 @@ from indigoapi.api.routes import (
     RESULT_LATEST_ROUTE,
     RESULTS_ALL_ROUTE,
 )
-from indigoapi.models import AnalysisRequest, AnalysisResult
+from indigoapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
 from indigoapi.utils.serialisers import serialise
 
 logging.basicConfig(level=logging.INFO)
@@ -91,7 +91,10 @@ class AnalysisClient:
 
         resp = self.session.post(f"{self.base_url}{ANALYSE_ROUTE}", json=json)
 
-        resp.raise_for_status()
+        resp.raise_for_status()  # raise for 404 or other non-200 errors
+
+        analysis_response = AnalysisResponse.model_validate(resp.json())
+        analysis_response.is_accepted()  # will raise if not accepted
 
         request_id = UUID(resp.json()["request_id"])
         self.latest_request_id = request_id
@@ -109,7 +112,7 @@ class AnalysisClient:
         resp.raise_for_status()
         response = resp.json()
 
-        return AnalysisResult(**response)
+        return AnalysisResult.model_validate(response)
 
     def get_result(
         self,
@@ -133,6 +136,7 @@ class AnalysisClient:
                     return AnalysisResult(
                         status="error",
                         analysis_name="",
+                        inputs={},
                         result=None,
                         created_at=datetime.now(),
                         finished_at=datetime.now(),
@@ -148,6 +152,7 @@ class AnalysisClient:
             return AnalysisResult(
                 status="error",
                 analysis_name="",
+                inputs={},
                 result=None,
                 created_at=datetime.now(),
                 finished_at=datetime.now(),
@@ -193,8 +198,8 @@ class AnalysisClient:
 if __name__ == "__main__":
     from indigoapi.analyses.peak_fitting import gaussian
 
-    x = np.linspace(0, 20, 200)
-    y = gaussian(x, 10, 5, 1) + (np.random.rand(x.shape[-1]) / 5)
+    x = np.round(np.linspace(0, 20, 50), 3)
+    y = np.round(gaussian(x, 10, 5, 1) + (np.random.rand(x.shape[-1]) / 5), 3)
 
     client = AnalysisClient()
 

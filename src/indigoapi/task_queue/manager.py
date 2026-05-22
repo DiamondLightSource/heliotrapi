@@ -7,7 +7,7 @@ from uuid import UUID
 from xrpd_toolbox.utils.messenger import DEFAULT_DII_PROCESSED_DESTINATION, Messenger
 
 from indigoapi.analysis_core.registry import get_analysis
-from indigoapi.models import AnalysisRequest, AnalysisResult
+from indigoapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
 from indigoapi.utils.serialisers import deserialise, serialise
 
 logging.basicConfig(level=logging.INFO)
@@ -83,24 +83,44 @@ class QueueManager:
 
         logger.info(self.queue)
 
-    async def enqueue(self, job: AnalysisRequest):
+    async def enqueue(self, job: AnalysisRequest) -> AnalysisResponse:
         job.created_at = datetime.now()
         logger.info(job)
 
         pending_result = AnalysisResult(
             request_id=job.request_id,
             analysis_name=job.analysis_name,
+            inputs=job.inputs,
             status="running",
             result=None,
             created_at=job.created_at,
             finished_at=None,
         )
 
-        self.results[job.request_id] = pending_result
+        try:
+            analysis_fn = get_analysis(job.analysis_name)  # will raise if no analysis
+            validate_inputs(analysis_fn, job.inputs)  # will raise if inputs are invalid
+            self.results[job.request_id] = pending_result
+            await self.queue.put(job)
+            return AnalysisResponse(
+                request_id=job.request_id,
+                analysis_name=job.analysis_name,
+                inputs=job.inputs,
+                accepted=True,
+            )
 
-        await self.queue.put(job)
-
-        return pending_result
+        except Exception as e:
+            pending_result.status = "error"
+            pending_result.result = str(e)
+            pending_result.finished_at = datetime.now()
+            self.results[job.request_id] = pending_result
+            return AnalysisResponse(
+                request_id=job.request_id,
+                analysis_name=job.analysis_name,
+                details=str(e),
+                inputs=job.inputs,
+                accepted=False,
+            )
 
     async def worker(self):
         while True:
@@ -110,12 +130,11 @@ class QueueManager:
                 analysis_fn = get_analysis(job.analysis_name)
                 annotations = get_function_annotations(analysis_fn)
 
-                validate_inputs(analysis_fn, job.inputs)
-
+                # validate_inputs(analysis_fn, job.inputs)
                 converted_inputs = convert_inputs(job.inputs, annotations)
                 result_value = await analysis_fn(**converted_inputs)
 
-                # Convert numpy and other non-JSON-serializable types
+                # Convert numpy and other non-serializable types
                 result_value = serialise(result_value)
 
                 result = result_value

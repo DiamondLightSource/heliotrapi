@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.routing import APIRoute
 
 from indigoapi.analysis_core.registry import get_analysis, list_analyses
-from indigoapi.models import AnalysisRequest, AnalysisResult
+from indigoapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
 from indigoapi.task_queue import QueueManager
 
 ROUTER = APIRouter()
@@ -61,14 +61,14 @@ async def available_analyses() -> list[dict[str, Any]]:
 
 
 @ROUTER.post(ANALYSE_ROUTE)
-async def analyse(request: Request, job: AnalysisRequest):
+async def analyse(request: Request, job: AnalysisRequest) -> AnalysisResponse:
     queue: QueueManager = request.app.state.queue_manager
-    pending_result = await queue.enqueue(job)
-    return {"request_id": pending_result.request_id}
+    analysis_response = await queue.enqueue(job)
+    return analysis_response
 
 
 @ROUTER.get(RESULT_LATEST_ROUTE, response_model=AnalysisResult)
-async def get_latest_result(request: Request):
+async def get_latest_result(request: Request) -> AnalysisResult:
 
     queue_manager = request.app.state.queue_manager
 

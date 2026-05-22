@@ -21,9 +21,29 @@ class AnalysisResult(AnalysisBaseModel):
     request_id: UUID | None = None
     status: Literal["error", "failed", "running", "completed"]
     analysis_name: str
+    inputs: dict[str, Any] | None = None
     result: Any
     created_at: datetime
     finished_at: datetime | None = None
+
+
+class AnalysisResponse(AnalysisBaseModel):
+    request_id: UUID | None = None
+    analysis_name: str
+    inputs: dict[str, Any] | None = None
+    details: str | None = None
+    accepted: bool = False
+
+    def is_accepted(self) -> bool:
+        if not self.accepted:
+            raise ValueError(
+                f"Analysis '{self.analysis_name}' "
+                f"with inputs {self.inputs} "
+                f"was not accepted for processing: "
+                f"{self.details}"
+            )
+
+        return True
 
 
 if __name__ == "__main__":
