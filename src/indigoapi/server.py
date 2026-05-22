@@ -3,16 +3,19 @@
 import asyncio
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from xrpd_toolbox.utils.messenger import Messenger
 
+import indigoapi
+from indigoapi._version import __version__
 from indigoapi.analysis_core import MODULE_NAMES, initialize_analyses
 from indigoapi.api.routes import ROUTER
 from indigoapi.config import Config
 from indigoapi.task_queue import QueueManager, RabbitMQListener, cleanup_results
-
-from . import __version__
 
 config: Config = Config.load_config()
 
@@ -86,12 +89,26 @@ def start_api() -> FastAPI:
     logger.info(f"version: {__version__}")
 
     app = FastAPI(
-        title="indigoapi",
+        title=indigoapi.__name__.capitalize(),
         version=__version__,
         description="An API for fast data analysis jobs",
         lifespan=lifespan,
     )
 
+    # Include API routes
     app.include_router(ROUTER)
+
+    # Serve static files
+    static_dir = Path(__file__).parent / "static"
+    if static_dir.exists():
+        app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+    # Serve index.html for the root path
+    @app.get("/")
+    async def serve_index():
+        index_file = Path(__file__).parent / "templates" / "index.html"
+        if index_file.exists():
+            return FileResponse(index_file)
+        return {"message": "Indigo Analysis API. Visit /docs for API documentation"}
 
     return app

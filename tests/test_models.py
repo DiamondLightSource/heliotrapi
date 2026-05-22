@@ -1,6 +1,8 @@
 from datetime import datetime
 
-from indigoapi.models import AnalysisRequest, AnalysisResult
+import pytest
+
+from indigoapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
 
 
 def test_analysis_request_item_access():
@@ -27,3 +29,17 @@ def test_analysis_request_defaults():
     request = AnalysisRequest(analysis_name="double", inputs={})
     assert request.request_id is not None
     assert request.created_at is not None
+
+
+def test_analysis_response_is_accepted():
+    response = AnalysisResponse(analysis_name="double", accepted=True)
+    assert response.is_accepted()
+
+
+def test_analysis_response_rejects_unaccepted():
+    response = AnalysisResponse(
+        analysis_name="double", accepted=False, details="invalid"
+    )
+
+    with pytest.raises(ValueError, match="was not accepted"):
+        response.is_accepted()

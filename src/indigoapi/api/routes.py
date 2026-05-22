@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.routing import APIRoute
 
 from indigoapi.analysis_core.registry import get_analysis, list_analyses
-from indigoapi.models import AnalysisRequest, AnalysisResult
+from indigoapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
 from indigoapi.task_queue import QueueManager
 
 ROUTER = APIRouter()
@@ -17,6 +17,7 @@ ANALYSE_ROUTE = "/analyse"
 RESULT_LATEST_ROUTE = "/result/latest"
 RESULT_BY_ID_ROUTE = "/result/id/{request_id}"
 ENDPOINTS_ROUTE = "/endpoints"
+RESULTS_ALL_ROUTE = "/results/all"
 
 
 @ROUTER.get(HEALTH_ROUTE)
@@ -43,7 +44,7 @@ async def available_analyses() -> list[dict[str, Any]]:
                     else "Any",
                 }
             )
-        return_annotation = (
+        annotations = (
             str(sig.return_annotation)
             if sig.return_annotation != inspect.Signature.empty
             else "Any"
@@ -52,21 +53,22 @@ async def available_analyses() -> list[dict[str, Any]]:
             {
                 "name": name,
                 "parameters": params,
-                "return_annotation": return_annotation,
+                "annotations": annotations,
+                "docstring": func.__doc__ or "",
             }
         )
     return analyses_info
 
 
 @ROUTER.post(ANALYSE_ROUTE)
-async def analyse(request: Request, job: AnalysisRequest):
+async def analyse(request: Request, job: AnalysisRequest) -> AnalysisResponse:
     queue: QueueManager = request.app.state.queue_manager
-    await queue.enqueue(job)
-    return {"request_id": job.request_id}
+    analysis_response = await queue.enqueue(job)
+    return analysis_response
 
 
 @ROUTER.get(RESULT_LATEST_ROUTE, response_model=AnalysisResult)
-async def get_latest_result(request: Request):
+async def get_latest_result(request: Request) -> AnalysisResult:
 
     queue_manager = request.app.state.queue_manager
 
@@ -81,7 +83,7 @@ async def result(request: Request, request_id: UUID):
     queue: QueueManager = request.app.state.queue_manager
     if request_id not in queue.results:
         raise HTTPException(404, "Result not found")
-    result, duration = queue.results[request_id]
+    result = queue.results[request_id]
     return result
 
 
@@ -96,3 +98,13 @@ async def get_endpoints():
         for route in ROUTER.routes
         if isinstance(route, APIRoute)
     ]
+
+
+# New endpoint to return all jobs/results if enabled in config
+@ROUTER.get(RESULTS_ALL_ROUTE)
+async def get_all_results(request: Request):
+    queue: QueueManager = request.app.state.queue_manager
+    # Return all jobs (pending, running, completed, failed), sorted by created_at
+    results = list(queue.results.values())
+    results.sort(key=lambda r: getattr(r, "created_at", None) or 0, reverse=True)
+    return results

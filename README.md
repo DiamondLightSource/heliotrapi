@@ -56,6 +56,11 @@ The app accepts analysis jobs via HTTP or the client and stores results in memor
 
 ```
 
+## Using the WebUI
+
+You can also navigate to the url or the ip address to be met with:
+
+![Web UI](images/webui.png)
 
 ### Request flow
 

@@ -5,7 +5,6 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-import numpy as np
 import requests
 
 from indigoapi.api.routes import (
@@ -15,8 +14,10 @@ from indigoapi.api.routes import (
     HEALTH_ROUTE,
     RESULT_BY_ID_ROUTE,
     RESULT_LATEST_ROUTE,
+    RESULTS_ALL_ROUTE,
 )
-from indigoapi.models import AnalysisRequest, AnalysisResult
+from indigoapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
+from indigoapi.utils.serialisers import serialise
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -33,13 +34,10 @@ class AnalysisClient:
         session: requests.Session | None = None,
     ):
         self.base_url = base_url.rstrip("/")
-
-        self.base_url = base_url.rstrip("/")
-
         self.latest_request_id: UUID | None = None
         self.session = session or requests.Session()
 
-    def list_analyses(
+    def available_analyses(
         self, as_strings: bool = True
     ) -> list[dict[str, Any]] | list[str]:
         resp = self.session.get(f"{self.base_url}{ANALYSES_ROUTE}")
@@ -57,16 +55,14 @@ class AnalysisClient:
                 param_str += f" = {param['default']}"
             params.append(param_str)
 
-        return_annotation = analysis.get("return_annotation", "Any")
+        annotations = analysis.get("annotations", "Any")
         if params:
             params_block = ",\n        ".join(params)
             signature = (
-                f"{analysis['name']}(\n"
-                f"        {params_block},\n"
-                f"    ) -> {return_annotation}:"
+                f"{analysis['name']}(\n        {params_block},\n    ) -> {annotations}:"
             )
         else:
-            signature = f"{analysis['name']}() -> {return_annotation}:"
+            signature = f"{analysis['name']}() -> {annotations}:"
 
         return signature
 
@@ -74,25 +70,6 @@ class AnalysisClient:
         resp = self.session.get(f"{self.base_url}{HEALTH_ROUTE}")
         resp.raise_for_status()
         return resp.json()
-
-    def _convert_to_serialisable(self, obj: Any) -> Any:
-
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-
-        if isinstance(obj, np.integer):
-            return int(obj)
-
-        if isinstance(obj, np.floating):
-            return float(obj)
-
-        if isinstance(obj, dict):
-            return {k: self._convert_to_serialisable(v) for k, v in obj.items()}
-
-        if isinstance(obj, (list, tuple, set)):
-            return [self._convert_to_serialisable(v) for v in obj]
-
-        return obj
 
     def submit(self, analysis: str | Callable, **inputs: Any) -> UUID:
         """
@@ -102,7 +79,7 @@ class AnalysisClient:
         client.submit("gaussian_fit", x=x, y=y)
         """
 
-        inputs = self._convert_to_serialisable(inputs)
+        inputs = serialise(inputs)
 
         analysis_name = (
             analysis.__name__ if isinstance(analysis, Callable) else analysis
@@ -113,7 +90,10 @@ class AnalysisClient:
 
         resp = self.session.post(f"{self.base_url}{ANALYSE_ROUTE}", json=json)
 
-        resp.raise_for_status()
+        resp.raise_for_status()  # raise for 404 or other non-200 errors
+
+        analysis_response = AnalysisResponse.model_validate(resp.json())
+        analysis_response.is_accepted()  # will raise if not accepted
 
         request_id = UUID(resp.json()["request_id"])
         self.latest_request_id = request_id
@@ -123,17 +103,15 @@ class AnalysisClient:
     def request_result(self, request_id: UUID) -> AnalysisResult | None:
 
         route = RESULT_BY_ID_ROUTE.format(request_id=request_id)
-
         resp = self.session.get(f"{self.base_url}{route}")
 
         if resp.status_code == 404:
             return None
 
         resp.raise_for_status()
-
         response = resp.json()
 
-        return AnalysisResult(**response)
+        return AnalysisResult.model_validate(response)
 
     def get_result(
         self,
@@ -157,6 +135,7 @@ class AnalysisClient:
                     return AnalysisResult(
                         status="error",
                         analysis_name="",
+                        inputs={},
                         result=None,
                         created_at=datetime.now(),
                         finished_at=datetime.now(),
@@ -172,6 +151,7 @@ class AnalysisClient:
             return AnalysisResult(
                 status="error",
                 analysis_name="",
+                inputs={},
                 result=None,
                 created_at=datetime.now(),
                 finished_at=datetime.now(),
@@ -185,6 +165,11 @@ class AnalysisClient:
 
     def get_endpoints(self):
         resp = self.session.get(f"{self.base_url}{ENDPOINTS_ROUTE}")
+        resp.raise_for_status()
+        return resp.json()
+
+    def get_all_results(self):
+        resp = self.session.get(f"{self.base_url}{RESULTS_ALL_ROUTE}")
         resp.raise_for_status()
         return resp.json()
 
@@ -209,23 +194,26 @@ class AnalysisClient:
             time.sleep(poll_interval)
 
 
-if __name__ == "__main__":
-    import numpy as np
+# if __name__ == "__main__":
+#     from indigoapi.analyses.peak_fitting import gaussian
 
-    from indigoapi.analyses.peak_fitting import gaussian
+#     x = np.round(np.linspace(0, 20, 50), 3)
+#     y = np.round(gaussian(x, 10, 5, 1) + (np.random.rand(x.shape[-1]) / 5), 3)
 
-    x = np.linspace(0, 20, 200)
+#     client = AnalysisClient()
 
-    y = gaussian(x, 10, 5, 1) + (np.random.rand(x.shape[-1]) / 5)
+#     for i in range(5):
+#         id = client.submit("double", number=i)
+#         result = client.get_request_id_result(id)
+#     client.submit("gaussian_fit", x=x, y=y)
 
-    client = AnalysisClient()
+#     for i in client.get_all_results():
+#         print(i, "\n")
 
-    # client.submit(gaussian_fit.__name__, x=x, y=y)
+#     available_analyses = client.available_analyses(as_strings=True)
 
-    client.submit("beam_energy_to_wavelength", beam_energy=15)
+#     for analysis in available_analyses:
+#         print(analysis)
 
-    print(client.get_result())
-
-    # print(client.get_endpoints())
-    # for i in client.list_analyses()[0:4]:
-    #     print(i)
+#     client.submit("gaussian_fit", num=x, y=y)
+#     print(client.get_result())

@@ -20,6 +20,16 @@ async def test_sync_plugin():
 
 
 @pytest.mark.asyncio
+async def test_sleep_plugin():
+
+    fn = get_analysis("delay")
+
+    result = await fn(5)
+
+    assert result == "Slept for 5 seconds"
+
+
+@pytest.mark.asyncio
 async def test_sum_numbers():
 
     print(list_analyses())
