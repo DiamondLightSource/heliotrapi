@@ -46,7 +46,7 @@ The app accepts analysis jobs via HTTP or the client and stores results in memor
 
     client = AnalysisClient("ixx-analysis.diamond.ac.uk")
 
-    print(client.list_analyses()) #see available analyses
+    print(client.available_analyses()) #see available analyses
 
     client.submit("name_of_analysis", x=x, y=y)
 
