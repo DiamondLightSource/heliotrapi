@@ -7,6 +7,12 @@
 
 An API for small fast data analysis jobs at Diamond Light Source.
 
+[HEE-LEE-OH-TRAY-PEE-EYE]
+
+Helio - Like the sun, a very brilliannt light source
+Heliotrope - An pink-purple indigo-like colour
+HeliotrAPI - The API that comes after blue
+
 `heliotrapi` exposes an HTTP API to submit analysis jobs, return queued results, and optionally consume messages from RabbitMQ.
 
 Source          | <https://github.com/DiamondLightSource/heliotrapi>
