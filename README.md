@@ -143,13 +143,13 @@ helm template heliotrapi ./helm/helm/heliotrapi
 3. Dry-run validation
 
 ```bash
-helm template heliotrapi ./helm/helm/heliotrapi | kubectl apply --dry-run=client -f -
+helm template heliotrapi ./helm/heliotrapi | kubectl apply --dry-run=client -f -
 ```
 
 4. Install the chart
 
 ```bash
-helm install heliotrapi ./helm/helm/heliotrapi
+helm install heliotrapi ./helm/heliotrapi
 ```
 
 5. Verify the deployment
