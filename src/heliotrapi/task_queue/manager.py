@@ -80,7 +80,6 @@ class QueueManager:
         self.workers = workers
         self.latest_result: AnalysisResult | None = None
         self.messenger = messenger
-
         logger.info(self.queue)
 
     async def enqueue(self, job: AnalysisRequest) -> AnalysisResponse:
@@ -123,6 +122,7 @@ class QueueManager:
                 inputs=job.inputs,
                 accepted=False,
             )
+            logger.error(analysis_response)
 
         if self.messenger is not None:
             self.messenger.send_message(
@@ -158,6 +158,10 @@ class QueueManager:
 
             finally:
                 self.queue.task_done()
+
+            logger.info(
+                f"Job {job.request_id} finished with status '{status}' and result: {result}"  # noqa
+            )
 
             # get pending result and update with final status and result
             analysis_result: AnalysisResult = self.results[job.request_id]

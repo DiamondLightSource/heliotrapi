@@ -195,6 +195,8 @@ class AnalysisClient:
 
 
 # if __name__ == "__main__":
+#     import numpy as np
+
 #     from heliotrapi.analyses.peak_fitting import gaussian
 
 #     x = np.round(np.linspace(0, 20, 50), 3)
@@ -215,5 +217,5 @@ class AnalysisClient:
 #     for analysis in available_analyses:
 #         print(analysis)
 
-#     client.submit("gaussian_fit", num=x, y=y)
+#     client.submit("gaussian_fit", num=x, g=y)
 #     print(client.get_result())
