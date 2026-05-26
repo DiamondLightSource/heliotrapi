@@ -1,6 +1,6 @@
 import time
 
-from indigoapi.analysis_core.decorator import analysis
+from heliotrapi.analysis_core.decorator import analysis
 
 
 @analysis()

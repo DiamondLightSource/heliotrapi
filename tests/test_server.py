@@ -2,7 +2,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from indigoapi.server import start_api
+from heliotrapi.server import start_api
 
 
 def test_start_api_serves_root_index():
@@ -10,7 +10,7 @@ def test_start_api_serves_root_index():
     with TestClient(app) as client:
         response = client.get("/")
         assert response.status_code == 200
-        assert "Indigo" in response.text or "<html" in response.text
+        assert "HeliotrAPI" in response.text or "<html" in response.text
 
 
 def test_start_api_serve_index_default_message(monkeypatch):
@@ -27,4 +27,4 @@ def test_start_api_serve_index_default_message(monkeypatch):
     with TestClient(app) as client:
         response = client.get("/")
         assert response.status_code == 200
-        assert response.json()["message"].startswith("Indigo Analysis API")
+        assert response.json()["message"].startswith("HeliotrAPI Analysis")

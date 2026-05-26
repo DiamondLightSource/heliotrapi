@@ -5,9 +5,9 @@ from unittest.mock import Mock
 import numpy as np
 import pytest
 
-from indigoapi.client import AnalysisClient
-from indigoapi.models import AnalysisResult
-from indigoapi.utils.serialisers import serialise
+from heliotrapi.client import AnalysisClient
+from heliotrapi.models import AnalysisResult
+from heliotrapi.utils.serialisers import serialise
 
 
 def test_serialise():
@@ -102,8 +102,8 @@ def test_client_get_request_id_result_timeout(monkeypatch):
     def fake_time():
         return times.pop(0)
 
-    monkeypatch.setattr("indigoapi.client.time.time", fake_time)
-    monkeypatch.setattr("indigoapi.client.time.sleep", lambda _: None)
+    monkeypatch.setattr("heliotrapi.client.time.time", fake_time)
+    monkeypatch.setattr("heliotrapi.client.time.sleep", lambda _: None)
 
     with pytest.raises(TimeoutError):
         client.get_request_id_result(uuid.uuid4(), timeout=0.05, poll_interval=0.01)
@@ -316,7 +316,7 @@ def test_client_get_result_retries_after_failure(monkeypatch):
     session.get.side_effect = [failure_response, success_response]
 
     client = AnalysisClient(session=session)
-    monkeypatch.setattr("indigoapi.client.time.sleep", lambda _: None)
+    monkeypatch.setattr("heliotrapi.client.time.sleep", lambda _: None)
 
     result = client.get_result(timeout=1.0, poll_interval=0.01)
 

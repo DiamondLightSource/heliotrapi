@@ -1,8 +1,8 @@
 from collections.abc import Awaitable, Callable
 from typing import ParamSpec, TypeVar
 
-from indigoapi.analysis_core.loader import get_async_function
-from indigoapi.analysis_core.registry import register_analysis
+from heliotrapi.analysis_core.loader import get_async_function
+from heliotrapi.analysis_core.registry import register_analysis
 
 P = ParamSpec("P")
 R = TypeVar("R")

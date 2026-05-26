@@ -6,9 +6,9 @@ from unittest.mock import Mock
 
 import pytest
 
-from indigoapi.models import AnalysisRequest
-from indigoapi.task_queue import QueueManager
-from indigoapi.task_queue.rabbitmq import _StompListener
+from heliotrapi.models import AnalysisRequest
+from heliotrapi.task_queue import QueueManager
+from heliotrapi.task_queue.rabbitmq import _StompListener
 
 
 @pytest.mark.filterwarnings("ignore::ResourceWarning")
@@ -28,7 +28,7 @@ def test_stomp_listener_message_routes_enqueue(monkeypatch):
             return None
 
         monkeypatch.setattr(
-            "indigoapi.task_queue.rabbitmq.asyncio.run_coroutine_threadsafe",
+            "heliotrapi.task_queue.rabbitmq.asyncio.run_coroutine_threadsafe",
             fake_run_coro_threadsafe,
         )
 
@@ -54,7 +54,7 @@ def test_stomp_listener_invalid_json(monkeypatch):
         listener = _StompListener(queue_manager, loop)  # type: ignore
 
         monkeypatch.setattr(
-            "indigoapi.task_queue.rabbitmq.asyncio.run_coroutine_threadsafe",
+            "heliotrapi.task_queue.rabbitmq.asyncio.run_coroutine_threadsafe",
             lambda coro, event_loop: None,
         )
         frame = SimpleNamespace(body="not-a-json")
@@ -141,7 +141,7 @@ def test_on_message_logs_failure(monkeypatch):
     def fake_error(msg):
         recorded.append(msg)
 
-    monkeypatch.setattr("indigoapi.task_queue.rabbitmq.logger.error", fake_error)
+    monkeypatch.setattr("heliotrapi.task_queue.rabbitmq.logger.error", fake_error)
     listener.on_message(BadFrame())
 
     assert recorded

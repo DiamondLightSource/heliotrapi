@@ -89,19 +89,19 @@ COPY --chown=1000:1000 --from=build /app/.venv /app/.venv
 RUN chmod -R 777 /app
 ENV PATH=/app/.venv/bin:$PATH
 
-# Add copy of indigoapi source to container for debugging
+# Add copy of heliotrapi source to container for debugging
 WORKDIR /workspaces
-COPY --chown=1000:1000 . indigoapi
+COPY --chown=1000:1000 . heliotrapi
 # Make allowance for non-1000 uid
-RUN chmod o+wrX indigoapi
+RUN chmod o+wrX heliotrapi
 
 # Make invariant symlink to site-packages for debugging
-# /app/.venv/lib/python/site-packages/indigoapi:/workspaces/indigoapi
+# /app/.venv/lib/python/site-packages/heliotrapi:/workspaces/heliotrapi
 WORKDIR /app/.venv/lib
 RUN ln -s python* python
 
 # Switch user 1000
 USER ubuntu
 
-ENTRYPOINT ["indigoapi"]
+ENTRYPOINT ["heliotrapi"]
 CMD ["serve"]

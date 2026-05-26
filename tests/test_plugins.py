@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from indigoapi.analyses.peak_fitting import gaussian
-from indigoapi.analysis_core.registry import (
+from heliotrapi.analyses.peak_fitting import gaussian
+from heliotrapi.analysis_core.registry import (
     AnalysisNotFoundError,
     get_analysis,
     list_analyses,

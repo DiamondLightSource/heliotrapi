@@ -7,7 +7,7 @@ from uuid import UUID
 
 import requests
 
-from indigoapi.api.routes import (
+from heliotrapi.api.routes import (
     ANALYSE_ROUTE,
     ANALYSES_ROUTE,
     ENDPOINTS_ROUTE,
@@ -16,8 +16,8 @@ from indigoapi.api.routes import (
     RESULT_LATEST_ROUTE,
     RESULTS_ALL_ROUTE,
 )
-from indigoapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
-from indigoapi.utils.serialisers import serialise
+from heliotrapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
+from heliotrapi.utils.serialisers import serialise
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -195,7 +195,7 @@ class AnalysisClient:
 
 
 # if __name__ == "__main__":
-#     from indigoapi.analyses.peak_fitting import gaussian
+#     from heliotrapi.analyses.peak_fitting import gaussian
 
 #     x = np.round(np.linspace(0, 20, 50), 3)
 #     y = np.round(gaussian(x, 10, 5, 1) + (np.random.rand(x.shape[-1]) / 5), 3)

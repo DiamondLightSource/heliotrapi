@@ -1,6 +1,6 @@
 from click.testing import CliRunner
 
-from indigoapi.__main__ import main
+from heliotrapi.__main__ import main
 
 
 def test_main_no_subcommand_prints_message():
@@ -29,7 +29,7 @@ def test_main_host_override(monkeypatch, tmp_path):
         assert reload is True
         assert workers == 2
 
-    monkeypatch.setattr("indigoapi.__main__.uvicorn.run", fake_uvicorn_run)
+    monkeypatch.setattr("heliotrapi.__main__.uvicorn.run", fake_uvicorn_run)
 
     runner = CliRunner()
     result = runner.invoke(

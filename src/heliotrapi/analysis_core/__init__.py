@@ -1,6 +1,6 @@
 import importlib
 
-from indigoapi.config import Config
+from heliotrapi.config import Config
 
 from .decorator import analysis
 from .loader import get_async_function, load_analyses, load_plugins
@@ -19,7 +19,7 @@ def initialize_analyses(register_all: bool = False):
     """Load built-in analyses and user plugins. Call during server startup."""
     global MODULE_NAMES
 
-    package = importlib.import_module("indigoapi.analyses")
+    package = importlib.import_module("heliotrapi.analyses")
     MODULE_NAMES = load_analyses(package)
 
     config = Config.load_config()

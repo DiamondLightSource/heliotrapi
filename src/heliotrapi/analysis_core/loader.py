@@ -10,8 +10,8 @@ from typing import ParamSpec, TypeVar
 
 from git import Repo
 
-from indigoapi.analysis_core.registry import register_analysis
-from indigoapi.config import Config
+from heliotrapi.analysis_core.registry import register_analysis
+from heliotrapi.config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -98,7 +98,7 @@ def load_plugins(config: Config, register_all: bool = False):
     """
     Load all user plugins from configured paths and GitHub repos.
 
-    Built-in analyses (in indigoapi.analyses) are already loaded via decorators.
+    Built-in analyses (in heliotrapi.analyses) are already loaded via decorators.
     This function loads external plugins.
 
     Args:
@@ -127,7 +127,7 @@ def load_plugins(config: Config, register_all: bool = False):
 
 
 # if __name__ == "__main__":
-#     from indigoapi.analysis_core.registry import list_analyses
+#     from heliotrapi.analysis_core.registry import list_analyses
 
 #     load_plugins(Config.load_config())
 

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from indigoapi.analyses.peak_fitting import gaussian, gaussian_fit
+from heliotrapi.analyses.peak_fitting import gaussian, gaussian_fit
 
 
 def test_gaussian_function():
@@ -12,6 +12,6 @@ def test_gaussian_function():
 
 @pytest.mark.asyncio
 async def test_gaussian_fit_invalid_data_returns_error():
-    result = await gaussian_fit([1], [1])
+    result = await gaussian_fit([1], [1])  # noqs
     assert isinstance(result, dict)
     assert "error" in result

@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: ghcr.io/diamondlightsource/indigoapi
+  repository: ghcr.io/diamondlightsource/heliotrapi
   pullPolicy: Always
   tag: ""
 

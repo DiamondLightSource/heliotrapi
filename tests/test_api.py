@@ -3,9 +3,9 @@ import time
 import pytest
 from fastapi.testclient import TestClient
 
-from indigoapi.config import Config
-from indigoapi.models import AnalysisRequest
-from indigoapi.server import start_api
+from heliotrapi.config import Config
+from heliotrapi.models import AnalysisRequest
+from heliotrapi.server import start_api
 
 
 def test_analysis_flow_with_post():

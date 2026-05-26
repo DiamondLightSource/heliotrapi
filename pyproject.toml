@@ -3,7 +3,7 @@ requires = ["setuptools>=64", "setuptools_scm[toml]>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "indigoapi"
+name = "heliotrapi"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "License :: OSI Approved :: Apache Software License",
@@ -44,17 +44,17 @@ dev = [
 ]
 
 [project.scripts]
-indigoapi = "indigoapi.__main__:main"
+heliotrapi = "heliotrapi.__main__:main"
 
 [project.urls]
-GitHub = "https://github.com/DiamondLightSource/indigoapi"
+GitHub = "https://github.com/DiamondLightSource/heliotrapi"
 
 [[project.authors]] # Further authors may be added by duplicating this section
 email = "Richard.Dixey@Diamond.ac.uk"
 name = "Richard Dixey"
 
 [tool.setuptools_scm]
-version_file = "src/indigoapi/_version.py"
+version_file = "src/heliotrapi/_version.py"
 
 [tool.pyright]
 typeCheckingMode = "standard"
@@ -72,7 +72,7 @@ testpaths = "docs src tests"
 
 [tool.coverage.run]
 patch = ["subprocess"]
-data_file = "/tmp/indigoapi.coverage"
+data_file = "/tmp/heliotrapi.coverage"
 
 [tool.coverage.paths]
 # Tests are run from installed location, map back to the src directory
@@ -119,7 +119,7 @@ description = "Run tests with coverage"
 commands = [
     [
         "pytest",
-        "--cov=indigoapi",
+        "--cov=heliotrapi",
         "--cov-report",
         "term",
         "--cov-report",

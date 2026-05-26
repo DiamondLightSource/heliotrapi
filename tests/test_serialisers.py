@@ -3,7 +3,7 @@ import inspect
 import numpy as np
 import pytest
 
-from indigoapi.utils.serialisers import deserialise, serialise
+from heliotrapi.utils.serialisers import deserialise, serialise
 
 
 @pytest.mark.parametrize(
