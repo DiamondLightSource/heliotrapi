@@ -111,6 +111,9 @@ class AnalysisUI {
         }
 
         this.setupEventListeners();
+
+        // Immediately refresh on page load so history/results appear without waiting
+        await this.pollForUpdates();
     }
 
     async loadAnalyses() {
@@ -538,7 +541,8 @@ class AnalysisUI {
             const allResults = await this.api.getAllResults();
 
             if (Array.isArray(allResults)) {
-                this.requestHistory = allResults.map(r => ({
+                // Convert backend results to the same format
+                const backendResults = allResults.map(r => ({
                     requestId: r.request_id || r.id || '',
                     analysisName: r.analysis_name || r.name || 'Unknown',
                     inputs: r.inputs || {},
@@ -547,6 +551,22 @@ class AnalysisUI {
                     createdAt: r.created_at || r.createdAt || '',
                     finishedAt: r.finished_at || r.finishedAt || ''
                 }));
+
+                // Create a map of backend results by requestId
+                const backendMap = new Map(backendResults.map(r => [r.requestId, r]));
+
+                // Update existing entries with latest from backend
+                this.requestHistory = this.requestHistory.map(entry => {
+                    const backendEntry = backendMap.get(entry.requestId);
+                    return backendEntry || entry; // Use backend version if available, otherwise keep local
+                });
+
+                // Add any new results from backend that we don't have locally
+                for (const backendEntry of backendResults) {
+                    if (!this.requestHistory.find(r => r.requestId === backendEntry.requestId)) {
+                        this.requestHistory.unshift(backendEntry);
+                    }
+                }
 
                 this.saveHistoryToStorage();
                 this.renderResults();
