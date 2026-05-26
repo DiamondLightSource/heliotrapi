@@ -54,7 +54,7 @@ The app accepts analysis jobs via HTTP or the client and stores results in memor
 
     print(client.available_analyses()) #see available analyses
 
-    client.submit("name_of_analysis", x=x, y=y)
+    client.submit("name_of_analysis", examplekwarg1=1, examplekwarg2=2) # <- if kawrgs are invalid it will raise
 
     result = client.get_result() #returns an AnalysisResult basemodel
 
@@ -88,7 +88,7 @@ You can also navigate to the url or the ip address to be met with:
 
 ## Kubernetes deployment
 
-This repository includes a Helm chart under `./helm/helm/heliotrapi`.
+This repository includes a Helm chart under `./helm/heliotrapi`.
 
 ### Config support
 
