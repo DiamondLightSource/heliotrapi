@@ -192,30 +192,3 @@ class AnalysisClient:
                 raise TimeoutError(f"Result not ready after {timeout} seconds")
 
             time.sleep(poll_interval)
-
-
-# if __name__ == "__main__":
-#     import numpy as np
-
-#     from heliotrapi.analyses.peak_fitting import gaussian
-
-#     x = np.round(np.linspace(0, 20, 50), 3)
-#     y = np.round(gaussian(x, 10, 5, 1) + (np.random.rand(x.shape[-1]) / 5), 3)
-
-#     client = AnalysisClient()
-
-#     for i in range(5):
-#         id = client.submit("double", number=i)
-#         result = client.get_request_id_result(id)
-#     client.submit("gaussian_fit", x=x, y=y)
-
-#     for i in client.get_all_results():
-#         print(i, "\n")
-
-#     available_analyses = client.available_analyses(as_strings=True)
-
-#     for analysis in available_analyses:
-#         print(analysis)
-
-#     client.submit("gaussian_fit", num=x, g=y)
-#     print(client.get_result())
