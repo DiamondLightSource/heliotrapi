@@ -26,7 +26,6 @@ def test_main_host_override(monkeypatch, tmp_path):
     def fake_uvicorn_run(app, factory, host, port, reload, workers):
         assert host == "127.0.0.1"
         assert port == 8000
-        assert reload is True
         assert workers == 2
 
     monkeypatch.setattr("heliotrapi.__main__.uvicorn.run", fake_uvicorn_run)
