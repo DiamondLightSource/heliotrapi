@@ -40,10 +40,11 @@ __all__ = ["main"]
 @click.pass_context
 def main(
     ctx: click.Context,
-    config: Path | None,
     host: str | None,
     port: int | None,
+    config: Path | None,
 ) -> None:
+
     try:
         loaded_config = Config.load_config(config)
     except FileNotFoundError as fnfe:

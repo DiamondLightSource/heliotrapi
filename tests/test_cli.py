@@ -45,11 +45,12 @@ def test_cli_serve_invokes_uvicorn(monkeypatch):
         class queue:  # noqa
             workers = 1
 
-    result = runner.invoke(
-        main,
-        ["serve"],
-        obj={"config": FakeConfig()},
+    monkeypatch.setattr(
+        "heliotrapi.__main__.Config.load_config",
+        lambda _: FakeConfig(),
     )
+
+    result = runner.invoke(main, ["serve"])
 
     assert result.exit_code == 0
     assert called["host"] == "127.0.0.1"
