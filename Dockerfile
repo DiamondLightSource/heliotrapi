@@ -24,7 +24,8 @@ RUN apt-get update && apt-get install -y \
     libxcb-render-util0 \
     libxcb-xinerama0 \
     libxcb-xkb1 \
-    libxkbcommon-x11-0
+    libxkbcommon-x11-0 \
+    nano
 
 RUN apt-get install fonts-noto-color-emoji -y
 
