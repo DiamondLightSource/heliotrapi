@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Self
 
 import yaml
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -57,13 +57,13 @@ class WebUIConfig(BaseModel):
 
 
 class Config(BaseSettings):
-    server: ServerConfig = ServerConfig()
-    queue: QueueConfig = QueueConfig()
-    results: ResultsConfig = ResultsConfig()
-    cleanup: CleanupConfig = CleanupConfig()
-    plugins: PluginsConfig = PluginsConfig()
-    rabbitmq: RabbitMQConfig = RabbitMQConfig()
-    webui: WebUIConfig = WebUIConfig()
+    rabbitmq: RabbitMQConfig = Field(default_factory=RabbitMQConfig)
+    server: ServerConfig = Field(default_factory=ServerConfig)
+    queue: QueueConfig = Field(default_factory=QueueConfig)
+    results: ResultsConfig = Field(default_factory=ResultsConfig)
+    cleanup: CleanupConfig = Field(default_factory=CleanupConfig)
+    plugins: PluginsConfig = Field(default_factory=PluginsConfig)
+    webui: WebUIConfig = Field(default_factory=WebUIConfig)
 
     model_config = SettingsConfigDict(
         env_nested_delimiter="__",
@@ -89,7 +89,7 @@ class Config(BaseSettings):
 
         # 1. load YAML into model
         # 2. allow env vars to override it
-        return cls(**data)
+        return cls.model_validate(data)
 
 
 def load_config(path: str | Path | None = None) -> Config:
