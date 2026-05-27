@@ -564,9 +564,19 @@ class AnalysisUI {
                 // Add any new results from backend that we don't have locally
                 for (const backendEntry of backendResults) {
                     if (!this.requestHistory.find(r => r.requestId === backendEntry.requestId)) {
-                        this.requestHistory.unshift(backendEntry);
+                        this.requestHistory.push(backendEntry);
                     }
                 }
+
+                // Always sort newest -> oldest
+                this.requestHistory.sort((a, b) => {
+                    const aTime = new Date(a.createdAt || 0).getTime();
+                    const bTime = new Date(b.createdAt || 0).getTime();
+
+                    return bTime - aTime;
+                });
+
+                console.log(allResults.map(r => r.created_at));
 
                 this.saveHistoryToStorage();
                 this.renderResults();

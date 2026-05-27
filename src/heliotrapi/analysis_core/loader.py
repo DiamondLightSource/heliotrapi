@@ -1,7 +1,6 @@
 import asyncio
 import importlib
 import inspect
-import logging
 import pkgutil
 from collections.abc import Awaitable, Callable
 from functools import wraps
@@ -10,10 +9,9 @@ from typing import ParamSpec, TypeVar
 
 from git import Repo
 
+from heliotrapi import logger
 from heliotrapi.analysis_core.registry import register_analysis
 from heliotrapi.config import Config
-
-logger = logging.getLogger(__name__)
 
 
 def load_analyses(package):

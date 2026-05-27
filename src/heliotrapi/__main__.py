@@ -1,12 +1,12 @@
 """Interface for ``python -m heliotrapi``."""
 
-import logging
 from pathlib import Path
 
 import click
 import numpy as np
 import uvicorn
 
+from heliotrapi import logger
 from heliotrapi.analyses.peak_fitting import gaussian
 from heliotrapi.client import AnalysisClient
 from heliotrapi.config import Config
@@ -15,9 +15,6 @@ from heliotrapi.server import start_api
 from ._version import __version__
 
 __all__ = ["main"]
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
 @click.group(invoke_without_command=True)
@@ -34,11 +31,18 @@ logger = logging.getLogger(__name__)
     default=None,
     help="Host override",
 )
+@click.option(
+    "--port",
+    type=int,
+    default=None,
+    help="port override",
+)
 @click.pass_context
 def main(
     ctx: click.Context,
     config: Path | None,
     host: str | None,
+    port: int | None,
 ) -> None:
     try:
         loaded_config = Config.load_config(config)
@@ -47,6 +51,9 @@ def main(
 
     if host:
         loaded_config.server.host = host
+
+    if port:
+        loaded_config.server.port = port
 
     ctx.ensure_object(dict)
     ctx.obj["config"] = loaded_config
@@ -74,12 +81,17 @@ def serve(ctx: click.Context):
 
 
 @main.command(name="run_client_test")
-def run_client_test():
+@click.pass_context
+def run_client_test(ctx: click.Context):
 
     x = np.round(np.linspace(0, 20, 50), 3)
     y = np.round(gaussian(x, 10, 5, 1) + (np.random.rand(x.shape[-1]) / 5), 3)
 
-    client = AnalysisClient()
+    config = ctx.obj["config"]
+
+    url = f"http://{config.server.host}:{config.server.port}"
+
+    client = AnalysisClient(url)
 
     for i in range(5):
         id = client.submit("double", number=i)
@@ -94,8 +106,8 @@ def run_client_test():
     for analysis in available_analyses:
         print(analysis)
 
-    client.submit("gaussian_fit", num=x, g=y)
-    print(client.get_result())
+    # client.submit("gaussian_fit", num=x, g=y)
+    # print(client.get_result())
 
 
 if __name__ == "__main__":

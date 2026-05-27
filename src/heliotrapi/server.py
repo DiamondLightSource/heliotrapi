@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from xrpd_toolbox.utils.messenger import Messenger
 
 import heliotrapi
+from heliotrapi import logger
 from heliotrapi._version import __version__
 from heliotrapi.analysis_core import MODULE_NAMES, initialize_analyses
 from heliotrapi.api.routes import ROUTER
@@ -81,9 +82,8 @@ async def lifespan(app: FastAPI):
         rabbit_task.cancel()
 
 
-def start_api() -> FastAPI:
+def start_api(debug: bool = False) -> FastAPI:
 
-    logger = logging.getLogger(__name__)
     initialize_analyses(register_all=config.plugins.register_all)
     logger.info(f"{MODULE_NAMES} have been loaded")
     logger.info(f"version: {__version__}")
@@ -110,5 +110,19 @@ def start_api() -> FastAPI:
         if index_file.exists():
             return FileResponse(index_file)
         return {"message": "HeliotrAPI Analysis. Visit /docs for API documentation"}
+
+    if debug:
+
+        @app.middleware("http")
+        async def disable_cache(request, call_next):
+            response = await call_next(request)
+
+            response.headers["Cache-Control"] = (
+                "no-store, no-cache, must-revalidate, max-age=0"
+            )
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+
+            return response
 
     return app

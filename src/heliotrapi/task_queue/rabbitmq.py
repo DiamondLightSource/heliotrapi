@@ -1,6 +1,5 @@
 import asyncio
 import json
-import logging
 import threading
 import time
 from typing import Any
@@ -8,10 +7,9 @@ from typing import Any
 import stomp
 from pydantic import BaseModel, Field
 
+from heliotrapi import logger
 from heliotrapi.models import AnalysisRequest
 from heliotrapi.task_queue import QueueManager
-
-logger = logging.getLogger(__name__)
 
 TIMEOUT = 10
 

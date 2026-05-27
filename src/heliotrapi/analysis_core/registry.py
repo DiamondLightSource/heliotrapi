@@ -1,8 +1,7 @@
-import logging
 from collections.abc import Callable
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from heliotrapi import logger
 
 
 class AnalysisNotFoundError(Exception):

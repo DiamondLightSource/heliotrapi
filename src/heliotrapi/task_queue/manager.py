@@ -1,17 +1,14 @@
 import asyncio
 import inspect
-import logging
 from datetime import datetime
 from uuid import UUID
 
 from xrpd_toolbox.utils.messenger import DEFAULT_DII_PROCESSED_DESTINATION, Messenger
 
+from heliotrapi import logger
 from heliotrapi.analysis_core.registry import get_analysis
 from heliotrapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
 from heliotrapi.utils.serialisers import deserialise, serialise
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
 def convert_inputs(inputs: dict, annotations: dict) -> dict:

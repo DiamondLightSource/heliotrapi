@@ -1,4 +1,3 @@
-import logging
 import time
 from collections.abc import Callable
 from datetime import datetime
@@ -7,6 +6,7 @@ from uuid import UUID
 
 import requests
 
+from heliotrapi import logger
 from heliotrapi.api.routes import (
     ANALYSE_ROUTE,
     ANALYSES_ROUTE,
@@ -18,9 +18,6 @@ from heliotrapi.api.routes import (
 )
 from heliotrapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
 from heliotrapi.utils.serialisers import serialise
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
 class AnalysisClient:
