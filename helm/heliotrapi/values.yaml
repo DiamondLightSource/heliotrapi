@@ -38,9 +38,6 @@ resources:
     memory: 4Gi
 
 livenessProbe:
-
-webui:
-  showAllJobsInWebui: false # Set to true to show all jobs in the web UI, not just those submitted via the web UI
   httpGet:
     path: /healthz
     port: http
@@ -75,8 +72,10 @@ config:
       - "/topic/gda.messages.scan" # gda scans
       - "/topic/gda.messages.processing" # dawn stuff
       - "/topic/public.analysis.trigger" # custom topic for triggering analyses from other services
+  webui:
+    showAllJobsInWebui: false # Set to true to show all jobs in the web UI, not just those submitted via the web UI
   uvicorn:
-    workers: 1
+    workers: 4
   logging:
     graylog:
       enabled: false
