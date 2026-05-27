@@ -11,7 +11,7 @@ from heliotrapi.task_queue import QueueManager
 
 ROUTER = APIRouter()
 
-HEALTH_ROUTE = "/health"
+HEALTH_ROUTE = "/healthz"
 ANALYSES_ROUTE = "/get_analyses"
 ANALYSE_ROUTE = "/analyse"
 RESULT_LATEST_ROUTE = "/result/latest"

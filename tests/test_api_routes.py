@@ -10,13 +10,13 @@ from heliotrapi.server import start_api
 def test_api_health_and_endpoints_routes():
     app = start_api()
     with TestClient(app) as client:
-        response = client.get("/health")
+        response = client.get("/healthz")
         assert response.status_code == 200
         assert response.json() == {"status": "ok"}
 
         response = client.get("/endpoints")
         assert response.status_code == 200
-        assert any(route["path"] == "/health" for route in response.json())
+        assert any(route["path"] == "/healthz" for route in response.json())
 
 
 def test_api_result_latest_and_not_found():
