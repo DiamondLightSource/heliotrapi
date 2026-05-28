@@ -77,7 +77,6 @@ def serve(ctx: click.Context):
         host=config.server.host,
         port=int(config.server.port),
         reload=False,
-        workers=config.queue.workers,
     )
 
 
