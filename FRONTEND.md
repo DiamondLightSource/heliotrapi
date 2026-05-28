@@ -47,7 +47,7 @@ The frontend communicates with the following API endpoints:
 - `POST /analyse` - Submit a new analysis job
 - `GET /result/latest` - Get the most recent result
 - `GET /result/id/{request_id}` - Get result by request ID
-- `GET /health` - Check API availability
+- `GET /healthz` - Check API availability
 - `GET /endpoints` - Get all available endpoints
 
 

@@ -117,7 +117,7 @@ def test_client_health_and_endpoints():
 
     endpoints_response = Mock()
     endpoints_response.status_code = 200
-    endpoints_response.json.return_value = [{"path": "/health", "methods": ["GET"]}]
+    endpoints_response.json.return_value = [{"path": "/healthz", "methods": ["GET"]}]
     endpoints_response.raise_for_status = Mock()
 
     session = Mock()
@@ -125,7 +125,7 @@ def test_client_health_and_endpoints():
 
     client = AnalysisClient(base_url="http://test", session=session)
     assert client.health() == {"status": "ok"}
-    assert client.get_endpoints() == [{"path": "/health", "methods": ["GET"]}]
+    assert client.get_endpoints() == [{"path": "/healthz", "methods": ["GET"]}]
 
 
 def test_client_available_analyses_raw():

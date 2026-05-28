@@ -47,7 +47,7 @@ class AnalysisAPI {
     }
 
     async getHealth() {
-        const response = await fetch(`${this.baseURL}/health`);
+        const response = await fetch(`${this.baseURL}/healthz`);
 
         if (!response.ok) throw new Error('API not available');
         return response.json();
