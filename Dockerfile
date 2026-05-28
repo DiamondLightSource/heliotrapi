@@ -24,8 +24,7 @@ RUN apt-get update && apt-get install -y \
     libxcb-render-util0 \
     libxcb-xinerama0 \
     libxcb-xkb1 \
-    libxkbcommon-x11-0 \
-    nano
+    libxkbcommon-x11-0
 
 RUN apt-get install fonts-noto-color-emoji -y
 
@@ -64,9 +63,10 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --no-ins
     git \
     # gdb required for attaching debugger
     gdb \
+    nano \
     # May be required if attaching devcontainer
     libnss-ldapd \
-    && apt-get dist-clean
+    && apt-get dist-clean 
 
 # Install uv to allow setup-scratch to run
 COPY --from=ghcr.io/astral-sh/uv:0.11 /uv /uvx /bin/
