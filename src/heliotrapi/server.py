@@ -99,14 +99,14 @@ def start_api(debug: bool = False) -> FastAPI:
     app.include_router(ROUTER)
 
     # Serve static files
-    static_dir = Path(__file__).parent / "static"
+    static_dir = Path(__file__).parent / "ui"
     if static_dir.exists():
-        app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+        app.mount("/ui", StaticFiles(directory=str(static_dir)), name="ui")
 
     # Serve index.html for the root path
     @app.get("/")
     async def serve_index():
-        index_file = Path(__file__).parent / "templates" / "index.html"
+        index_file = Path(__file__).parent / "ui" / "index.html"
         if index_file.exists():
             return FileResponse(index_file)
         return {"message": "HeliotrAPI Analysis. Visit /docs for API documentation"}
