@@ -137,7 +137,7 @@ podman push ghcr.io/diamondlightsource/heliotrapi:latest
 2. Render the chart
 
 ```bash
-helm template heliotrapi ./helm/helm/heliotrapi
+helm template heliotrapi ./helm/heliotrapi
 ```
 
 3. Dry-run validation
@@ -168,11 +168,5 @@ kubectl port-forward svc/heliotrapi 8000:8000
 Then open:
 
 ```text
-http://localhost:8000/docs
+http://localhost:8000/
 ```
-
-## Notes
-
-- The chart name has been updated to `heliotrapi`.
-- The config file is mounted via a `ConfigMap` and loaded from `/etc/config/config.yaml`.
-- The Helm chart currently creates a `Deployment`, `Service`, and `ConfigMap`.
