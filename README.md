@@ -9,7 +9,7 @@ An API for small fast data analysis jobs at Diamond Light Source.
 
 [HEE-LEE-OH-TRAY-PEE-EYE]
 
-Helio - Like the sun, a very brilliannt light source
+Helio - Like the sun, a very brilliant light source
 Heliotrope - An pink-purple indigo-like colour
 HeliotrAPI - The API that comes after blue
 
