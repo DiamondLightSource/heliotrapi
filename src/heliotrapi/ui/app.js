@@ -553,6 +553,7 @@ class AnalysisUI {
             const allResults = await this.api.getAllResults();
 
             if (Array.isArray(allResults)) {
+
                 // Convert backend results to the same format
                 const backendResults = allResults.map(r => ({
                     requestId: r.request_id || r.id || '',
@@ -564,37 +565,20 @@ class AnalysisUI {
                     finishedAt: r.finished_at || r.finishedAt || ''
                 }));
 
-                // Create a map of backend results by requestId
-                const backendMap = new Map(backendResults.map(r => [r.requestId, r]));
-
-                // Update existing entries with latest from backend
-                this.requestHistory = this.requestHistory.map(entry => {
-                    const backendEntry = backendMap.get(entry.requestId);
-                    return backendEntry || entry; // Use backend version if available, otherwise keep local
-                });
-
-                // Add any new results from backend that we don't have locally
-                for (const backendEntry of backendResults) {
-                    if (!this.requestHistory.find(r => r.requestId === backendEntry.requestId)) {
-                        this.requestHistory.push(backendEntry);
-                    }
-                }
-
-                // Always sort newest -> oldest
-                this.requestHistory.sort((a, b) => {
+                // Completely replace local results
+                this.requestHistory = backendResults.sort((a, b) => {
                     const aTime = new Date(a.createdAt || 0).getTime();
                     const bTime = new Date(b.createdAt || 0).getTime();
 
                     return bTime - aTime;
                 });
 
-                console.log(allResults.map(r => r.created_at));
-
                 this.saveHistoryToStorage();
                 this.renderResults();
             }
 
         } catch (error) {
+
             console.error('Auto-refresh failed:', error);
 
             // Fallback:
