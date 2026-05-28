@@ -35,9 +35,9 @@ http://localhost:8000
 
 ### Frontend Files
 
-- **`templates/index.html`** - Main HTML template
-- **`static/app.js`** - API client and UI logic
-- **`static/style.css`** - Responsive styling with gradient design
+- **`ui/index.html`** - Main HTML template
+- **`ui/app.js`** - API client and UI logic
+- **`ui/style.css`** - Responsive styling with gradient design
 
 ### Backend Integration
 
