@@ -119,9 +119,19 @@ class AnalysisUI {
     async loadAnalyses() {
         try {
             this.analyses = await this.api.getAnalyses();
+
+            // Sort analyses alphabetically by name
+            this.analyses.sort((a, b) =>
+                (a.name || '').localeCompare(b.name || '')
+            );
+
             this.renderAnalysesList();
+
         } catch (error) {
-            this.showError('Failed to load analyses: ' + error.message);
+
+            this.showError(
+                'Failed to load analyses: ' + error.message
+            );
         }
     }
 
