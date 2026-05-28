@@ -404,7 +404,10 @@ class AnalysisUI {
                     return null;
                 }
 
-            } else if (ann.includes('int')) {
+            } else if (
+                ann.includes('int') &&
+                !ann.includes('float')
+            ) {
 
                 value = parseInt(value, 10);
 
@@ -412,7 +415,6 @@ class AnalysisUI {
                     this.showError(`${param.name} must be a valid integer`);
                     return null;
                 }
-
             } else if (ann.includes('float')) {
 
                 value = parseFloat(value);
