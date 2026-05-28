@@ -23,7 +23,7 @@ service:
   port: 8000
 
 ingress:
-  enabled: false
+  enabled: True
   className: ""
   annotations: {}
   hosts: []
