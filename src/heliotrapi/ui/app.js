@@ -76,6 +76,7 @@ class AnalysisUI {
 
         // Load analyses
         await this.loadAnalyses();
+        this.setupTooltip();
 
         // Try to load all jobs from backend if allowed
         let loadedFromBackend = false;
@@ -135,6 +136,38 @@ class AnalysisUI {
         }
     }
 
+    setupTooltip() {
+        const tooltip = document.getElementById('tooltip');
+
+        document.addEventListener('mouseover', (e) => {
+            const icon = e.target.closest('.info-icon');
+            if (!icon) return;
+
+            const text = decodeURIComponent(icon.dataset.doc || '');
+
+            tooltip.textContent = text || 'No description available';
+            tooltip.style.display = 'block';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            const icon = e.target.closest('.info-icon');
+
+            if (!icon) {
+                tooltip.style.display = 'none';
+                return;
+            }
+
+            tooltip.style.left = e.pageX + 12 + 'px';
+            tooltip.style.top = e.pageY + 12 + 'px';
+        });
+
+        document.addEventListener('mouseout', (e) => {
+            if (e.target.closest('.info-icon')) {
+                tooltip.style.display = 'none';
+            }
+        });
+    }
+
     renderAnalysesList() {
         const list = document.getElementById('analyses-list');
 
@@ -159,8 +192,16 @@ class AnalysisUI {
                 .join(', ');
 
             item.innerHTML = `
-                <div class="analysis-item-name">${analysis.name}</div>
-                <div class="analysis-item-params">${paramsText || 'No parameters'}</div>
+                <div class="analysis-item-name">
+                    ${analysis.name}
+                    <span class="info-icon"
+                        data-doc="${encodeURIComponent(analysis.docstring || '')}">
+                        i
+                    </span>
+                </div>
+                <div class="analysis-item-params">
+                    ${paramsText || 'No parameters'}
+                </div>
             `;
 
             item.addEventListener('click', () => this.selectAnalysis(analysis));
