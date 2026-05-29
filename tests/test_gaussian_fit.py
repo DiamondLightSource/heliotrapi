@@ -2,6 +2,7 @@ import numpy as np
 from fastapi.testclient import TestClient
 
 from heliotrapi.analyses.peak_fitting import gaussian, gaussian_fit
+from heliotrapi.analyses.simple_maths import sine_wave
 from heliotrapi.client import AnalysisClient
 from heliotrapi.server import start_api
 
@@ -57,3 +58,17 @@ def test_client_lists_analyses_as_strings():
         assert any(isinstance(sig, str) for sig in signatures)
         assert any(sig.startswith("gaussian_fit(") for sig in signatures)  # type: ignore
         assert any("->" in sig for sig in signatures)
+
+
+def test_client_runs_argument_with_none():
+
+    app = start_api()
+
+    with TestClient(app) as client_http:
+        client = AnalysisClient(base_url=str(client_http.base_url), session=client_http)  # type: ignore
+
+        _ = client.submit(sine_wave.__name__, array=None)
+
+        result = client.get_result()
+
+        assert len(result.result) == 100

@@ -455,3 +455,43 @@ button {
 ::-webkit-scrollbar-thumb:hover {
     background: #764ba2;
 }
+
+
+/* ===== Info icon next to analysis name ===== */
+.info-icon {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 16px;
+    height: 16px;
+    margin-left: 8px;
+    border-radius: 50%;
+    background: #667eea;
+    color: white;
+    font-size: 11px;
+    font-style: normal;
+    cursor: pointer;
+    user-select: none;
+    vertical-align: middle;
+    position: relative;
+}
+
+.info-icon:hover {
+    background: #764ba2;
+}
+
+/* ===== Tooltip ===== */
+.tooltip {
+    position: absolute;
+    display: none;
+    max-width: 320px;
+    padding: 10px 12px;
+    background: rgba(20, 20, 20, 0.95);
+    color: white;
+    font-size: 12px;
+    border-radius: 8px;
+    z-index: 9999;
+    white-space: pre-wrap;
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
