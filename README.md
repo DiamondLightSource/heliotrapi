@@ -50,7 +50,7 @@ The app accepts analysis jobs via HTTP or the client and stores results in memor
 
     from heliotrapi.client import AnalysisClient
 
-    client = AnalysisClient("ixx-analysis.diamond.ac.uk")
+    client = AnalysisClient("https://ixx-analysis.diamond.ac.uk")
 
     print(client.available_analyses()) #see available analyses
 
@@ -61,6 +61,31 @@ The app accepts analysis jobs via HTTP or the client and stores results in memor
     print(result)
 
 ```
+
+## Sending/Recieving results as an http request
+
+submit jobs to `/analyse` as a json blob via an HTTP POST request
+
+if want to call the function "double" eg:
+
+```python
+def double(number: float | int) -> float:
+    """Example analysis that doubles a number."""
+    return number * 2
+```
+
+then the json would be sent as a POST request like:
+
+{"analysis_name": "double", "inputs": {"number": 5}}
+
+the server will handle request_id time and created_at, 
+but if you want you can also send it in it's full form 
+and create a uuid and timestamp yourself:
+
+{"analysis_name":"double","inputs":{"number":5},"request_id":"d68de927-79f5-4df3-83d9-d125445c758a","created_at":"2026-05-29T11:47:09.087317"}
+
+you get then return the last results from `/result/latest` as a GET request
+
 
 ## Using the WebUI
 
