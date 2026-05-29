@@ -168,6 +168,11 @@ class AnalysisUI {
         });
     }
 
+    // Helper: resolve annotation from a parameter object, with fallbacks
+    getAnnotation(param) {
+        return param.annotation || param.type || param.type_hint || param.kind || 'Any';
+    }
+
     renderAnalysesList() {
         const list = document.getElementById('analyses-list');
 
@@ -188,7 +193,7 @@ class AnalysisUI {
             }
 
             const paramsText = analysis.parameters
-                .map(p => `${p.name}: ${p.annotation}`)
+                .map(p => `${p.name}: ${this.getAnnotation(p)}`)
                 .join(', ');
 
             item.innerHTML = `
@@ -244,7 +249,9 @@ class AnalysisUI {
             const label = document.createElement('label');
             label.textContent = param.name;
 
-            const inputType = this.getUIInputType(param.annotation);
+            // FIX: use getAnnotation() so type hints always resolve
+            const annotation = this.getAnnotation(param);
+            const inputType = this.getUIInputType(annotation);
 
             let input;
 
@@ -282,18 +289,34 @@ class AnalysisUI {
 
                 input.type = inputType;
 
-                input.placeholder = param.default
-                    ? `Default: ${param.default}`
-                    : `Enter ${param.name}`;
+                input.placeholder = `Enter ${param.name}`;
+            }
+
+            // Pre-populate with default value if present
+            if (param.default !== null && param.default !== undefined) {
+                if (inputType === 'checkbox') {
+                    input.checked = param.default === 'True';
+                } else if (param.default !== 'None') {
+                    // Backend sends repr() strings, so strip surrounding quotes
+                    // e.g. "'kev'" → "kev", "0.5" → "0.5"
+                    const raw = String(param.default);
+                    const unquoted = /^(['"]).*\1$/.test(raw)
+                        ? raw.slice(1, -1)
+                        : raw;
+                    input.value = unquoted;
+                }
+                // 'None' default: leave field empty — null is sent if user doesn't fill it in
             }
 
             input.id = `param-${param.name}`;
-            input.dataset.type = param.annotation;
+            // FIX: store resolved annotation, not raw (possibly undefined) field
+            input.dataset.type = annotation;
 
             const typeHint = document.createElement('div');
 
             typeHint.className = 'parameter-type';
-            typeHint.textContent = `Type: ${param.annotation}`;
+            // FIX: display the resolved annotation
+            typeHint.textContent = `Type: ${annotation}`;
 
             group.appendChild(label);
             group.appendChild(input);
@@ -414,16 +437,26 @@ class AnalysisUI {
 
             let value;
 
-            const ann = param.annotation.toLowerCase();
+            // FIX: use getAnnotation() so type-coercion logic always has a valid string
+            const ann = this.getAnnotation(param).toLowerCase();
+
+            // A parameter is optional if its annotation includes 'none' (e.g. "ndarray | None",
+            // "Optional[float]") or if its default is explicitly 'None'
+            const isOptional = ann.includes('none') || param.default === 'None';
 
             // Checkbox
             if (input.type === 'checkbox') {
                 value = input.checked;
             } else {
-                value = input.value;
+                value = input.value.trim();
             }
 
-            if (!value && value !== false && value !== 0) {
+            // If the user explicitly typed "None", or the field is empty and optional → send null
+            if (value === 'None' || value === 'none' || (!value && value !== false && value !== 0)) {
+                if (isOptional || value === 'None' || value === 'none') {
+                    inputs[param.name] = null;
+                    continue;
+                }
                 this.showError(`Please fill in ${param.name}`);
                 return null;
             }

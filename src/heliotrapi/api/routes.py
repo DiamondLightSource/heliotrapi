@@ -25,6 +25,17 @@ async def health():
     return {"status": "ok"}
 
 
+def annotation_to_str(annotation) -> str:
+    """Convert a Python annotation to a clean, readable string."""
+    if annotation is inspect.Parameter.empty:
+        return "Any"
+    # Prefer __name__ for plain types (float, int, str, bool, ndarray, ...)
+    if hasattr(annotation, "__name__"):
+        return annotation.__name__
+    # Fallback for generics like list[float], Optional[str], etc.
+    return str(annotation)
+
+
 @ROUTER.get(ANALYSES_ROUTE)
 async def available_analyses() -> list[dict[str, Any]]:
     analyses_info = []
@@ -39,21 +50,14 @@ async def available_analyses() -> list[dict[str, Any]]:
                     "default": repr(p.default)
                     if p.default != inspect.Parameter.empty
                     else None,
-                    "annotation": str(p.annotation)
-                    if p.annotation != inspect.Parameter.empty
-                    else "Any",
+                    "annotation": annotation_to_str(p.annotation),
                 }
             )
-        annotations = (
-            str(sig.return_annotation)
-            if sig.return_annotation != inspect.Signature.empty
-            else "Any"
-        )
         analyses_info.append(
             {
                 "name": name,
                 "parameters": params,
-                "annotations": annotations,
+                "annotations": annotation_to_str(sig.return_annotation),
                 "docstring": func.__doc__ or "",
             }
         )
