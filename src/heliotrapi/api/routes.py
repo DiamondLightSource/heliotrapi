@@ -5,6 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.routing import APIRoute
 
+from heliotrapi import logger
 from heliotrapi.analysis_core.registry import get_analysis, list_analyses
 from heliotrapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
 from heliotrapi.task_queue import QueueManager
@@ -66,6 +67,11 @@ async def available_analyses() -> list[dict[str, Any]]:
 
 @ROUTER.post(ANALYSE_ROUTE)
 async def analyse(request: Request, job: AnalysisRequest) -> AnalysisResponse:
+
+    logger.info(
+        f"Received analysis request from host: {request.headers.get('Host')} | agent: {request.headers['user-agent']}"  # noqa
+    )
+
     queue: QueueManager = request.app.state.queue_manager
     analysis_response = await queue.enqueue(job)
     return analysis_response
