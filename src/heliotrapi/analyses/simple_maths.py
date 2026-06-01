@@ -24,7 +24,7 @@ def sine_wave(array: np.ndarray | None) -> np.ndarray:
     """Example analysis that returns a sine wave for a given array,
     or a default sine wave 0->2pi if no array is provided."""
     if array is None:
-        return np.linspace(0, 2 * np.pi, 100)
+        array = np.linspace(0, 2 * np.pi, 100)
 
     sine = np.sin(array)
 
