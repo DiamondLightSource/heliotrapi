@@ -1,6 +1,11 @@
+import logging
+from typing import cast
+
 from click.testing import CliRunner
 
+from heliotrapi import server
 from heliotrapi.__main__ import main
+from heliotrapi.config import Config, ServerConfig
 
 
 def test_main_no_subcommand_prints_message():
@@ -36,3 +41,79 @@ def test_main_host_override(monkeypatch, tmp_path):
     )
 
     assert result.exit_code == 0
+
+
+def test_healthz_log_filter_is_enabled_only_when_configured(monkeypatch):
+    called: list[bool] = []
+
+    def fake_configure_access_log_filter() -> None:
+        called.append(True)
+
+    monkeypatch.setattr(
+        server, "configure_access_log_filter", fake_configure_access_log_filter
+    )
+    monkeypatch.setattr(server, "initialize_analyses", lambda register_all: None)
+    monkeypatch.setattr(
+        server, "config", Config(server=ServerConfig(suppress_healthz_logs=False))
+    )
+
+    server.start_api()
+    assert called == []
+
+
+def test_healthz_log_filter_is_enabled_when_configured(monkeypatch):
+    called: list[bool] = []
+
+    def fake_configure_access_log_filter() -> None:
+        called.append(True)
+
+    monkeypatch.setattr(
+        server, "configure_access_log_filter", fake_configure_access_log_filter
+    )
+    monkeypatch.setattr(server, "initialize_analyses", lambda register_all: None)
+    monkeypatch.setattr(
+        server, "config", Config(server=ServerConfig(suppress_healthz_logs=True))
+    )
+
+    server.start_api()
+    assert called == [True]
+
+
+def test_ignore_healthz_access_logs():
+    from heliotrapi.server import HealthzAccessLogFilter, configure_access_log_filter
+
+    access_logger = logging.getLogger("uvicorn.access")
+    access_logger.filters.clear()
+
+    configure_access_log_filter()
+
+    filter_obj = cast(HealthzAccessLogFilter, access_logger.filters[-1])
+    assert isinstance(filter_obj, HealthzAccessLogFilter)
+    assert (
+        filter_obj.filter(
+            logging.LogRecord(
+                name="uvicorn.access",
+                level=logging.INFO,
+                pathname=__file__,
+                lineno=1,
+                msg='127.0.0.1 - - [02/Jun/2026:00:00:00 +0000] "GET /healthz HTTP/1.1" 200',  # noqa
+                args=(),
+                exc_info=None,
+            )
+        )
+        is False
+    )
+    assert (
+        filter_obj.filter(
+            logging.LogRecord(
+                name="uvicorn.access",
+                level=logging.INFO,
+                pathname=__file__,
+                lineno=1,
+                msg='127.0.0.1 - - [02/Jun/2026:00:00:00 +0000] "GET /api HTTP/1.1" 200',  # noqa
+                args=(),
+                exc_info=None,
+            )
+        )
+        is True
+    )
