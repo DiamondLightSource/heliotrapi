@@ -189,3 +189,8 @@ class AnalysisClient:
                 raise TimeoutError(f"Result not ready after {timeout} seconds")
 
             time.sleep(poll_interval)
+
+
+# if __name__ == "__main__":
+#     client = AnalysisClient("http://i15-1-analysis.diamond.ac.uk")
+#     print(client.get_all_results())
