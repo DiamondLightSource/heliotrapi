@@ -58,6 +58,7 @@ class AnalysisUI {
     constructor() {
         this.api = new AnalysisAPI();
         this.analyses = [];
+        this.filteredAnalyses = [];
         this.selectedAnalysis = null;
         this.requestHistory = [];
         this.pollIntervals = new Map();
@@ -126,6 +127,8 @@ class AnalysisUI {
                 (a.name || '').localeCompare(b.name || '')
             );
 
+            // Seed filtered list and render
+            this.filteredAnalyses = this.analyses.slice();
             this.renderAnalysesList();
 
         } catch (error) {
@@ -178,12 +181,12 @@ class AnalysisUI {
 
         list.innerHTML = '';
 
-        if (this.analyses.length === 0) {
+        if (this.filteredAnalyses.length === 0) {
             list.innerHTML = '<div class="no-results">No analyses available</div>';
             return;
         }
 
-        this.analyses.forEach((analysis) => {
+        this.filteredAnalyses.forEach((analysis) => {
             const item = document.createElement('div');
 
             item.className = 'analysis-item';
@@ -366,8 +369,33 @@ class AnalysisUI {
             .getElementById('clear-btn')
             .addEventListener('click', () => this.clearHistory());
 
+        const search = document.getElementById('analysis-search');
+        if (search) {
+            search.addEventListener('input', (e) => this.filterAnalyses(e.target.value));
+        }
+
         // Refresh every N seconds
         setInterval(() => this.pollForUpdates(), REFRESH_INTERVAL_MS);
+    }
+
+    filterAnalyses(query) {
+        const q = (query || '').trim().toLowerCase();
+
+        if (!q) {
+            this.filteredAnalyses = this.analyses.slice();
+            this.renderAnalysesList();
+            return;
+        }
+
+        this.filteredAnalyses = this.analyses.filter(a => {
+            const name = (a.name || '').toLowerCase();
+            const doc = (a.docstring || '').toLowerCase();
+            const params = (a.parameters || []).map(p => (p.name || '').toLowerCase()).join(' ');
+
+            return name.includes(q) || doc.includes(q) || params.includes(q);
+        });
+
+        this.renderAnalysesList();
     }
 
     async submitAnalysis() {

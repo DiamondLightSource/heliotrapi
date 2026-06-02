@@ -154,6 +154,14 @@ input[type="number"] {
     align-items: flex-end;
 }
 
+.search-input {
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 2px solid #e0e0e0;
+    width: 100%;
+    margin-bottom: 12px;
+}
+
 .input-row input {
     width: 100%;
 }
