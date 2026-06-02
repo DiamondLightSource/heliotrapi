@@ -94,7 +94,8 @@ def configure_access_log_filter() -> None:
 
 
 def start_api(debug: bool = False) -> FastAPI:
-    configure_access_log_filter()
+    if config.server.suppress_healthz_logs:
+        configure_access_log_filter()
 
     initialize_analyses(register_all=config.plugins.register_all)
     logger.info(f"{MODULE_NAMES} have been loaded")

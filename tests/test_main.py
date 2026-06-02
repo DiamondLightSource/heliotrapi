@@ -3,7 +3,9 @@ from typing import cast
 
 from click.testing import CliRunner
 
+from heliotrapi import server
 from heliotrapi.__main__ import main
+from heliotrapi.config import Config, ServerConfig
 
 
 def test_main_no_subcommand_prints_message():
@@ -39,6 +41,42 @@ def test_main_host_override(monkeypatch, tmp_path):
     )
 
     assert result.exit_code == 0
+
+
+def test_healthz_log_filter_is_enabled_only_when_configured(monkeypatch):
+    called: list[bool] = []
+
+    def fake_configure_access_log_filter() -> None:
+        called.append(True)
+
+    monkeypatch.setattr(
+        server, "configure_access_log_filter", fake_configure_access_log_filter
+    )
+    monkeypatch.setattr(server, "initialize_analyses", lambda register_all: None)
+    monkeypatch.setattr(
+        server, "config", Config(server=ServerConfig(suppress_healthz_logs=False))
+    )
+
+    server.start_api()
+    assert called == []
+
+
+def test_healthz_log_filter_is_enabled_when_configured(monkeypatch):
+    called: list[bool] = []
+
+    def fake_configure_access_log_filter() -> None:
+        called.append(True)
+
+    monkeypatch.setattr(
+        server, "configure_access_log_filter", fake_configure_access_log_filter
+    )
+    monkeypatch.setattr(server, "initialize_analyses", lambda register_all: None)
+    monkeypatch.setattr(
+        server, "config", Config(server=ServerConfig(suppress_healthz_logs=True))
+    )
+
+    server.start_api()
+    assert called == [True]
 
 
 def test_ignore_healthz_access_logs():

@@ -1,6 +1,7 @@
 server:
   host: "localhost"
   port: 8000
+  suppress_healthz_logs: false
 
 queue:
   workers: 4
