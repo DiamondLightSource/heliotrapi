@@ -82,7 +82,19 @@ async def lifespan(app: FastAPI):
         rabbit_task.cancel()
 
 
+class HealthzAccessLogFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        return "/healthz" not in record.getMessage()
+
+
+def configure_access_log_filter() -> None:
+    access_logger = logging.getLogger("uvicorn.access")
+    if not any(isinstance(f, HealthzAccessLogFilter) for f in access_logger.filters):
+        access_logger.addFilter(HealthzAccessLogFilter())
+
+
 def start_api(debug: bool = False) -> FastAPI:
+    configure_access_log_filter()
 
     initialize_analyses(register_all=config.plugins.register_all)
     logger.info(f"{MODULE_NAMES} have been loaded")

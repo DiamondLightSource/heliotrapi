@@ -1,3 +1,6 @@
+import logging
+from typing import cast
+
 from click.testing import CliRunner
 
 from heliotrapi.__main__ import main
@@ -36,3 +39,43 @@ def test_main_host_override(monkeypatch, tmp_path):
     )
 
     assert result.exit_code == 0
+
+
+def test_ignore_healthz_access_logs():
+    from heliotrapi.server import HealthzAccessLogFilter, configure_access_log_filter
+
+    access_logger = logging.getLogger("uvicorn.access")
+    access_logger.filters.clear()
+
+    configure_access_log_filter()
+
+    filter_obj = cast(HealthzAccessLogFilter, access_logger.filters[-1])
+    assert isinstance(filter_obj, HealthzAccessLogFilter)
+    assert (
+        filter_obj.filter(
+            logging.LogRecord(
+                name="uvicorn.access",
+                level=logging.INFO,
+                pathname=__file__,
+                lineno=1,
+                msg='127.0.0.1 - - [02/Jun/2026:00:00:00 +0000] "GET /healthz HTTP/1.1" 200',  # noqa
+                args=(),
+                exc_info=None,
+            )
+        )
+        is False
+    )
+    assert (
+        filter_obj.filter(
+            logging.LogRecord(
+                name="uvicorn.access",
+                level=logging.INFO,
+                pathname=__file__,
+                lineno=1,
+                msg='127.0.0.1 - - [02/Jun/2026:00:00:00 +0000] "GET /api HTTP/1.1" 200',  # noqa
+                args=(),
+                exc_info=None,
+            )
+        )
+        is True
+    )
