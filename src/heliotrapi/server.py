@@ -84,7 +84,8 @@ async def lifespan(app: FastAPI):
 
 class HealthzAccessLogFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
-        return "/healthz" not in record.getMessage()
+        message = record.getMessage()
+        return "/healthz" not in message and "/results/all" not in message
 
 
 def configure_access_log_filter() -> None:
@@ -94,7 +95,7 @@ def configure_access_log_filter() -> None:
 
 
 def start_api(debug: bool = False) -> FastAPI:
-    if config.server.suppress_healthz_logs:
+    if config.server.suppress_polling_logs:
         configure_access_log_filter()
 
     initialize_analyses(register_all=config.plugins.register_all)

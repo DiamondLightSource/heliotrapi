@@ -1,7 +1,7 @@
 server:
   host: "localhost"
   port: 8000
-  suppress_healthz_logs: false
+  suppress_polling_logs: true
 
 queue:
   workers: 4

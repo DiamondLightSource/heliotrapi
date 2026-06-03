@@ -10,7 +10,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class ServerConfig(BaseModel):
     host: str = "0.0.0.0"
     port: int = 8000
-    suppress_healthz_logs: bool = False
+    suppress_polling_logs: bool = False
 
 
 class RabbitMQConfig(BaseModel):

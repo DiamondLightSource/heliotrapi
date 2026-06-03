@@ -54,7 +54,7 @@ def test_healthz_log_filter_is_enabled_only_when_configured(monkeypatch):
     )
     monkeypatch.setattr(server, "initialize_analyses", lambda register_all: None)
     monkeypatch.setattr(
-        server, "config", Config(server=ServerConfig(suppress_healthz_logs=False))
+        server, "config", Config(server=ServerConfig(suppress_polling_logs=False))
     )
 
     server.start_api()
@@ -72,14 +72,14 @@ def test_healthz_log_filter_is_enabled_when_configured(monkeypatch):
     )
     monkeypatch.setattr(server, "initialize_analyses", lambda register_all: None)
     monkeypatch.setattr(
-        server, "config", Config(server=ServerConfig(suppress_healthz_logs=True))
+        server, "config", Config(server=ServerConfig(suppress_polling_logs=True))
     )
 
     server.start_api()
     assert called == [True]
 
 
-def test_ignore_healthz_access_logs():
+def test_ignore_healthz_and_polling_access_logs():
     from heliotrapi.server import HealthzAccessLogFilter, configure_access_log_filter
 
     access_logger = logging.getLogger("uvicorn.access")
@@ -89,6 +89,7 @@ def test_ignore_healthz_access_logs():
 
     filter_obj = cast(HealthzAccessLogFilter, access_logger.filters[-1])
     assert isinstance(filter_obj, HealthzAccessLogFilter)
+    # Healthz logs should be filtered out
     assert (
         filter_obj.filter(
             logging.LogRecord(
@@ -103,6 +104,22 @@ def test_ignore_healthz_access_logs():
         )
         is False
     )
+    # Results/all polling logs should be filtered out
+    assert (
+        filter_obj.filter(
+            logging.LogRecord(
+                name="uvicorn.access",
+                level=logging.INFO,
+                pathname=__file__,
+                lineno=1,
+                msg='127.0.0.1 - - [02/Jun/2026:00:00:00 +0000] "GET /results/all HTTP/1.1" 200',  # noqa
+                args=(),
+                exc_info=None,
+            )
+        )
+        is False
+    )
+    # Other API logs should pass through
     assert (
         filter_obj.filter(
             logging.LogRecord(
