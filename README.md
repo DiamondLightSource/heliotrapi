@@ -48,17 +48,17 @@ The app accepts analysis jobs via HTTP or the client and stores results in memor
 
 ```python
 
-    from heliotrapi.client import AnalysisClient
+from heliotrapi.client import AnalysisClient
 
-    client = AnalysisClient("https://ixx-analysis.diamond.ac.uk")
+client = AnalysisClient("https://ixx-analysis.diamond.ac.uk")
 
-    print(client.available_analyses()) #see available analyses
+print(client.available_analyses()) #see available analyses
 
-    client.submit("name_of_analysis", examplekwarg1=1, examplekwarg2=2) # <- if kawrgs are invalid it will raise
+client.submit("name_of_analysis", examplekwarg1=1, examplekwarg2=2) # <- if kawrgs are invalid it will raise
 
-    result = client.get_result() #returns an AnalysisResult basemodel
+result = client.get_result() #returns an AnalysisResult basemodel
 
-    print(result)
+print(result)
 
 ```
 
