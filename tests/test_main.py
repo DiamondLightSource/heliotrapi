@@ -117,3 +117,12 @@ def test_ignore_healthz_access_logs():
         )
         is True
     )
+
+
+def test_logging_includes_timestamp_formatter():
+    root_logger = logging.getLogger()
+    assert root_logger.handlers, "Root logger should have at least one handler"
+    handler = root_logger.handlers[0]
+    assert handler.formatter is not None
+    fmt = handler.formatter._fmt or ""
+    assert "%(asctime)s" in fmt
