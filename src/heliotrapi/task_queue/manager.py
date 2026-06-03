@@ -1,9 +1,11 @@
 import asyncio
 import inspect
 from datetime import datetime
-from typing import Any
+from typing import Annotated, Any, get_args, get_origin, get_type_hints
 from uuid import UUID
 
+import numpy as np
+from pydantic import BeforeValidator, ConfigDict, create_model
 from xrpd_toolbox.utils.messenger import DEFAULT_DII_PROCESSED_DESTINATION, Messenger
 
 from heliotrapi import logger
@@ -12,36 +14,63 @@ from heliotrapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
 from heliotrapi.utils.serialisers import deserialise, serialise
 
 
-def convert_inputs(inputs: dict, annotations: dict) -> dict:
-    """Convert raw JSON request values into typed Python arguments.
+def wrap_numpy(tp):
+    if tp is np.ndarray:
+        return Annotated[np.ndarray, BeforeValidator(lambda v: np.asarray(v))]
+    return tp
 
-    This helper takes a JSON-style input dictionary from an analysis request
-    and converts each value to the expected Python type using the given
-    function parameter annotations.
 
-    Args:
-        inputs: Raw request inputs, typically from the JSON payload.
-        annotations: A mapping from parameter names to type annotations.
+def coerce_list_union(v):
+    # handles list[int | float]
+    if isinstance(v, list):
+        return [float(x) for x in v]
+    return v
 
-    Returns:
-        A new dictionary containing the converted values ready to be passed
-        to the analysis function.
 
-    Example:
-        inputs = {"number": "5", "scale": "2.0"}
-        annotations = {"number": int, "scale": float}
-        result = convert_inputs(inputs, annotations)
-        # result == {"number": 5, "scale": 2.0}
-    """
+def wrap_annotation(tp):
+    origin = get_origin(tp)
 
-    converted = {}
+    # intercept problematic pattern: list[int | float]
+    if origin is list:
+        args = get_args(tp)
 
-    for key, value in inputs.items():
-        annotation = annotations.get(key, inspect.Parameter.empty)
+        if args:
+            inner = args[0]
 
-        converted[key] = deserialise(value, annotation)
+            # detect Union inside list
+            if get_origin(inner) is None and hasattr(inner, "__args__"):
+                return Annotated[list, BeforeValidator(coerce_list_union)]
 
-    return converted
+    return tp
+
+
+def build_model(func):
+    sig = inspect.signature(func)
+    hints = get_type_hints(func)
+
+    fields = {}
+
+    for name, param in sig.parameters.items():
+        annotation = hints.get(name, Any)
+
+        # 🔥 KEY FIX
+        annotation = wrap_numpy(annotation)
+
+        default = param.default if param.default is not inspect.Parameter.empty else ...
+
+        fields[name] = (annotation, default)
+
+    return create_model(
+        func.__name__ + "Model",
+        __config__=ConfigDict(arbitrary_types_allowed=True),
+        **fields,
+    )
+
+
+def convert_inputs(inputs: dict, func):
+    module = build_model(func)  # MUST be a class
+    obj = module(**inputs)  # validation + coercion
+    return obj.model_dump()
 
 
 def get_function_annotations(func) -> dict[str, Any]:
@@ -168,12 +197,13 @@ class QueueManager:
 
             try:
                 analysis_fn = get_analysis(job.analysis_name)
-                annotations = get_function_annotations(analysis_fn)
+                # annotations = get_function_annotations(analysis_fn)
 
-                logger.info(annotations)
+                converted_inputs = convert_inputs(job.inputs, analysis_fn)
+                # logger.info(annotations)
 
                 # validate_inputs(analysis_fn, job.inputs)
-                converted_inputs = convert_inputs(job.inputs, annotations)
+                # converted_inputs = convert_inputs(job.inputs, annotations)
 
                 result_value = await analysis_fn(**converted_inputs)  # actually run job
 
