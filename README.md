@@ -202,6 +202,6 @@ Then open:
 http://localhost:8000/
 ```
 
-##Example Kubernetes Deployment
+## Example Kubernetes Deployment
 
 Go to the i15-services repo on gitlab.diamond.ac.uk to see an example of how to set it up
