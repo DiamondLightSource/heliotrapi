@@ -84,6 +84,12 @@ and create a uuid and timestamp yourself:
 
 {"analysis_name":"double","inputs":{"number":5},"request_id":"d68de927-79f5-4df3-83d9-d125445c758a","created_at":"2026-05-29T11:47:09.087317"}
 
+via curl the example command would be:
+
+```bash
+curl -X POST https://ixx-analysis.diamond.ac.uk/analyse -H "Content-Type: application/json" -d '{"analysis_name":"double","inputs":{"number":5}}'
+```
+
 you get then return the last results from `/result/latest` as a GET request
 
 
