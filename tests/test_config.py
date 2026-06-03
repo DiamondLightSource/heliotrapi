@@ -23,18 +23,18 @@ def test_config_default_values():
     cfg = Config()
     assert cfg.results.ttl_seconds == 3600
     assert cfg.cleanup.interval_seconds == 300
-    assert cfg.server.suppress_healthz_logs is False
+    assert cfg.server.suppress_polling_logs is False
 
 
-def test_config_loads_suppress_healthz_logs(tmp_path):
+def test_config_loads_suppress_polling_logs(tmp_path):
     config_file = tmp_path / "config.yaml"
     config_file.write_text(
-        "server:\n  host: 127.0.0.1\n  port: 1234\n  suppress_healthz_logs: true\n"
+        "server:\n  host: 127.0.0.1\n  port: 1234\n  suppress_polling_logs: true\n"
     )
 
     cfg = Config.load_config(config_file)
 
-    assert cfg.server.suppress_healthz_logs is True
+    assert cfg.server.suppress_polling_logs is True
 
 
 def test_rabbitmq_address_property():
