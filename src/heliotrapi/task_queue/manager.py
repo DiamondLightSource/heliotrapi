@@ -1,6 +1,7 @@
 import asyncio
 import inspect
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from xrpd_toolbox.utils.messenger import DEFAULT_DII_PROCESSED_DESTINATION, Messenger
@@ -12,9 +13,25 @@ from heliotrapi.utils.serialisers import deserialise, serialise
 
 
 def convert_inputs(inputs: dict, annotations: dict) -> dict:
-    """
-    Convert a dictionary of raw JSON inputs using
-    a dictionary of parameter annotations.
+    """Convert raw JSON request values into typed Python arguments.
+
+    This helper takes a JSON-style input dictionary from an analysis request
+    and converts each value to the expected Python type using the given
+    function parameter annotations.
+
+    Args:
+        inputs: Raw request inputs, typically from the JSON payload.
+        annotations: A mapping from parameter names to type annotations.
+
+    Returns:
+        A new dictionary containing the converted values ready to be passed
+        to the analysis function.
+
+    Example:
+        inputs = {"number": "5", "scale": "2.0"}
+        annotations = {"number": int, "scale": float}
+        result = convert_inputs(inputs, annotations)
+        # result == {"number": 5, "scale": 2.0}
     """
 
     converted = {}
@@ -27,9 +44,25 @@ def convert_inputs(inputs: dict, annotations: dict) -> dict:
     return converted
 
 
-def get_function_annotations(func) -> dict:
-    """
-    Extract parameter annotations from a function.
+def get_function_annotations(func) -> dict[str, Any]:
+    """Read a function's signature and return its parameter type hints.
+
+    This helper examines the target analysis function and builds a dictionary
+    of parameter names to their annotations. The result is later used to
+    convert and validate incoming request inputs.
+
+    Args:
+        func: The analysis function whose parameter annotations are required.
+
+    Returns:
+        A dictionary mapping each parameter name to its annotation object.
+
+    Example:
+        def analysis(number: int, scale: float = 1.0):
+            return number * scale
+
+        annotations = get_function_annotations(analysis)
+        # annotations == {"number": int, "scale": float}
     """
 
     sig = inspect.signature(func)
@@ -137,9 +170,12 @@ class QueueManager:
                 analysis_fn = get_analysis(job.analysis_name)
                 annotations = get_function_annotations(analysis_fn)
 
+                logger.info(annotations)
+
                 # validate_inputs(analysis_fn, job.inputs)
                 converted_inputs = convert_inputs(job.inputs, annotations)
-                result_value = await analysis_fn(**converted_inputs)
+
+                result_value = await analysis_fn(**converted_inputs)  # actually run job
 
                 # Convert numpy and other non-serializable types
                 result_value = serialise(result_value)
