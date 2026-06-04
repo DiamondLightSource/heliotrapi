@@ -56,11 +56,6 @@ def test_deserialise_no_annotation_returns_original_value():
     assert deserialise(value, inspect.Parameter.empty) == value
 
 
-# =========================
-# serialise() tests
-# =========================
-
-
 def test_serialise_none():
     assert serialise(None) is None
 
@@ -114,11 +109,6 @@ def test_serialise_set():
 
 def test_serialise_passthrough():
     assert serialise("hello") == "hello"
-
-
-# =========================
-# _infer + deserialise basics
-# =========================
 
 
 def test_deserialise_infer_int():
