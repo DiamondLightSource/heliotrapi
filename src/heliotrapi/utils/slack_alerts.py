@@ -6,6 +6,7 @@ emojis = {
     "failure": ":x:",
     "success": ":white_check_mark:",
     "analysis": ":gear:",
+    "dead": ":skull:",
 }
 
 
