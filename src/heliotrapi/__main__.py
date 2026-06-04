@@ -4,13 +4,11 @@ from pathlib import Path
 
 import click
 import numpy as np
-import uvicorn
 
 from heliotrapi import logger
 from heliotrapi.analyses.peak_fitting import gaussian
 from heliotrapi.client import AnalysisClient
 from heliotrapi.config import Config
-from heliotrapi.server import start_api
 
 from ._version import __version__
 
@@ -66,6 +64,11 @@ def main(
 @main.command(name="serve")
 @click.pass_context
 def serve(ctx: click.Context):
+
+    import uvicorn
+
+    from heliotrapi.server import start_api
+
     config = ctx.obj["config"]
 
     logger.info(f"host: {config.server.host}")
