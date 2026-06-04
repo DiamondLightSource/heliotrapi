@@ -53,7 +53,7 @@ def test_cli_serve_invokes_uvicorn(monkeypatch):
         called["port"] = port
         called["app"] = app
 
-    monkeypatch.setattr("heliotrapi.__main__.uvicorn.run", fake_run)
+    monkeypatch.setattr("uvicorn.run", fake_run)
 
     class FakeConfig:
         class server:  # noqa
