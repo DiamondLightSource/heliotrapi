@@ -17,29 +17,29 @@ dependencies = [
     "scipy",
     "pydantic",
     "pydantic_settings",
-    "stomp.py",
+    "requests",
+    "click",
 ] # Add project dependencies here, e.g. ["click", "numpy"]
-
 dynamic = ["version"]
 license.file = "LICENSE"
 readme = "README.md"
 requires-python = ">=3.11"
 
 [project.optional-dependencies]
-client = [
-    "requests",
-    "httpx",
-]
+
+client = [] #doesn't requure anything else thats not already a dependency
+
 server = [
-    "heliotrapi[client]",  # pulls in everything from client
-    "xrpd-toolbox>=v0.1.2.2",
-    "fastapi",
+    "stomp.py",
     "uvicorn",
+    "fastapi",
     "gitpython",
+    "xrpd-toolbox>=v0.1.2.2",
 ]
 
 [dependency-groups]
 dev = [
+    "heliotrapi[server]",
     "copier",
     "pre-commit",
     "pyright",
