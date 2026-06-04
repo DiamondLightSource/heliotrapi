@@ -1,10 +1,28 @@
 import subprocess
 import sys
+from unittest.mock import MagicMock, patch
 
+import click
+import numpy as np
+import pytest
 from click.testing import CliRunner
 
 from heliotrapi import __version__
-from heliotrapi.__main__ import main
+from heliotrapi.__main__ import main, run_client_test
+
+
+@pytest.fixture
+def click_ctx():
+    ctx = click.Context(run_client_test)
+    ctx.obj = {
+        "config": MagicMock(
+            server=MagicMock(
+                host="localhost",
+                port=8000,
+            )
+        )
+    }
+    return ctx
 
 
 def test_cli_version():
@@ -55,3 +73,47 @@ def test_cli_serve_invokes_uvicorn(monkeypatch):
     assert result.exit_code == 0
     assert called["host"] == "127.0.0.1"
     assert called["port"] == 8000
+
+
+def test_run_client_test():
+    runner = CliRunner()
+
+    mock_client = MagicMock()
+    mock_client.submit.return_value = "fake-id"
+    mock_client.get_request_id_result.return_value = {"status": "ok"}
+    mock_client.get_all_results.return_value = [{"a": 1}]
+    mock_client.available_analyses.return_value = ["double", "gaussian_fit"]
+
+    fake_config = MagicMock()
+    fake_config.server.host = "localhost"
+    fake_config.server.port = 8000
+
+    with (
+        patch("heliotrapi.__main__.Config.load_config", return_value=fake_config),
+        patch("heliotrapi.__main__.AnalysisClient", return_value=mock_client),
+        patch("heliotrapi.__main__.gaussian", return_value=np.ones(50)),
+        patch("numpy.random.rand", return_value=np.zeros(50)),
+    ):
+        result = runner.invoke(
+            main,
+            [
+                "--config",
+                "dummy.yml",
+                "--host",
+                "localhost",
+                "--port",
+                "8000",
+                "run_client_test",
+            ],
+        )
+
+    assert result.exit_code == 0
+
+    # 5 loop submissions + 1 gaussian_fit
+    assert mock_client.submit.call_count == 6
+
+    mock_client.submit.assert_any_call("double", number=0)
+    mock_client.submit.assert_any_call("double", number=4)
+
+    mock_client.available_analyses.assert_called_once()
+    mock_client.get_all_results.assert_called_once()
