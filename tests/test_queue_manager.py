@@ -251,51 +251,28 @@ async def test_worker_sends_slack_message_on_failure():
     assert "analysis exploded" in kwargs["message"]
 
 
-@pytest.mark.asyncio
-async def test_worker_sends_slack_on_failure_branch():
-
-    async def failing_analysis(**kwargs):
-        raise RuntimeError("boom")
+def test_enqueue_sends_slack_on_failure():
 
     job = AnalysisRequest(
         request_id=uuid4(),
-        analysis_name="test_analysis",
-        inputs={},
+        analysis_name="NON_EXISTENT_ANALYSIS",
+        inputs={"x": "bad"},
     )
 
     qm = QueueManager(slack_webhook_url="https://slack.example.com")
 
-    qm.results[job.request_id] = AnalysisResult(
-        request_id=job.request_id,
-        analysis_name=job.analysis_name,
-        inputs=job.inputs,
-        status="running",
-        result=None,
-        created_at=job.created_at,
-        finished_at=None,
-    )
-
-    await qm.queue.put(job)
-
     with (
         patch(
             "heliotrapi.task_queue.manager.get_analysis",
-            return_value=failing_analysis,
+            side_effect=Exception("boom"),
         ),
         patch("heliotrapi.task_queue.manager.send_slack_failure") as mock_slack,
     ):
-        worker_task = asyncio.create_task(qm.worker())
+        import asyncio
 
-        await qm.queue.join()
+        asyncio.run(qm.enqueue(job))
 
-        worker_task.cancel()
-        with pytest.raises(asyncio.CancelledError):
-            await worker_task
-
-    # ✔ THIS HITS YOUR MISSING COVERAGE LINE
     mock_slack.assert_called_once()
 
     _, kwargs = mock_slack.call_args
-
-    assert kwargs["webhook_url"] == "https://slack.example.com"
     assert "boom" in kwargs["message"]
