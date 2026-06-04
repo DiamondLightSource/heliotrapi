@@ -90,8 +90,13 @@ via curl the example command would be:
 curl -X POST https://ixx-analysis.diamond.ac.uk/analyse -H "Content-Type: application/json" -d '{"analysis_name":"double","inputs":{"number":5}}'
 ```
 
-you get then return the last results from `/result/latest` as a GET request
+and to get the last result from `/result/latest` as a GET request
 
+```bash
+curl -X GET https://i15-1-analysis.diamond.ac.uk/result/latest
+```
+
+If you are getting redirectedm due to the a proxy use curl -LX ...
 
 ## Using the WebUI
 
