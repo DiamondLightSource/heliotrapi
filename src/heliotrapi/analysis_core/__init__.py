@@ -3,7 +3,7 @@ import importlib
 from heliotrapi.config import Config
 
 from .decorator import analysis
-from .loader import get_async_function, load_analyses, load_plugins
+from .loader import load_analyses, load_plugins
 from .registry import (
     ANALYSIS_REGISTRY,
     AnalysisNotFoundError,
@@ -28,7 +28,6 @@ def initialize_analyses(register_all: bool = False):
 
 __all__ = [
     "analysis",
-    "get_async_function",
     "load_analyses",
     "load_plugins",
     "ANALYSIS_REGISTRY",

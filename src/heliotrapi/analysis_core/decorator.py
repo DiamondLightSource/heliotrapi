@@ -1,7 +1,7 @@
 from collections.abc import Awaitable, Callable
 from typing import ParamSpec, TypeVar
 
-from heliotrapi.analysis_core.loader import get_async_function
+from heliotrapi.analysis_core.async_func import make_function_async
 from heliotrapi.analysis_core.registry import register_analysis
 
 P = ParamSpec("P")
@@ -15,7 +15,7 @@ def analysis(
     Converts sync functions to async."""
 
     def decorator(func: Callable[P, R]) -> Callable[P, Awaitable[R]]:
-        async_fn = get_async_function(func)
+        async_fn = make_function_async(func)
         name_to_register = name or func.__name__
 
         register_analysis(name_to_register, async_fn)

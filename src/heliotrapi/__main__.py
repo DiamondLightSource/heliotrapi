@@ -65,9 +65,14 @@ def main(
 @click.pass_context
 def serve(ctx: click.Context):
 
-    import uvicorn
+    try:
+        import uvicorn
 
-    from heliotrapi.server import start_api
+        from heliotrapi.server import start_api
+    except Exception as e:
+        raise Exception(
+            "You must have install all dependencies - pip install heliotrapi"
+        ) from e
 
     config = ctx.obj["config"]
 

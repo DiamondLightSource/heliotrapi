@@ -32,7 +32,7 @@ def test_main_host_override(monkeypatch, tmp_path):
         assert host == "127.0.0.1"
         assert port == 8000
 
-    monkeypatch.setattr("heliotrapi.__main__.uvicorn.run", fake_uvicorn_run)
+    monkeypatch.setattr("uvicorn.run", fake_uvicorn_run)
 
     runner = CliRunner()
     result = runner.invoke(
