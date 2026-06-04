@@ -10,6 +10,7 @@ from heliotrapi import logger
 from heliotrapi.analysis_core.registry import get_analysis
 from heliotrapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
 from heliotrapi.utils.serialisers import deserialise, serialise
+from heliotrapi.utils.slack_alerts import send_slack_failure
 
 
 def convert_inputs(inputs: dict, annotations: dict) -> dict:
@@ -104,12 +105,18 @@ def validate_inputs(func, inputs: dict):
 
 
 class QueueManager:
-    def __init__(self, workers: int = 2, messenger: Messenger | None = None):
+    def __init__(
+        self,
+        workers: int = 2,
+        messenger: Messenger | None = None,
+        slack_webhook_url: str | None = None,
+    ):
         self.queue: asyncio.Queue[AnalysisRequest] = asyncio.Queue(maxsize=0)  # 0 = inf
         self.results: dict[UUID, AnalysisResult] = {}
         self.workers = workers
         self.latest_result: AnalysisResult | None = None
         self.messenger = messenger
+        self.slack_webhook_url = slack_webhook_url
         logger.info(self.queue)
 
     async def enqueue(self, job: AnalysisRequest) -> AnalysisResponse:
@@ -152,7 +159,15 @@ class QueueManager:
                 inputs=job.inputs,
                 accepted=False,
             )
+
+            # log the error and send alert to slack if configured
             logger.error(analysis_response)
+
+            if self.slack_webhook_url is not None:
+                send_slack_failure(
+                    webhook_url=self.slack_webhook_url,
+                    message=f"Job {job} failed: {str(e)}",
+                )
 
         if self.messenger is not None:
             self.messenger.send_message(
@@ -188,6 +203,12 @@ class QueueManager:
                 result = str(e)
                 status = "failed"
                 finished_at = datetime.now()
+
+                if self.slack_webhook_url is not None:
+                    send_slack_failure(
+                        webhook_url=self.slack_webhook_url,
+                        message=f"Job {job} failed: {str(e)}",
+                    )
 
             finally:
                 self.queue.task_done()
