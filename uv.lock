@@ -749,15 +749,23 @@ wheels = [
 name = "heliotrapi"
 source = { editable = "." }
 dependencies = [
-    { name = "fastapi" },
-    { name = "gitpython" },
-    { name = "httpx" },
     { name = "numpy" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
-    { name = "requests" },
     { name = "scipy" },
     { name = "stomp-py" },
+]
+
+[package.optional-dependencies]
+client = [
+    { name = "httpx" },
+    { name = "requests" },
+]
+server = [
+    { name = "fastapi" },
+    { name = "gitpython" },
+    { name = "httpx" },
+    { name = "requests" },
     { name = "uvicorn" },
     { name = "xrpd-toolbox" },
 ]
@@ -777,18 +785,20 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "fastapi" },
-    { name = "gitpython" },
-    { name = "httpx" },
+    { name = "fastapi", marker = "extra == 'server'" },
+    { name = "gitpython", marker = "extra == 'server'" },
+    { name = "heliotrapi", extras = ["client"], marker = "extra == 'server'" },
+    { name = "httpx", marker = "extra == 'client'" },
     { name = "numpy" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
-    { name = "requests" },
+    { name = "requests", marker = "extra == 'client'" },
     { name = "scipy" },
     { name = "stomp-py" },
-    { name = "uvicorn" },
-    { name = "xrpd-toolbox", specifier = ">=0.1.2.2" },
+    { name = "uvicorn", marker = "extra == 'server'" },
+    { name = "xrpd-toolbox", marker = "extra == 'server'", specifier = ">=0.1.2.2" },
 ]
+provides-extras = ["client", "server"]
 
 [package.metadata.requires-dev]
 dev = [
