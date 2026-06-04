@@ -40,6 +40,7 @@ server = [
 [dependency-groups]
 dev = [
     "heliotrapi[server]",
+    "httpx",              #required for fake client
     "copier",
     "pre-commit",
     "pyright",
