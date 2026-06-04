@@ -37,7 +37,13 @@ async def lifespan(app: FastAPI):
     else:
         messenger = None
 
-    queue_manager = QueueManager(workers=config.queue.workers, messenger=messenger)
+    queue_manager = QueueManager(
+        workers=config.queue.workers,
+        messenger=messenger,
+        slack_webhook_url=config.alerts.slack_webhook_url
+        if config.alerts.slack_webhook_url != ""
+        else None,
+    )
 
     workers = [
         asyncio.create_task(queue_manager.worker())
