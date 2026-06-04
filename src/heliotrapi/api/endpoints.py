@@ -1,3 +1,7 @@
+# NOTE: The endpoints are here and not with the routes, to avoid dependency issues
+# keep these seperate to allow pip install heliotrapi[client] to not have to install
+# additional dependencies
+
 HEALTH_ROUTE = "/healthz"
 ANALYSES_ROUTE = "/get_analyses"
 ANALYSE_ROUTE = "/analyse"
