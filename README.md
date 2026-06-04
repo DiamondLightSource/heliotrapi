@@ -96,7 +96,7 @@ and to get the last result from `/result/latest` as a GET request
 curl -X GET https://i15-1-analysis.diamond.ac.uk/result/latest
 ```
 
-If you are getting redirectedm due to the a proxy use curl -LX ...
+If you are getting redirected due to the a proxy use curl -LX ...
 
 ## Using the WebUI
 
