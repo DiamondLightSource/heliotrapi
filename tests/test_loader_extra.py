@@ -1,8 +1,8 @@
 from unittest.mock import Mock
 
+from heliotrapi.analysis_core.async_func import make_function_async
 from heliotrapi.analysis_core.loader import (
     clone_github_repo,
-    get_async_function,
     load_plugins,
     load_plugins_from_dir,
 )
@@ -10,11 +10,11 @@ from heliotrapi.analysis_core.registry import list_analyses
 from heliotrapi.config import Config
 
 
-def test_get_async_function_returns_coroutine_function():
+def test_make_function_async_returns_coroutine_function():
     async def coro():
         return 1
 
-    assert get_async_function(coro) is coro
+    assert make_function_async(coro) is coro
 
 
 def test_clone_github_repo_force(monkeypatch, tmp_path):
