@@ -1,6 +1,7 @@
 """Interface for `python -m heliotrapi`."""
 
 import asyncio
+import importlib
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -13,12 +14,27 @@ from xrpd_toolbox.utils.messenger import Messenger
 import heliotrapi
 from heliotrapi import logger
 from heliotrapi._version import __version__
-from heliotrapi.analysis_core import MODULE_NAMES, initialize_analyses
+from heliotrapi.analysis_core.loader import load_analyses, load_plugins
 from heliotrapi.api.routes import ROUTER
 from heliotrapi.config import Config
 from heliotrapi.task_queue import QueueManager, RabbitMQListener, cleanup_results
 
 config: Config = Config.load_config()
+
+
+global MODULE_NAMES
+
+MODULE_NAMES: list[str] = []  # currently empty
+
+
+def initialize_analyses(register_all: bool = False):
+    """Load built-in analyses and user plugins. Call during server startup."""
+
+    package = importlib.import_module("heliotrapi.analyses")
+    MODULE_NAMES.extend(load_analyses(package))  # add packages from load_analyses
+
+    config = Config.load_config()
+    load_plugins(config, register_all=register_all)
 
 
 @asynccontextmanager

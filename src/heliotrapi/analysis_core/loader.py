@@ -1,6 +1,7 @@
 import importlib
 import inspect
 import pkgutil
+import types
 from pathlib import Path
 
 from git import Repo
@@ -11,7 +12,7 @@ from heliotrapi.analysis_core.registry import register_analysis
 from heliotrapi.config import Config
 
 
-def load_analyses(package):
+def load_analyses(package: types.ModuleType) -> list[str]:
 
     module_names = []
 
