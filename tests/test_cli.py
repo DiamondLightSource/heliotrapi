@@ -44,35 +44,38 @@ def test_cli_main_no_command_prints_message():
     assert "Please invoke subcommand!" in result.output
 
 
-def test_cli_serve_invokes_uvicorn(monkeypatch):
+def test_cli_serve_invokes_uvicorn():
+    cmd = [sys.executable, "-m", "heliotrapi", "serve"]
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        stdout, stderr = proc.communicate(timeout=10)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        stdout, stderr = proc.communicate()
+
+    output = (stdout + stderr).decode()
+    assert "Started server process" in output
+
+
+def test_serve_raises_exception_when_dependencies_missing():
     runner = CliRunner()
-    called = {}
 
-    def fake_run(app, host=None, port=None, factory=None, reload=None, workers=None):
-        called["host"] = host
-        called["port"] = port
-        called["app"] = app
+    config_mock = MagicMock()
+    config_mock.server.host = "localhost"
+    config_mock.server.port = "8000"
 
-    monkeypatch.setattr("heliotrapi.__main__.uvicorn.run", fake_run)
+    with pytest.raises(ImportError):
+        with patch.dict("sys.modules", {"uvicorn": None, "heliotrapi.server": None}):
+            result = runner.invoke(
+                main,
+                ["serve"],
+                obj={"config": config_mock},
+                catch_exceptions=False,
+            )
 
-    class FakeConfig:
-        class server:  # noqa
-            host = "127.0.0.1"
-            port = 8000
-
-        class queue:  # noqa
-            workers = 1
-
-    monkeypatch.setattr(
-        "heliotrapi.__main__.Config.load_config",
-        lambda _: FakeConfig(),
-    )
-
-    result = runner.invoke(main, ["serve"])
-
-    assert result.exit_code == 0
-    assert called["host"] == "127.0.0.1"
-    assert called["port"] == 8000
+        assert result.exit_code != 0
+        assert isinstance(result.exception, ImportError)
+        assert "pip install heliotrapi" in str(result.exception)
 
 
 def test_run_client_test():

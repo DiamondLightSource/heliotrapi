@@ -75,8 +75,6 @@ config:
       - "/topic/public.analysis.trigger" # custom topic for triggering analyses from other services
   alerts:
     slack_webhook_url: "" # Webhook URL for sending alerts to Slack, leave empty to disable
-  webui:
-    showAllJobsInWebui: false # Set to true to show all jobs in the web UI, not just those submitted via the web UI
   uvicorn:
     workers: 1
   logging:

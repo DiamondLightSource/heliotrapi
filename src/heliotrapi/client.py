@@ -7,7 +7,7 @@ from uuid import UUID
 import requests
 
 from heliotrapi import logger
-from heliotrapi.api.routes import (
+from heliotrapi.api.endpoints import (
     ANALYSE_ROUTE,
     ANALYSES_ROUTE,
     ENDPOINTS_ROUTE,

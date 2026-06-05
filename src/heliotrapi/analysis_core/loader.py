@@ -1,20 +1,18 @@
-import asyncio
 import importlib
 import inspect
 import pkgutil
-from collections.abc import Awaitable, Callable
-from functools import wraps
+import types
 from pathlib import Path
-from typing import ParamSpec, TypeVar
 
 from git import Repo
 
 from heliotrapi import logger
+from heliotrapi.analysis_core.async_func import make_function_async
 from heliotrapi.analysis_core.registry import register_analysis
 from heliotrapi.config import Config
 
 
-def load_analyses(package):
+def load_analyses(package: types.ModuleType) -> list[str]:
 
     module_names = []
 
@@ -23,21 +21,6 @@ def load_analyses(package):
         module_names.append(module_name)
 
     return module_names
-
-
-P = ParamSpec("P")
-R = TypeVar("R")
-
-
-def get_async_function(func: Callable[P, R]) -> Callable[P, Awaitable[R]]:
-    if inspect.iscoroutinefunction(func):
-        return func  # type: ignore[return-value]
-
-    @wraps(func)
-    async def async_fn(*args: P.args, **kwargs: P.kwargs) -> R:
-        return await asyncio.to_thread(func, *args, **kwargs)
-
-    return async_fn
 
 
 def register_module_functions(module):
@@ -50,7 +33,7 @@ def register_module_functions(module):
         if obj.__module__ != module.__name__:
             continue
         try:
-            register_analysis(name, get_async_function(obj))
+            register_analysis(name, make_function_async(obj))
         except ValueError:
             logger.debug(f"Analysis '{name}' already registered")
         except Exception as e:

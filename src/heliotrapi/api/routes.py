@@ -7,18 +7,19 @@ from fastapi.routing import APIRoute
 
 from heliotrapi import logger
 from heliotrapi.analysis_core.registry import get_analysis, list_analyses
+from heliotrapi.api.endpoints import (
+    ANALYSE_ROUTE,
+    ANALYSES_ROUTE,
+    ENDPOINTS_ROUTE,
+    HEALTH_ROUTE,
+    RESULT_BY_ID_ROUTE,
+    RESULT_LATEST_ROUTE,
+    RESULTS_ALL_ROUTE,
+)
 from heliotrapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
 from heliotrapi.task_queue import QueueManager
 
 ROUTER = APIRouter()
-
-HEALTH_ROUTE = "/healthz"
-ANALYSES_ROUTE = "/get_analyses"
-ANALYSE_ROUTE = "/analyse"
-RESULT_LATEST_ROUTE = "/result/latest"
-RESULT_BY_ID_ROUTE = "/result/id/{request_id}"
-ENDPOINTS_ROUTE = "/endpoints"
-RESULTS_ALL_ROUTE = "/results/all"
 
 
 @ROUTER.get(HEALTH_ROUTE)
