@@ -45,8 +45,7 @@ requires-python = ">=3.11"
 
 [dependency-groups]
 dev = [
-    "heliotrapi[server]",
-    "httpx",              #required for fake client
+    "httpx",          #required for fake client
     "copier",
     "pre-commit",
     "pyright",

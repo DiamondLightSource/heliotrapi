@@ -766,7 +766,6 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "copier" },
-    { name = "heliotrapi" },
     { name = "httpx" },
     { name = "pre-commit" },
     { name = "pyright" },
@@ -797,7 +796,6 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "copier" },
-    { name = "heliotrapi", extras = ["server"] },
     { name = "httpx" },
     { name = "pre-commit" },
     { name = "pyright" },
