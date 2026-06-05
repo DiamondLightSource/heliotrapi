@@ -65,6 +65,7 @@ def main(
 @click.pass_context
 def serve(ctx: click.Context):
 
+    # TODO:
     # these are lazy imports to avoid importing uvicorn/fastapi
     # when you've installed only the client
     try:
