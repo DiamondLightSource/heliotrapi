@@ -18,12 +18,10 @@ dependencies = [
     "pydantic",
     "pydantic_settings",
     "requests",
-    "click",
-    "pyyaml",
-    "stomp.py",
     "uvicorn",
-    "fastapi",
     "gitpython",
+    "stomp.py",
+    "fastapi",
     "xrpd-toolbox>=v0.1.2.2",
 ] # Add project dependencies here, e.g. ["click", "numpy"]
 dynamic = ["version"]
@@ -31,21 +29,9 @@ license.file = "LICENSE"
 readme = "README.md"
 requires-python = ">=3.11"
 
-# [project.optional-dependencies]
-
-# client = [] #doesn't requure anything else thats not already a dependency
-
-# server = [
-#     "stomp.py",
-#     "uvicorn",
-#     "fastapi",
-#     "gitpython",
-#     "xrpd-toolbox>=v0.1.2.2",
-# ]
-
 [dependency-groups]
 dev = [
-    "httpx",          #required for fake client
+    "httpx",
     "copier",
     "pre-commit",
     "pyright",

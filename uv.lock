@@ -749,13 +749,11 @@ wheels = [
 name = "heliotrapi"
 source = { editable = "." }
 dependencies = [
-    { name = "click" },
     { name = "fastapi" },
     { name = "gitpython" },
     { name = "numpy" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
-    { name = "pyyaml" },
     { name = "requests" },
     { name = "scipy" },
     { name = "stomp-py" },
@@ -779,13 +777,11 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "click" },
     { name = "fastapi" },
     { name = "gitpython" },
     { name = "numpy" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
-    { name = "pyyaml" },
     { name = "requests" },
     { name = "scipy" },
     { name = "stomp-py" },
