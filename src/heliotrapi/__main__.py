@@ -65,18 +65,17 @@ def main(
 @click.pass_context
 def serve(ctx: click.Context):
 
-    import uvicorn
+    # these are lazy imports to avoid importing uvicorn/fastapi
+    # when you've installed only the client
+    try:
+        import uvicorn
 
-    from heliotrapi.server import start_api
+        from heliotrapi.server import start_api
 
-    # try:
-    #     import uvicorn
-
-    #     from heliotrapi.server import start_api
-    # except Exception as e:
-    #     raise Exception(
-    #         "You must have install all dependencies - pip install heliotrapi"
-    #     ) from e
+    except Exception as e:
+        raise Exception(
+            "You must install all dependencies to run server - pip install heliotrapi"
+        ) from e
 
     config = ctx.obj["config"]
 
