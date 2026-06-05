@@ -73,7 +73,7 @@ def serve(ctx: click.Context):
         from heliotrapi.server import start_api
 
     except Exception as e:
-        raise Exception(
+        raise ImportError(
             "You must install all dependencies to run server - pip install heliotrapi"
         ) from e
 

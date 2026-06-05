@@ -57,6 +57,27 @@ def test_cli_serve_invokes_uvicorn():
     assert "Started server process" in output
 
 
+def test_serve_raises_exception_when_dependencies_missing():
+    runner = CliRunner()
+
+    config_mock = MagicMock()
+    config_mock.server.host = "localhost"
+    config_mock.server.port = "8000"
+
+    with pytest.raises(ImportError):
+        with patch.dict("sys.modules", {"uvicorn": None, "heliotrapi.server": None}):
+            result = runner.invoke(
+                main,
+                ["serve"],
+                obj={"config": config_mock},
+                catch_exceptions=False,
+            )
+
+        assert result.exit_code != 0
+        assert isinstance(result.exception, ImportError)
+        assert "pip install heliotrapi" in str(result.exception)
+
+
 def test_run_client_test():
     runner = CliRunner()
 
