@@ -750,18 +750,14 @@ name = "heliotrapi"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
+    { name = "fastapi" },
+    { name = "gitpython" },
     { name = "numpy" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "pyyaml" },
     { name = "requests" },
     { name = "scipy" },
-]
-
-[package.optional-dependencies]
-server = [
-    { name = "fastapi" },
-    { name = "gitpython" },
     { name = "stomp-py" },
     { name = "uvicorn" },
     { name = "xrpd-toolbox" },
@@ -770,7 +766,7 @@ server = [
 [package.dev-dependencies]
 dev = [
     { name = "copier" },
-    { name = "heliotrapi", extra = ["server"] },
+    { name = "heliotrapi" },
     { name = "httpx" },
     { name = "pre-commit" },
     { name = "pyright" },
@@ -785,19 +781,18 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "click" },
-    { name = "fastapi", marker = "extra == 'server'" },
-    { name = "gitpython", marker = "extra == 'server'" },
+    { name = "fastapi" },
+    { name = "gitpython" },
     { name = "numpy" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "pyyaml" },
     { name = "requests" },
     { name = "scipy" },
-    { name = "stomp-py", marker = "extra == 'server'" },
-    { name = "uvicorn", marker = "extra == 'server'" },
-    { name = "xrpd-toolbox", marker = "extra == 'server'", specifier = ">=0.1.2.2" },
+    { name = "stomp-py" },
+    { name = "uvicorn" },
+    { name = "xrpd-toolbox", specifier = ">=0.1.2.2" },
 ]
-provides-extras = ["client", "server"]
 
 [package.metadata.requires-dev]
 dev = [
