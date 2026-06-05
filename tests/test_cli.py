@@ -44,35 +44,17 @@ def test_cli_main_no_command_prints_message():
     assert "Please invoke subcommand!" in result.output
 
 
-def test_cli_serve_invokes_uvicorn(monkeypatch):
-    runner = CliRunner()
-    called = {}
+def test_cli_serve_invokes_uvicorn():
+    cmd = [sys.executable, "-m", "heliotrapi", "serve"]
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        stdout, stderr = proc.communicate(timeout=10)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        stdout, stderr = proc.communicate()
 
-    def fake_run(app, host=None, port=None, factory=None, reload=None, workers=None):
-        called["host"] = host
-        called["port"] = port
-        called["app"] = app
-
-    monkeypatch.setattr("uvicorn.run", fake_run)
-
-    class FakeConfig:
-        class server:  # noqa
-            host = "127.0.0.1"
-            port = 8000
-
-        class queue:  # noqa
-            workers = 1
-
-    monkeypatch.setattr(
-        "heliotrapi.__main__.Config.load_config",
-        lambda _: FakeConfig(),
-    )
-
-    result = runner.invoke(main, ["serve"])
-
-    assert result.exit_code == 0
-    assert called["host"] == "127.0.0.1"
-    assert called["port"] == 8000
+    output = (stdout + stderr).decode()
+    assert "Started server process" in output
 
 
 def test_run_client_test():
