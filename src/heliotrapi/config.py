@@ -52,12 +52,6 @@ class PluginsConfig(BaseModel):
     register_all: bool = False
 
 
-class WebUIConfig(BaseModel):
-    hide_non_webui_jobs: bool = (
-        False  # hides ones that have not been sent via the webui
-    )
-
-
 class AlertConfig(BaseModel):
     slack_webhook_url: str | None = None
 
@@ -70,7 +64,6 @@ class Config(BaseSettings):
     cleanup: CleanupConfig = Field(default_factory=CleanupConfig)
     plugins: PluginsConfig = Field(default_factory=PluginsConfig)
     alerts: AlertConfig = Field(default_factory=AlertConfig)
-    webui: WebUIConfig = Field(default_factory=WebUIConfig)
 
     model_config = SettingsConfigDict(
         env_nested_delimiter="__",

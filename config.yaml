@@ -32,6 +32,3 @@ rabbitmq:
 
 alerts:
   slack_webhook_url: "" # Webhook URL for sending alerts to Slack, leave empty to disable
-
-webui:
-  hide_non_webui_jobs: false # If true, only jobs submitted via the web UI are shown
