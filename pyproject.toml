@@ -19,6 +19,7 @@ dependencies = [
     "pydantic_settings",
     "requests",
     "click",
+    "pyyaml",
 ] # Add project dependencies here, e.g. ["click", "numpy"]
 dynamic = ["version"]
 license.file = "LICENSE"

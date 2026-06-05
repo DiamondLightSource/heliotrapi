@@ -753,6 +753,7 @@ dependencies = [
     { name = "numpy" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
+    { name = "pyyaml" },
     { name = "requests" },
     { name = "scipy" },
 ]
@@ -789,6 +790,7 @@ requires-dist = [
     { name = "numpy" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
+    { name = "pyyaml" },
     { name = "requests" },
     { name = "scipy" },
     { name = "stomp-py", marker = "extra == 'server'" },
