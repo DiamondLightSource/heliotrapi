@@ -14,10 +14,6 @@ from heliotrapi.analysis_core.async_func import make_function_async
 from heliotrapi.analysis_core.registry import register_analysis
 from heliotrapi.config import Config
 
-# ---------------------------------------------------------------------------
-# Built-in package loading
-# ---------------------------------------------------------------------------
-
 
 def load_analyses(package: types.ModuleType) -> list[str]:
     """Import every sub-module in *package* and return their names."""
@@ -26,11 +22,6 @@ def load_analyses(package: types.ModuleType) -> list[str]:
         importlib.import_module(f"{package.__name__}.{module_name}")
         names.append(module_name)
     return names
-
-
-# ---------------------------------------------------------------------------
-# Function registration
-# ---------------------------------------------------------------------------
 
 
 def register_module_functions(module: types.ModuleType) -> None:
@@ -56,11 +47,6 @@ def _try_register(name: str, func: types.FunctionType, source: str) -> None:
         logger.debug("Analysis '%s' already registered (skipping)", name)
     except Exception:
         logger.exception("Unable to register '%s' from '%s'", name, source)
-
-
-# ---------------------------------------------------------------------------
-# Dependency installation
-# ---------------------------------------------------------------------------
 
 
 def _run_uv(cmd: list[str]) -> None:
@@ -215,11 +201,6 @@ def load_plugins_from_dir(path: str | Path, register_all: bool = False) -> None:
             register_module_functions(module)
 
 
-# ---------------------------------------------------------------------------
-# GitHub repo cloning / updating
-# ---------------------------------------------------------------------------
-
-
 def clone_or_update_github_repo(repo_url: str, dest_dir: str | Path) -> Path:
     """Clone *repo_url* into *dest_dir*, or pull if already present.
 
@@ -257,11 +238,6 @@ def clone_or_update_github_repo(repo_url: str, dest_dir: str | Path) -> Path:
             _add_src_to_path(dest_path)
 
     return dest_path
-
-
-# ---------------------------------------------------------------------------
-# Top-level entry point
-# ---------------------------------------------------------------------------
 
 
 def load_plugins(config: Config, register_all: bool = False) -> None:
