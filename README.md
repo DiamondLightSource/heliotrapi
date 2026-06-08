@@ -54,9 +54,11 @@ client = AnalysisClient("https://ixx-analysis.diamond.ac.uk")
 
 print(client.available_analyses()) #see available analyses
 
-client.submit("name_of_analysis", examplekwarg1=1, examplekwarg2=2) # <- if kawrgs are invalid it will raise
+request_id = client.submit("name_of_analysis", examplekwarg1=1, examplekwarg2=2) # <- if kawrgs are invalid it will raise
 
 result = client.get_result() #returns an AnalysisResult basemodel
+
+result = client.get_request_id_result(request_id) #same as above, but specific
 
 print(result)
 
