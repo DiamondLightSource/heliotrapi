@@ -2,7 +2,7 @@ from unittest.mock import Mock
 
 from heliotrapi.analysis_core.async_func import make_function_async
 from heliotrapi.analysis_core.loader import (
-    clone_github_repo,
+    clone_or_update_github_repo,
     load_plugins,
     load_plugins_from_dir,
 )
@@ -23,9 +23,7 @@ def test_clone_github_repo_force(monkeypatch, tmp_path):
     monkeypatch.setattr(
         "heliotrapi.analysis_core.loader.Repo.clone_from", clone_from_mock
     )
-    result = clone_github_repo(
-        "https://example.com/repo.git", str(tmp_path), force=True
-    )
+    result = clone_or_update_github_repo("https://example.com/repo.git", str(tmp_path))
     assert result == dest
     clone_from_mock.assert_called_once()
 
@@ -70,7 +68,8 @@ def test_load_plugins_with_git_repo(monkeypatch, tmp_path):
     fake_file.write_text("def hello():\n    return 'hello'\n")
 
     monkeypatch.setattr(
-        "heliotrapi.analysis_core.loader.clone_github_repo", lambda url, dest: fake_path
+        "heliotrapi.analysis_core.loader.clone_or_update_github_repo",
+        lambda url, dest: fake_path,
     )
     load_plugins(cfg, register_all=True)
     assert "hello" in list_analyses() or True

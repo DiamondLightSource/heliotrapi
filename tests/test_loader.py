@@ -1,7 +1,7 @@
 import sys
 
 from heliotrapi.analysis_core.loader import (
-    clone_github_repo,
+    clone_or_update_github_repo,
     load_plugins,
     load_plugins_from_dir,
 )
@@ -56,11 +56,28 @@ def test_loader_load_plugins_register_all_auto_registers_functions(tmp_path):
         ANALYSIS_REGISTRY.update(original_registry)
 
 
-def test_loader_clone_github_repo_existing(tmp_path):
+def test_loader_clone_github_repo_existing(tmp_path, monkeypatch):
+    """When the destination already exists,
+    pull is attempted and the path is returned."""
     destination_dir = tmp_path / "repo"
     destination_dir.mkdir()
-    result = clone_github_repo("https://example.com/repo.git", str(tmp_path))
+
+    pull_called = {}
+
+    class FakeRemote:
+        def pull(self):
+            pull_called["yes"] = True
+
+    class FakeRepo:
+        def __init__(self, path):
+            self.remotes = type("R", (), {"origin": FakeRemote()})()
+
+    monkeypatch.setattr("heliotrapi.analysis_core.loader.Repo", FakeRepo)
+
+    result = clone_or_update_github_repo("https://example.com/repo.git", str(tmp_path))
+
     assert result == destination_dir
+    assert pull_called.get("yes"), "pull() should have been called on existing repo"
 
 
 def test_loader_load_plugins_handles_clone_error(monkeypatch):
@@ -68,8 +85,13 @@ def test_loader_load_plugins_handles_clone_error(monkeypatch):
     cfg.plugins.paths = []
     cfg.plugins.github_repos = ["https://example.com/repo.git"]
 
-    def fake_clone(repo_url, dest_dir):
+    def fake_clone_or_update(repo_url, dest_dir):
         raise RuntimeError("unable to clone")
 
-    monkeypatch.setattr("heliotrapi.analysis_core.loader.clone_github_repo", fake_clone)
+    monkeypatch.setattr(
+        "heliotrapi.analysis_core.loader.clone_or_update_github_repo",
+        fake_clone_or_update,
+    )
+
+    # Should log the error and not raise
     load_plugins(cfg)
