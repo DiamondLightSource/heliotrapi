@@ -68,7 +68,8 @@ def test_load_plugins_with_git_repo(monkeypatch, tmp_path):
     fake_file.write_text("def hello():\n    return 'hello'\n")
 
     monkeypatch.setattr(
-        "heliotrapi.analysis_core.loader.clone_github_repo", lambda url, dest: fake_path
+        "heliotrapi.analysis_core.loader.clone_or_update_github_repo",
+        lambda url, dest: fake_path,
     )
     load_plugins(cfg, register_all=True)
     assert "hello" in list_analyses() or True
