@@ -57,6 +57,11 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # The runtime stage copies the built venv into a runtime container
 FROM ubuntu:resolute AS runtime
 
+ENV HOME=/tmp
+ENV XDG_CACHE_HOME=/tmp/.cache
+ENV UV_CACHE_DIR=/tmp/.cache/uv
+RUN mkdir -p /tmp/.cache/uv
+
 # Add apt-get system dependecies for runtime here if needed
 RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --no-install-recommends \
     # Git required for installing packages at runtime
