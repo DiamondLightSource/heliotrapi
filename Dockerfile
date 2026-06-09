@@ -57,11 +57,11 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # The runtime stage copies the built venv into a runtime container
 FROM ubuntu:resolute AS runtime
 
-ENV HOME=/home/ubuntu
-ENV XDG_CACHE_HOME=/home/ubuntu/.cache
-ENV UV_CACHE_DIR=/home/ubuntu/.cache/uv
+ENV HOME=/tmp
+ENV XDG_CACHE_HOME=/tmp/uv-cache
+ENV UV_CACHE_DIR=/tmp/uv-cache
 
-RUN mkdir -p /home/ubuntu/.cache/uv && chown -R ubuntu:ubuntu /home/ubuntu
+RUN mkdir -p /tmp/uv-cache && chmod -R 777 /tmp/uv-cache
 
 # Add apt-get system dependecies for runtime here if needed
 RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --no-install-recommends \
