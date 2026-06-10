@@ -4,10 +4,10 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
-from xrpd_toolbox.utils.messenger import Messenger
 
 from heliotrapi.models import AnalysisRequest, AnalysisResult
 from heliotrapi.task_queue.manager import QueueManager, validate_inputs
+from heliotrapi.utils.messenger import Messenger
 
 
 @pytest.mark.asyncio

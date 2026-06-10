@@ -22,7 +22,7 @@ dependencies = [
     "gitpython",
     "stomp.py",
     "fastapi",
-    "xrpd-toolbox>=v0.1.2.2",
+    "pyyaml",
 ] # Add project dependencies here, e.g. ["click", "numpy"]
 dynamic = ["version"]
 license.file = "LICENSE"
@@ -41,6 +41,7 @@ dev = [
     "ruff",
     "tox-uv",
     "types-mock",
+    "pytest-mock",
 ]
 
 [project.scripts]
