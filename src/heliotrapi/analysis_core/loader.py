@@ -145,9 +145,16 @@ def _load_module_from_file(module_name: str, pyfile: Path) -> types.ModuleType:
         raise ImportError(f"Cannot create module spec for '{pyfile}'")
 
     module = importlib.util.module_from_spec(spec)
+
+    # Ensure the module is visible to Python's import machinery during
+    # execution (required by dataclasses and some typing features).
+    sys.modules[module_name] = module
+
     try:
         spec.loader.exec_module(module)  # type: ignore[union-attr]
     except ImportError as exc:
+        sys.modules.pop(module_name, None)
+
         if exc.name:
             # A named module could not be found — genuine missing dependency.
             raise ImportError(
@@ -162,6 +169,9 @@ def _load_module_from_file(module_name: str, pyfile: Path) -> types.ModuleType:
             raise ImportError(
                 f"Plugin '{pyfile.name}' raised an ImportError during load: {exc}"
             ) from exc
+    except Exception:
+        sys.modules.pop(module_name, None)
+        raise
 
     return module
 
