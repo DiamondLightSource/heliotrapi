@@ -9,9 +9,11 @@ An API for small fast data analysis jobs at Diamond Light Source.
 
 [HEE-LEE-OH-TRAY-PEE-EYE]
 
-Helio - Like the sun, a very brilliant light source
-Heliotrope - An pink-purple indigo-like colour
-HeliotrAPI - The API that comes after blue
+Helio - Like the sun, a very brilliant light source.
+
+Heliotrope - An pink-purple indigo-like colour.
+
+HeliotrAPI - The API that comes after blue.
 
 `heliotrapi` exposes an HTTP API to submit analysis jobs, return queued results, and optionally consume messages from RabbitMQ.
 
@@ -125,7 +127,7 @@ You can also navigate to the url or the ip address to be met with:
 
 ## Using your plugin code
 
-In the config or thhe helm chart you can changed the following lines:
+In the config or the helm chart you can changed the following lines:
 
 ```yaml
     plugins:
@@ -137,8 +139,7 @@ In the config or thhe helm chart you can changed the following lines:
 ```
 
 In this example plugins will be downloaded and installed to ./plugins. The github repo https://github.com/DiamondLightSource/xrpd-toolbox.git
-will be cloned to the .plugins folder, and because register_all is True all of them will be added to heliotrapi's available analyses. Alternativey
-You can selectively add analyses to the api by adding a decorator to your function, in the repo.
+will be cloned to the .plugins folder, and because register_all is True all of them will be added to heliotrapi's available analyses. Alternatively you can selectively add analyses to the api by adding a decorator to your function, in the repo.
 
 ## Kubernetes deployment
 
