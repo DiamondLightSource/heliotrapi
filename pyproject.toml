@@ -22,6 +22,7 @@ dependencies = [
     "gitpython",
     "stomp.py",
     "fastapi",
+    "pyyaml",
 ] # Add project dependencies here, e.g. ["click", "numpy"]
 dynamic = ["version"]
 license.file = "LICENSE"
