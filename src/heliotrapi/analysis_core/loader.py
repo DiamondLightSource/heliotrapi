@@ -1,7 +1,9 @@
 import importlib
 import inspect
 import pkgutil
+import sys
 import types
+from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
 from git import Repo
@@ -40,29 +42,56 @@ def register_module_functions(module):
             logger.error(f"Unable to register {name} from {module.__name__}: {e}")
 
 
+def load_module_from_file(module_name: str, pyfile: Path) -> types.ModuleType:
+    """Load and execute a Python file as a module.
+
+    Raises:
+        ImportError: If the module cannot be loaded.
+    """
+    spec = spec_from_file_location(module_name, pyfile)
+
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Cannot create module spec for '{pyfile}'")
+
+    module = module_from_spec(spec)
+
+    # Make the module visible during execution. Required by
+    # dataclasses, typing.get_type_hints(), Pydantic, etc.
+    sys.modules[module_name] = module
+
+    try:
+        spec.loader.exec_module(module)
+    except Exception:
+        # Don't leave a partially imported module behind.
+        sys.modules.pop(module_name, None)
+        raise
+
+    return module
+
+
 def load_plugins_from_dir(path: str | Path, register_all: bool = False):
     """Load user plugins recursively from a folder and all subfolders."""
     path = Path(path)
-    assert isinstance(path, Path)
-    if not path.exists() or not path.is_dir():
+
+    if not path.is_dir():
         return
 
-    for pyfile in path.rglob("*.py"):
+    for pyfile in sorted(path.rglob("*.py")):
         if pyfile.stem.startswith("_") or pyfile.stem.startswith("test_"):
             continue
 
         module_name = f"plugin.{pyfile.relative_to(path).with_suffix('').as_posix().replace('/', '.')}"  # noqa
+
         try:
-            spec = importlib.util.spec_from_file_location(module_name, pyfile)  # type: ignore
-            module = importlib.util.module_from_spec(spec)  # type: ignore
-            spec.loader.exec_module(module)
-            # logger.info(f"Loaded plugin: {pyfile}")
+            module = load_module_from_file(module_name, pyfile)
+
+            logger.debug("Loaded plugin: %s", pyfile)
+
             if register_all:
                 register_module_functions(module)
 
         except Exception:
-            # logger.error(f"Failed to read plugin {pyfile}: {e}")
-            pass
+            logger.exception("Failed to read plugin '%s'", pyfile)
 
 
 def clone_github_repo(repo_url: str, dest_dir: str, force: bool = False) -> Path:

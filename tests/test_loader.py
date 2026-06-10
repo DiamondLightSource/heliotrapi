@@ -1,4 +1,5 @@
 import sys
+from pathlib import Path
 from unittest.mock import Mock
 
 from heliotrapi.analysis_core.async_func import make_function_async
@@ -97,32 +98,24 @@ def test_clone_github_repo_force(monkeypatch, tmp_path):
     clone_from_mock.assert_called_once()
 
 
-def test_load_plugins_from_dir_skips_private_and_test_files(monkeypatch, tmp_path):
-    test_file = tmp_path / "test_plugin.py"
-    hidden_file = tmp_path / "_private.py"
-    good_file = tmp_path / "good.py"
-    test_file.write_text("raise RuntimeError('should not load')\n")
-    hidden_file.write_text("raise RuntimeError('should not load')\n")
-    good_file.write_text("x = 1\n")
+def test_load_plugins_from_dir_skips_private_and_test_files(
+    mocker,
+    tmp_path: Path,
+):
+    (tmp_path / "test_plugin.py").write_text("raise RuntimeError('should not load')\n")
+    (tmp_path / "_private.py").write_text("raise RuntimeError('should not load')\n")
+    (tmp_path / "good.py").write_text("x = 1\n")
 
-    import importlib.util
-
-    called = []
-    real_spec = importlib.util.spec_from_file_location
-
-    def track_spec(name, location):
-        called.append(name)
-        return real_spec(name, location)
-
-    monkeypatch.setattr(
-        "heliotrapi.analysis_core.loader.importlib.util.spec_from_file_location",
-        track_spec,
-    )
+    load_module = mocker.patch("heliotrapi.analysis_core.loader.load_module_from_file")
 
     load_plugins_from_dir(tmp_path)
-    assert "plugin.test_plugin" not in called
-    assert "plugin._private" not in called
-    assert "plugin.good" in called
+
+    load_module.assert_called_once()
+
+    module_name, pyfile = load_module.call_args.args
+
+    assert module_name == "plugin.good"
+    assert pyfile == tmp_path / "good.py"
 
 
 def test_load_plugins_with_git_repo(monkeypatch, tmp_path):
