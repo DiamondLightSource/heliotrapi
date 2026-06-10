@@ -52,7 +52,7 @@ def test_send_message(monkeypatch):
     fake_conn = MagicMock()
 
     monkeypatch.setattr(
-        "xrpd_toolbox.utils.messenger.stomp.Connection",
+        "heliotrapi.utils.messenger.stomp.Connection",
         lambda *args, **kwargs: fake_conn,
     )
 
