@@ -22,7 +22,6 @@ dependencies = [
     "gitpython",
     "stomp.py",
     "fastapi",
-    "xrpd-toolbox>=v0.1.2.2",
 ] # Add project dependencies here, e.g. ["click", "numpy"]
 dynamic = ["version"]
 license.file = "LICENSE"
