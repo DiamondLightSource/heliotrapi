@@ -7,12 +7,15 @@ import sys
 import types
 from pathlib import Path
 
+import matplotlib
 from git import GitCommandError, Repo
 
 from heliotrapi import logger
 from heliotrapi.analysis_core.async_func import make_function_async
 from heliotrapi.analysis_core.registry import register_analysis
 from heliotrapi.config import Config
+
+matplotlib.use("Agg")  # headless, before any plugin imports
 
 
 def load_analyses(package: types.ModuleType) -> list[str]:
@@ -138,40 +141,34 @@ def _load_module_from_file(module_name: str, pyfile: Path) -> types.ModuleType:
     Raises:
         ImportError: If the spec cannot be created, a named dependency is
             missing (with a helpful install hint), or the module raises an
-            ImportError itself during execution (e.g. a missing display).
+            ImportError during execution.
     """
     spec = importlib.util.spec_from_file_location(module_name, pyfile)
     if spec is None or spec.loader is None:
         raise ImportError(f"Cannot create module spec for '{pyfile}'")
 
     module = importlib.util.module_from_spec(spec)
-
-    # Ensure the module is visible to Python's import machinery during
-    # execution (required by dataclasses and some typing features).
     sys.modules[module_name] = module
 
     try:
         spec.loader.exec_module(module)  # type: ignore[union-attr]
-    except ImportError as exc:
-        sys.modules.pop(module_name, None)
+    except Exception as exc:
+        # Remove the module and any submodules registered during partial execution
+        stale = [
+            k
+            for k in sys.modules
+            if k == module_name or k.startswith(f"{module_name}.")
+        ]
+        for k in stale:
+            sys.modules.pop(k, None)
 
-        if exc.name:
-            # A named module could not be found — genuine missing dependency.
+        if isinstance(exc, ImportError) and exc.name:
             raise ImportError(
                 f"Plugin '{pyfile.name}' requires a missing dependency: '{exc.name}'. "
                 f"Install it with: uv pip install {exc.name}"
             ) from exc
-        else:
-            # exc.name is None: the ImportError was raised deliberately inside
-            # the plugin's own code (e.g. matplotlib.use() failing because
-            # there's no display, or a conditional import guard). Re-raise
-            # with the original message intact so the real cause is visible.
-            raise ImportError(
-                f"Plugin '{pyfile.name}' raised an ImportError during load: {exc}"
-            ) from exc
-    except Exception:
-        sys.modules.pop(module_name, None)
-        raise
+
+        raise ImportError(f"Plugin '{pyfile.name}' failed to load: {exc}") from exc
 
     return module
 
