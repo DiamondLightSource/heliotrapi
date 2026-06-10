@@ -8,7 +8,12 @@ import pytest
 
 from heliotrapi.models import AnalysisRequest
 from heliotrapi.task_queue import QueueManager
-from heliotrapi.task_queue.rabbitmq import _StompListener
+from heliotrapi.task_queue.rabbitmq import (
+    TaskStatus,
+    WorkerEvent,
+    WorkerState,
+    _StompListener,
+)
 
 
 @pytest.mark.filterwarnings("ignore::ResourceWarning")
@@ -83,7 +88,7 @@ def test_parse_job_direct_analysis():
         loop=asyncio.new_event_loop(),
     )
     data = {"analysis_name": "double", "inputs": {"number": 2}}
-    job = listener.parse_job(data)
+    job = listener.parse_stomp_message(data)
 
     assert isinstance(job, AnalysisRequest)
     assert job.analysis_name == "double"
@@ -94,7 +99,7 @@ def test_parse_job_data_event_ignored():
         queue_manager=cast(QueueManager, None),
         loop=asyncio.new_event_loop(),
     )
-    job = listener.parse_job({"event_type": "foo", "task_id": "123"})
+    job = listener.parse_stomp_message({"event_type": "foo", "task_id": "123"})
     assert job is None
 
 
@@ -112,7 +117,7 @@ def test_parse_job_scan_message_ignored():
         "scanDimensions": [1],
         "percentageComplete": 100.0,
     }
-    job = listener.parse_job(data)
+    job = listener.parse_stomp_message(data)
     assert job is None
 
 
@@ -121,9 +126,22 @@ def test_parse_job_worker_event_complete():
         queue_manager=cast(QueueManager, None),
         loop=asyncio.new_event_loop(),
     )
-    data = {"state": "running", "task_status": {"task_complete": True}}
-    job = listener.parse_job(data)
-    assert isinstance(job, AnalysisRequest)
+
+    event = WorkerEvent(
+        state=WorkerState.RUNNING,
+        task_status=TaskStatus(
+            task_id="count",
+            task_complete=False,
+            task_failed=False,
+            result=None,
+        ),
+        errors=[],
+        warnings=[],
+    )
+
+    data = event.model_dump()
+    job = listener.parse_stomp_message(data)
+    assert job is None
 
 
 def test_on_message_logs_failure(monkeypatch):

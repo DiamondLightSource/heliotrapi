@@ -2,6 +2,7 @@ import asyncio
 import json
 import threading
 import time
+from enum import StrEnum
 from typing import Any, Literal
 
 import stomp
@@ -44,7 +45,7 @@ class ScanMessage(BaseModel):
 ############# bluesky
 
 
-class WorkerState(BaseModel):
+class WorkerState(StrEnum):
     """
     The state of the Worker.
     """
@@ -158,7 +159,7 @@ class _StompListener(stomp.ConnectionListener):
             return None
 
         elif "state" in data and "task_status" in data:
-            # complete bluesky
+            # bluesky event
             worker_event = WorkerEvent.model_validate(data)
 
             logger.info(
