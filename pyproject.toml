@@ -40,6 +40,7 @@ dev = [
     "ruff",
     "tox-uv",
     "types-mock",
+    "pytest-mock",
 ]
 
 [project.scripts]
