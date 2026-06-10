@@ -2,16 +2,21 @@ import asyncio
 import json
 import threading
 import time
-from typing import Any
+from typing import Any, Literal
 
 import stomp
-from pydantic import BaseModel, Field
+from pydantic import (
+    BaseModel,
+    Field,
+)
 
 from heliotrapi import logger
 from heliotrapi.models import AnalysisRequest
 from heliotrapi.task_queue import QueueManager
 
 TIMEOUT = 10
+
+####### gda messages
 
 
 class ProcessingRequest(BaseModel):
@@ -36,12 +41,93 @@ class ScanMessage(BaseModel):
     processingRequest: ProcessingRequest = Field(default_factory=ProcessingRequest)  # noqa: N815 - because this is gda
 
 
-def worker_event_to_job(worker_event) -> AnalysisRequest:
+############# bluesky
+
+
+class WorkerState(BaseModel):
+    """
+    The state of the Worker.
+    """
+
+    IDLE = "IDLE"
+    RUNNING = "RUNNING"
+    PAUSING = "PAUSING"
+    PAUSED = "PAUSED"
+    HALTING = "HALTING"
+    STOPPING = "STOPPING"
+    ABORTING = "ABORTING"
+    SUSPENDING = "SUSPENDING"
+    PANICKED = "PANICKED"
+    UNKNOWN = "UNKNOWN"
+
+
+class TaskResult(BaseModel):
+    """
+    Serializable wrapper around the result of a plan
+
+    If the result is not serializable, the result will be None but the type
+    will be the name of the type. If the result is actually None, the type will
+    be 'NoneType'.
+    """
+
+    outcome: Literal["success"] = "success"
+    """Discriminant for serialization"""
+    result: Any = Field(None)
+    """The serialized result (or None if it is not serializable)"""
+    type: str
+    """The type of the result"""
+
+
+class TaskError(BaseModel):
+    """Wrapper around an exception raised by a plan"""
+
+    outcome: Literal["error"] = "error"
+    """Discriminant for serialization"""
+    type: str
+    """The class of exception"""
+    message: str
+    """The message of the raised exception"""
+
+
+class TaskStatus(BaseModel):
+    """
+    Status of a task the worker is running.
+    """
+
+    task_id: str
+    result: TaskResult | TaskError | None = Field(None, discriminator="outcome")
+    task_complete: bool
+    task_failed: bool
+
+
+class WorkerEvent(BaseModel):
+    """
+    Event describing the state of the worker and any tasks it's running.
+    Includes error and warning information.
+    """
+
+    state: WorkerState
+    task_status: TaskStatus | None = None
+    errors: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+
+    def is_error(self) -> bool:
+        return (self.task_status is not None and self.task_status.task_failed) or bool(
+            self.errors
+        )
+
+    def is_complete(self) -> bool:
+        return self.task_status is not None and self.task_status.task_complete
+
+
+def worker_event_to_job(worker_event) -> AnalysisRequest | None:
 
     # TODO: This is a placeholder -
     # need to define how WorkerEvents map to AnalysisRequests
 
-    return AnalysisRequest(analysis_name="", inputs={})
+    _ = AnalysisRequest(analysis_name="", inputs={})
+
+    return None
 
 
 class _StompListener(stomp.ConnectionListener):
@@ -49,38 +135,37 @@ class _StompListener(stomp.ConnectionListener):
         self.queue_manager = queue_manager
         self.loop = loop
 
-    def parse_job(self, data: dict) -> AnalysisRequest | None:
+    def parse_stomp_message(self, data: dict) -> AnalysisRequest | None:
+        """ "parse job converts a message over rabbitmq into a AnalysisRequest or None,
+        if None the queuer will ignore"""
 
         if "analysis_name" in data:
+            # a analysis reequest sent via rabbitmq
             return AnalysisRequest.model_validate(data)
 
         elif "event_type" in data and "task_id" in data:
-            data_event = data
-            logger.info(f"Received data event: {data_event}")
-            logger.info("Will ignore...")
+            # data_event = data
+            logger.info("Received data event")
             return None
 
         elif "status" in data and "filePath" in data and "visitDirectory" in data:
             gda_scan_message = ScanMessage.model_validate(
                 data
             )  # just to validate the message format
-            logger.info(f"Received GDA scan message: {gda_scan_message}")
-            logger.info("Will ignore...")
+            logger.info(
+                f"Received GDA scan message: {gda_scan_message.filePath}, {gda_scan_message.scanNumber}, {gda_scan_message.status}"  # noqa
+            )
             return None
 
         elif "state" in data and "task_status" in data:
-            worker_event = data
+            # complete bluesky
+            worker_event = WorkerEvent.model_validate(data)
 
-            if (
-                worker_event["task_status"] is not None
-                and worker_event["task_status"]["task_complete"]
-            ):
-                return worker_event_to_job(worker_event)
-            else:
-                logger.info(
-                    f"Received non-complete WorkerEvent: {worker_event['task_status']}"
-                )
-                return None
+            logger.info(
+                f"Bluesky worker event: {worker_event.state} {worker_event.task_status}"
+            )
+
+            return None
 
         else:
             logger.info(f"Not a valid job received: {data}")
@@ -98,18 +183,21 @@ class _StompListener(stomp.ConnectionListener):
         try:
             data = json.loads(frame.body)
 
-            job = AnalysisRequest.model_validate(data)
+            job = self.parse_stomp_message(data)
 
-            logger.info(f"RabbitMQ job received: {job.request_id}")
+            if isinstance(job, AnalysisRequest):
+                logger.info(f"RabbitMQ job received: {job.request_id}")
 
-            asyncio.run_coroutine_threadsafe(
-                self.queue_manager.enqueue(job),
-                self.loop,
-            )
+                asyncio.run_coroutine_threadsafe(
+                    self.queue_manager.enqueue(job),
+                    self.loop,
+                )
+            else:
+                pass
 
         except Exception as e:
             logger.error(f"Failed to process message: {e}")
-            logger.error(f"Failed message: {frame.body}")
+            # logger.error(f"Failed message: {frame.body}")
 
 
 class RabbitMQListener:
