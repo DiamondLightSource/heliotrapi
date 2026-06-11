@@ -96,25 +96,25 @@ def _install_repo_and_dependencies(repo_path: Path, requirements: bool = False) 
         subprocess.CalledProcessError: If the ``uv`` install command fails.
     """
     req_file = repo_path / "requirements.txt"
-
     pyproject = repo_path / "pyproject.toml"
 
     if pyproject.exists():
+        cmd = ["uv", "pip", "install", str(repo_path)]
+        if not requirements:
+            cmd.append("--no-deps")
         logger.info("Installing plugin package from '%s'", repo_path)
-        _run_uv(["uv", "pip", "install", str(repo_path)])
-        # Package is now installed; intra-repo imports resolve normally.
+        _run_uv(cmd)
+        if requirements and req_file.exists():
+            logger.info("Installing extra dependencies from '%s'", req_file)
+            _run_uv(["uv", "pip", "install", "-r", str(req_file)])
         return
 
-    if requirements:
-        if req_file.exists():
-            logger.info("Installing plugin dependencies from '%s'", req_file)
-            _run_uv(["uv", "pip", "install", "-r", str(req_file)])
-            # Third-party deps installed, but the repo itself isn't a package,
-            # so intra-repo imports still need sys.path help.
-        else:
-            logger.debug("No dependency file found in '%s'", repo_path)
+    if requirements and req_file.exists():
+        logger.info("Installing plugin dependencies from '%s'", req_file)
+        _run_uv(["uv", "pip", "install", "-r", str(req_file)])
+    elif requirements:
+        logger.debug("No dependency file found in '%s'", repo_path)
 
-    # No pyproject.toml: inject src/ (or repo root) so intra-repo imports work.
     _add_src_to_path(repo_path)
 
 

@@ -9,6 +9,7 @@ import stomp
 from pydantic import (
     BaseModel,
     Field,
+    ValidationError,
 )
 
 from heliotrapi import logger
@@ -16,6 +17,7 @@ from heliotrapi.models import AnalysisRequest
 from heliotrapi.task_queue import QueueManager
 
 TIMEOUT = 10
+MAX_RECONNECT_DELAY = 300  # cap backoff at 5 minutes
 
 ####### gda messages
 
@@ -121,55 +123,53 @@ class WorkerEvent(BaseModel):
         return self.task_status is not None and self.task_status.task_complete
 
 
-def worker_event_to_job(worker_event) -> AnalysisRequest | None:
-
-    # TODO: This is a placeholder -
-    # need to define how WorkerEvents map to AnalysisRequests
-
-    _ = AnalysisRequest(analysis_name="", inputs={})
-
-    return None
-
-
 class _StompListener(stomp.ConnectionListener):
     def __init__(self, queue_manager: QueueManager, loop: asyncio.AbstractEventLoop):
         self.queue_manager = queue_manager
         self.loop = loop
 
     def parse_stomp_message(self, data: dict) -> AnalysisRequest | None:
-        """ "parse job converts a message over rabbitmq into a AnalysisRequest or None,
-        if None the queuer will ignore"""
+        """Parse a STOMP message body into an AnalysisRequest, or None if the
+        message should be ignored by the queuer.
 
-        if "analysis_name" in data:
-            # a analysis reequest sent via rabbitmq
-            return AnalysisRequest.model_validate(data)
+        Dispatch is based on a small set of distinguishing keys per message
+        type. Order matters only in that more specific/required key-sets are
+        checked first to reduce ambiguity between message shapes.
+        """
+        try:
+            if "analysis_name" in data:
+                # an analysis request sent via rabbitmq
+                return AnalysisRequest.model_validate(data)
 
-        elif "event_type" in data and "task_id" in data:
-            # data_event = data
-            logger.info("Received data event")
+            if "event_type" in data and "task_id" in data:
+                logger.info("Received data event")
+                return None
+
+            if "status" in data and "filePath" in data and "visitDirectory" in data:
+                gda_scan_message = ScanMessage.model_validate(data)
+                logger.info(
+                    "Received GDA scan message: %s, %s, %s",
+                    gda_scan_message.filePath,
+                    gda_scan_message.scanNumber,
+                    gda_scan_message.status,
+                )
+                return None
+
+            if "state" in data and "task_status" in data:
+                worker_event = WorkerEvent.model_validate(data)
+                logger.info(
+                    "Bluesky worker event: %s %s",
+                    worker_event.state,
+                    worker_event.task_status,
+                )
+                return None
+
+            logger.info("Not a valid job received: %s", data)
             return None
 
-        elif "status" in data and "filePath" in data and "visitDirectory" in data:
-            gda_scan_message = ScanMessage.model_validate(
-                data
-            )  # just to validate the message format
-            logger.info(
-                f"Received GDA scan message: {gda_scan_message.filePath}, {gda_scan_message.scanNumber}, {gda_scan_message.status}"  # noqa
-            )
+        except ValidationError as e:
+            logger.error("Message failed schema validation: %s", e)
             return None
-
-        elif "state" in data and "task_status" in data:
-            # bluesky event
-            worker_event = WorkerEvent.model_validate(data)
-
-            logger.info(
-                f"Bluesky worker event: {worker_event.state} {worker_event.task_status}"
-            )
-
-            return None
-
-        else:
-            logger.info(f"Not a valid job received: {data}")
 
     def on_connected(self, frame):
         logger.info("RabbitMQ connected")
@@ -183,21 +183,22 @@ class _StompListener(stomp.ConnectionListener):
     def on_message(self, frame):
         try:
             data = json.loads(frame.body)
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to decode message body: {frame.body} due to: {e}")
+            return
 
+        try:
             job = self.parse_stomp_message(data)
-
-            if isinstance(job, AnalysisRequest):
-                logger.info(f"RabbitMQ job received: {job.request_id}")
-
-                asyncio.run_coroutine_threadsafe(
-                    self.queue_manager.enqueue(job),
-                    self.loop,
-                )
-            else:
-                pass
-
         except Exception as e:
-            logger.error(f"Failed to process message:{frame.body} due to: {e}")
+            logger.error(f"Failed to parse message: {frame.body} due to: {e}")
+            return
+
+        if isinstance(job, AnalysisRequest):
+            logger.info(f"RabbitMQ job received: {job.request_id}")
+            asyncio.run_coroutine_threadsafe(
+                self.queue_manager.enqueue(job),
+                self.loop,
+            )
 
 
 class RabbitMQListener:
@@ -219,6 +220,7 @@ class RabbitMQListener:
 
         self.running = True
         self.thread: threading.Thread | None = None
+        self._conn: stomp.Connection | None = None
 
     async def start(self):
         loop = asyncio.get_running_loop()
@@ -233,6 +235,20 @@ class RabbitMQListener:
 
         logger.info("RabbitMQ listener thread started")
 
+    def stop(self, timeout: float = TIMEOUT):
+        """Signal the listener thread to stop and disconnect cleanly."""
+        self.running = False
+
+        conn = self._conn
+        if conn is not None and conn.is_connected():
+            try:
+                conn.disconnect()
+            except Exception as e:
+                logger.warning(f"Error disconnecting from RabbitMQ: {e}")
+
+        if self.thread is not None:
+            self.thread.join(timeout=timeout)
+
     def _run(self, loop: asyncio.AbstractEventLoop):
 
         attempt = 0
@@ -244,12 +260,14 @@ class RabbitMQListener:
                 f"RabbitMQ connection attempt {attempt} to {self.host}:{self.port}"
             )
 
+            conn: stomp.Connection | None = None
             try:
                 conn = stomp.Connection(
                     [(self.host, self.port)],
-                    heartbeats=(TIMEOUT * 1000, TIMEOUT * 1000),  # heartbeat in in ms
+                    heartbeats=(TIMEOUT * 1000, TIMEOUT * 1000),  # heartbeat in ms
                     timeout=TIMEOUT,
                 )
+                self._conn = conn
 
                 listener = _StompListener(
                     self.queue_manager,
@@ -265,15 +283,23 @@ class RabbitMQListener:
                 if conn.is_connected():
                     attempt = 0  # reset attempt to 0 after successful connection
 
-                while conn.is_connected():
+                while conn.is_connected() and self.running:
                     time.sleep(1)
 
             except Exception as e:
                 logger.warning(f"RabbitMQ connection failed: {e}")
-                logger.info(
-                    f"RabbitMQ connection attempt {attempt} to {self.host}:{self.port}"
-                )
-                delay_time = TIMEOUT + attempt
 
-                logger.info(f" Waiting {delay_time}s before next reconnect")
-                time.sleep(delay_time)
+            finally:
+                if conn is not None and conn.is_connected():
+                    try:
+                        conn.disconnect()
+                    except Exception as e:
+                        logger.warning(f"Error disconnecting from RabbitMQ: {e}")
+                self._conn = None
+
+            if not self.running:
+                break
+
+            delay_time = min(TIMEOUT + attempt, MAX_RECONNECT_DELAY)
+            logger.info(f"Waiting {delay_time}s before next reconnect")
+            time.sleep(delay_time)
