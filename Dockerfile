@@ -53,6 +53,7 @@ RUN uv add debugpy
 # Sync the project without its dev dependencies
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-editable --no-dev --managed-python
+# uv sync --locked --no-editable --no-dev --managed-python --extra server
 
 # The runtime stage copies the built venv into a runtime container
 FROM ubuntu:resolute AS runtime
