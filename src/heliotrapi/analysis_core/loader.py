@@ -76,7 +76,7 @@ def _add_src_to_path(repo_path: Path) -> None:
         logger.debug("Added '%s' to sys.path for intra-repo imports", inject)
 
 
-def _install_repo_and_dependencies(repo_path: Path) -> None:
+def _install_repo_and_dependencies(repo_path: Path, requirements: bool = False) -> None:
     """Install a plugin repo's dependencies using ``uv pip install``.
 
     Resolution order:
@@ -105,13 +105,14 @@ def _install_repo_and_dependencies(repo_path: Path) -> None:
         # Package is now installed; intra-repo imports resolve normally.
         return
 
-    if req_file.exists():
-        logger.info("Installing plugin dependencies from '%s'", req_file)
-        _run_uv(["uv", "pip", "install", "-r", str(req_file)])
-        # Third-party deps installed, but the repo itself isn't a package,
-        # so intra-repo imports still need sys.path help.
-    else:
-        logger.debug("No dependency file found in '%s'", repo_path)
+    if requirements:
+        if req_file.exists():
+            logger.info("Installing plugin dependencies from '%s'", req_file)
+            _run_uv(["uv", "pip", "install", "-r", str(req_file)])
+            # Third-party deps installed, but the repo itself isn't a package,
+            # so intra-repo imports still need sys.path help.
+        else:
+            logger.debug("No dependency file found in '%s'", repo_path)
 
     # No pyproject.toml: inject src/ (or repo root) so intra-repo imports work.
     _add_src_to_path(repo_path)
@@ -226,7 +227,7 @@ def clone_or_update_github_repo(repo_url: str, dest_dir: str | Path) -> Path:
     if is_new:
         Repo.clone_from(repo_url, dest_path)
         logger.debug("Cloned '%s' -> '%s'", repo_url, dest_path)
-        _install_repo_and_dependencies(dest_path)
+        _install_repo_and_dependencies(dest_path, requirements=False)
     else:
         try:
             Repo(dest_path).remotes.origin.pull()

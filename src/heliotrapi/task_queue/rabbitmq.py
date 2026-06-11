@@ -197,8 +197,7 @@ class _StompListener(stomp.ConnectionListener):
                 pass
 
         except Exception as e:
-            logger.error(f"Failed to process message: {e}")
-            # logger.error(f"Failed message: {frame.body}")
+            logger.error(f"Failed to process message:{frame.body} due to: {e}")
 
 
 class RabbitMQListener:
