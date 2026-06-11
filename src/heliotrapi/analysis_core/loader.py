@@ -76,7 +76,7 @@ def _add_src_to_path(repo_path: Path) -> None:
         logger.debug("Added '%s' to sys.path for intra-repo imports", inject)
 
 
-def _install_dependencies(repo_path: Path) -> None:
+def _install_repo_and_dependencies(repo_path: Path) -> None:
     """Install a plugin repo's dependencies using ``uv pip install``.
 
     Resolution order:
@@ -95,8 +95,9 @@ def _install_dependencies(repo_path: Path) -> None:
     Raises:
         subprocess.CalledProcessError: If the ``uv`` install command fails.
     """
-    pyproject = repo_path / "pyproject.toml"
     req_file = repo_path / "requirements.txt"
+
+    pyproject = repo_path / "pyproject.toml"
 
     if pyproject.exists():
         logger.info("Installing plugin package from '%s'", repo_path)
@@ -225,7 +226,7 @@ def clone_or_update_github_repo(repo_url: str, dest_dir: str | Path) -> Path:
     if is_new:
         Repo.clone_from(repo_url, dest_path)
         logger.debug("Cloned '%s' -> '%s'", repo_url, dest_path)
-        # _install_dependencies(dest_path)
+        _install_repo_and_dependencies(dest_path)
     else:
         try:
             Repo(dest_path).remotes.origin.pull()
