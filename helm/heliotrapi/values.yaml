@@ -57,8 +57,9 @@ startupProbe:
   httpGet:
     path: /healthz
     port: http
+  initialDelaySeconds: 30
   periodSeconds: 10
-  failureThreshold: 12
+  failureThreshold: 9
   timeoutSeconds: 5
 
 

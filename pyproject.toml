@@ -23,7 +23,7 @@ dependencies = [
     "stomp.py",
     "fastapi",
     "pyyaml",
-    "h5py"
+    "h5py",
 ] # Add project dependencies here, e.g. ["click", "numpy"]
 dynamic = ["version"]
 license.file = "LICENSE"

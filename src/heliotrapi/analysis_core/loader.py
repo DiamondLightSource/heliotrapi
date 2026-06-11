@@ -76,7 +76,7 @@ def _add_src_to_path(repo_path: Path) -> None:
         logger.debug("Added '%s' to sys.path for intra-repo imports", inject)
 
 
-def _install_repo_and_dependencies(repo_path: Path, requirements: bool = False) -> None:
+def _install_repo_and_dependencies(repo_path: Path, requirements: bool = True) -> None:
     """Install a plugin repo's dependencies using ``uv pip install``.
 
     Resolution order:
@@ -227,7 +227,7 @@ def clone_or_update_github_repo(repo_url: str, dest_dir: str | Path) -> Path:
     if is_new:
         Repo.clone_from(repo_url, dest_path)
         logger.debug("Cloned '%s' -> '%s'", repo_url, dest_path)
-        _install_repo_and_dependencies(dest_path, requirements=False)
+        _install_repo_and_dependencies(dest_path, requirements=True)
     else:
         try:
             Repo(dest_path).remotes.origin.pull()
