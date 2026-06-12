@@ -38,17 +38,22 @@ class _StompListener(stomp.ConnectionListener):
             return validated_model
 
         elif isinstance(validated_model, StartMessage):
+            # need to ignore because event_model BaseModels allow extra and
+            # so BlueAPI spits out stuff not present in the BaseModel
+
             scan_file = validated_model.doc.scan_file  # type: ignore
             plan_name = validated_model.doc.plan_name  # type: ignore
             logger.info(f"StartMessage Received. {scan_file=} {plan_name=}")
 
         elif isinstance(validated_model, StopMessage):
+            # need to ignore because event_model BaseModels allow extra and
+            # so BlueAPI spits out stuff not present in the BaseModel
             exit_status = validated_model.doc.exit_status  # type: ignore
             logger.info(f"StopMessage Received. {exit_status=}")
 
         elif isinstance(validated_model, NexusMessage):
-            status = validated_model.status  # type: ignore
-            filepath = validated_model.filePath  # type: ignore
+            status = validated_model.status
+            filepath = validated_model.filePath
             logger.info(f"NexusMessage Received. {status=} {filepath=}")
 
             if status == "STARTED":
