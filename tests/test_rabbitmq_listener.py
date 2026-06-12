@@ -8,9 +8,29 @@ import pytest
 
 from heliotrapi.models import AnalysisRequest
 from heliotrapi.task_queue import QueueManager
-from heliotrapi.task_queue.message_models import WorkerEvent, WorkerState
+from heliotrapi.task_queue.message_models import (
+    DescriptorMessage,
+    EventMessage,
+    NexusMessage,
+    StartMessage,
+    StopMessage,
+    StreamDatumMessage,
+    StreamResourceMessage,
+    WorkerEvent,
+    WorkerState,
+)
 from heliotrapi.task_queue.rabbitmq import (
     _StompListener,
+)
+from test_message_models import (
+    DESCRIPTOR_MESSAGE,
+    EVENT_MESSAGE,
+    FINISHED_NEXUS_MESSAGE,
+    START_MESSAGE,
+    STARTED_NEXUS_MESSAGE,
+    STOP_MESSAGE,
+    STREAM_DATUM_MESSAGE,
+    STREAM_RESOURCE_MESSAGE,
 )
 
 
@@ -90,6 +110,31 @@ def test_parse_job_direct_analysis():
 
     assert isinstance(job, AnalysisRequest)
     assert job.analysis_name == "double"
+
+
+@pytest.mark.parametrize(
+    "message, expected_type",
+    [
+        (START_MESSAGE, StartMessage),
+        (DESCRIPTOR_MESSAGE, DescriptorMessage),
+        (EVENT_MESSAGE, EventMessage),
+        (STREAM_RESOURCE_MESSAGE, StreamResourceMessage),
+        (STREAM_DATUM_MESSAGE, StreamDatumMessage),
+        (STOP_MESSAGE, StopMessage),
+        (STARTED_NEXUS_MESSAGE, NexusMessage),
+        (FINISHED_NEXUS_MESSAGE, NexusMessage),
+    ],
+)
+def test_stomp_message_to_request(message: dict, expected_type: type):
+    """currently this will always return None until we have added something else"""
+
+    listener = _StompListener(
+        queue_manager=cast(QueueManager, None),
+        loop=asyncio.new_event_loop(),
+    )
+    job = listener.stomp_message_to_request(message)
+
+    assert job is None
 
 
 def test_parse_job_data_event_ignored():
