@@ -24,6 +24,7 @@ dependencies = [
     "fastapi",
     "pyyaml",
     "h5py",
+    "event_model",
 ] # Add project dependencies here, e.g. ["click", "numpy"]
 dynamic = ["version"]
 license.file = "LICENSE"

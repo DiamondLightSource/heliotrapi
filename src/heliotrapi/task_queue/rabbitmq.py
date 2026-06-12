@@ -2,125 +2,21 @@ import asyncio
 import json
 import threading
 import time
-from enum import StrEnum
-from typing import Any, Literal
 
 import stomp
-from pydantic import (
-    BaseModel,
-    Field,
-    ValidationError,
-)
 
 from heliotrapi import logger
 from heliotrapi.models import AnalysisRequest
 from heliotrapi.task_queue import QueueManager
+from heliotrapi.task_queue.message_models import (
+    NexusMessage,
+    StartMessage,
+    StopMessage,
+    validate_stomp_message,
+)
 
 TIMEOUT = 10
 MAX_RECONNECT_DELAY = 300  # cap backoff at 5 minutes
-
-####### gda messages
-
-
-class ProcessingRequest(BaseModel):
-    # empty dict in your example, so keep flexible
-    model_config = {"extra": "allow"}
-
-
-class ScanMessage(BaseModel):
-    status: str
-    filePath: str  # noqa: N815 - because this is gda
-    visitDirectory: str  # noqa: N815 - because this is gda
-    swmrStatus: str  # noqa: N815 - because this is gda
-
-    scanNumber: int  # noqa: N815 - because this is gda
-    scanDimensions: list[int]  # noqa: N815 - because this is gda
-
-    scannables: list[Any] = Field(default_factory=list)
-    detectors: list[Any] = Field(default_factory=list)
-
-    percentageComplete: float  # noqa: N815 - because this is gda
-
-    processingRequest: ProcessingRequest = Field(default_factory=ProcessingRequest)  # noqa: N815 - because this is gda
-
-
-############# bluesky
-
-
-class WorkerState(StrEnum):
-    """
-    The state of the Worker.
-    """
-
-    IDLE = "IDLE"
-    RUNNING = "RUNNING"
-    PAUSING = "PAUSING"
-    PAUSED = "PAUSED"
-    HALTING = "HALTING"
-    STOPPING = "STOPPING"
-    ABORTING = "ABORTING"
-    SUSPENDING = "SUSPENDING"
-    PANICKED = "PANICKED"
-    UNKNOWN = "UNKNOWN"
-
-
-class TaskResult(BaseModel):
-    """
-    Serializable wrapper around the result of a plan
-
-    If the result is not serializable, the result will be None but the type
-    will be the name of the type. If the result is actually None, the type will
-    be 'NoneType'.
-    """
-
-    outcome: Literal["success"] = "success"
-    """Discriminant for serialization"""
-    result: Any = Field(None)
-    """The serialized result (or None if it is not serializable)"""
-    type: str
-    """The type of the result"""
-
-
-class TaskError(BaseModel):
-    """Wrapper around an exception raised by a plan"""
-
-    outcome: Literal["error"] = "error"
-    """Discriminant for serialization"""
-    type: str
-    """The class of exception"""
-    message: str
-    """The message of the raised exception"""
-
-
-class TaskStatus(BaseModel):
-    """
-    Status of a task the worker is running.
-    """
-
-    task_id: str
-    result: TaskResult | TaskError | None = Field(None, discriminator="outcome")
-    task_complete: bool
-    task_failed: bool
-
-
-class WorkerEvent(BaseModel):
-    """
-    Event describing the state of the worker and any tasks it's running.
-    Includes error and warning information.
-    """
-
-    state: WorkerState
-    task_status: TaskStatus | None = None
-    errors: list[str] = Field(default_factory=list)
-    warnings: list[str] = Field(default_factory=list)
-
-    def is_error(self) -> bool:
-        return (self.task_status is not None and self.task_status.task_failed) or bool(
-            self.errors
-        )
-
-    def is_complete(self) -> bool:
-        return self.task_status is not None and self.task_status.task_complete
 
 
 class _StompListener(stomp.ConnectionListener):
@@ -128,7 +24,7 @@ class _StompListener(stomp.ConnectionListener):
         self.queue_manager = queue_manager
         self.loop = loop
 
-    def parse_stomp_message(self, data: dict) -> AnalysisRequest | None:
+    def stomp_message_to_request(self, data: dict) -> AnalysisRequest | None:
         """Parse a STOMP message body into an AnalysisRequest, or None if the
         message should be ignored by the queuer.
 
@@ -136,39 +32,38 @@ class _StompListener(stomp.ConnectionListener):
         type. Order matters only in that more specific/required key-sets are
         checked first to reduce ambiguity between message shapes.
         """
-        try:
-            if "analysis_name" in data:
-                # an analysis request sent via rabbitmq
-                return AnalysisRequest.model_validate(data)
+        validated_model = validate_stomp_message(data)
 
-            if "event_type" in data and "task_id" in data:
-                logger.info("Received data event")
-                return None
+        if isinstance(validated_model, AnalysisRequest):
+            return validated_model
 
-            if "status" in data and "filePath" in data and "visitDirectory" in data:
-                gda_scan_message = ScanMessage.model_validate(data)
-                logger.info(
-                    "Received GDA scan message: %s, %s, %s",
-                    gda_scan_message.filePath,
-                    gda_scan_message.scanNumber,
-                    gda_scan_message.status,
-                )
-                return None
+        elif isinstance(validated_model, StartMessage):
+            # need to ignore because event_model BaseModels allow extra and
+            # so BlueAPI spits out stuff not present in the BaseModel
 
-            if "state" in data and "task_status" in data:
-                worker_event = WorkerEvent.model_validate(data)
-                logger.info(
-                    "Bluesky worker event: %s %s",
-                    worker_event.state,
-                    worker_event.task_status,
-                )
-                return None
+            scan_file = validated_model.doc.scan_file  # type: ignore
+            plan_name = validated_model.doc.plan_name  # type: ignore
+            logger.info(f"StartMessage Received. {scan_file=} {plan_name=}")
 
-            logger.info("Not a valid job received: %s", data)
-            return None
+        elif isinstance(validated_model, StopMessage):
+            # need to ignore because event_model BaseModels allow extra and
+            # so BlueAPI spits out stuff not present in the BaseModel
+            exit_status = validated_model.doc.exit_status  # type: ignore
+            logger.info(f"StopMessage Received. {exit_status=}")
 
-        except ValidationError as e:
-            logger.error("Message failed schema validation: %s", e)
+        elif isinstance(validated_model, NexusMessage):
+            status = validated_model.status
+            filepath = validated_model.filePath
+            logger.info(f"NexusMessage Received. {status=} {filepath=}")
+
+            if status == "STARTED":
+                pass
+            elif status == "UPDATED":
+                pass
+            elif status == "FINISHED":
+                pass
+
+        else:
             return None
 
     def on_connected(self, frame):
@@ -188,7 +83,7 @@ class _StompListener(stomp.ConnectionListener):
             return
 
         try:
-            job = self.parse_stomp_message(data)
+            job = self.stomp_message_to_request(data)
         except Exception as e:
             logger.error(f"Failed to parse message: {frame.body} due to: {e}")
             return

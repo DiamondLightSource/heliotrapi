@@ -195,11 +195,11 @@ def load_plugins_from_dir(path: str | Path, register_all: bool = False) -> None:
         module_name = _module_name_for(pyfile, root)
         try:
             module = _load_module_from_file(module_name, pyfile)
-        except ImportError:
-            logger.exception("Failed to load plugin '%s'", pyfile)
+        except ImportError as e:
+            logger.error("Failed to load plugin '%s'", e)
             continue
-        except Exception:
-            logger.exception("Unexpected error loading plugin '%s'", pyfile)
+        except Exception as e:
+            logger.error("Unexpected error loading plugin '%s'", e)
             continue
 
         logger.debug("Loaded plugin: %s", pyfile)
