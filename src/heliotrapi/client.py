@@ -15,7 +15,7 @@ from heliotrapi.api.endpoints import (
     RESULT_LATEST_ROUTE,
     RESULTS_ALL_ROUTE,
 )
-from heliotrapi.logging import logger
+from heliotrapi.app_logging import logger
 from heliotrapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
 from heliotrapi.utils.serialisers import serialise
 

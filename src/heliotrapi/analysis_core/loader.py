@@ -11,8 +11,8 @@ from git import GitCommandError, Repo
 
 from heliotrapi.analysis_core.async_func import make_function_async
 from heliotrapi.analysis_core.registry import register_analysis
+from heliotrapi.app_logging import logger
 from heliotrapi.config import Config
-from heliotrapi.logging import logger
 
 
 def load_analyses(package: types.ModuleType) -> list[str]:
