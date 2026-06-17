@@ -6,6 +6,14 @@ import time
 import stomp
 
 from heliotrapi import logger
+from heliotrapi.analysis_core.decorator import (
+    FINISHED_NEXUS_ANALYSIS_NAME,
+    START_MESSAGE_ANALYSIS_NAME,
+    STARTED_NEXUS_ANALYSIS_NAME,
+    STOP_MESSAGE_ANALYSIS_NAME,
+    UPDATED_NEXUS_ANALYSIS_NAME,
+)
+from heliotrapi.analysis_core.registry import ANALYSIS_REGISTRY
 from heliotrapi.models import AnalysisRequest
 from heliotrapi.task_queue import QueueManager
 from heliotrapi.task_queue.message_models import (
@@ -41,27 +49,48 @@ class _StompListener(stomp.ConnectionListener):
             # need to ignore because event_model BaseModels allow extra and
             # so BlueAPI spits out stuff not present in the BaseModel
 
-            scan_file = validated_model.doc.scan_file  # type: ignore
-            plan_name = validated_model.doc.plan_name  # type: ignore
+            scan_file = validated_model.doc.scan_file
+            plan_name = validated_model.doc.plan_name
             logger.info(f"StartMessage Received. {scan_file=} {plan_name=}")
+            return AnalysisRequest(
+                analysis_name=START_MESSAGE_ANALYSIS_NAME,
+                inputs={"message": validated_model},
+            )
 
         elif isinstance(validated_model, StopMessage):
             # need to ignore because event_model BaseModels allow extra and
             # so BlueAPI spits out stuff not present in the BaseModel
             exit_status = validated_model.doc.exit_status  # type: ignore
             logger.info(f"StopMessage Received. {exit_status=}")
-
+            return AnalysisRequest(
+                analysis_name=STOP_MESSAGE_ANALYSIS_NAME,
+                inputs={"message": validated_model},
+            )
         elif isinstance(validated_model, NexusMessage):
             status = validated_model.status
             filepath = validated_model.filePath
             logger.info(f"NexusMessage Received. {status=} {filepath=}")
 
             if status == "STARTED":
-                pass
+                if STARTED_NEXUS_ANALYSIS_NAME in ANALYSIS_REGISTRY:
+                    return AnalysisRequest(
+                        analysis_name=STARTED_NEXUS_ANALYSIS_NAME,
+                        inputs={"message": validated_model},
+                    )
+
             elif status == "UPDATED":
-                pass
+                if UPDATED_NEXUS_ANALYSIS_NAME in ANALYSIS_REGISTRY:
+                    return AnalysisRequest(
+                        analysis_name=UPDATED_NEXUS_ANALYSIS_NAME,
+                        inputs={"message": validated_model},
+                    )
+
             elif status == "FINISHED":
-                pass
+                if FINISHED_NEXUS_ANALYSIS_NAME in ANALYSIS_REGISTRY:
+                    return AnalysisRequest(
+                        analysis_name=FINISHED_NEXUS_ANALYSIS_NAME,
+                        inputs={"message": validated_model},
+                    )
 
         else:
             return None
