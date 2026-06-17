@@ -20,7 +20,7 @@ from heliotrapi.api.endpoints import (
     RESULTS_ALL_ROUTE,
     STREAM_ROUTE,
 )
-from heliotrapi.logging import logger
+from heliotrapi.app_logging import logger
 from heliotrapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
 from heliotrapi.task_queue import QueueManager
 
