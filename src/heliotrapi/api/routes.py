@@ -125,10 +125,7 @@ async def get_all_results(request: Request):
     return results
 
 
-JOBS = {}
-
-
-async def run_analysis(request_id: UUID):
+async def run_analysis():
     t = 0.0
 
     while t < 50:
@@ -137,17 +134,15 @@ async def run_analysis(request_id: UUID):
 
         yield {"x": t, "y": math.sin(t)}
 
-    JOBS[request_id]["status"] = "done"
-
 
 @ROUTER.get(STREAM_ROUTE)
-async def stream(request_id: UUID):
+async def stream():
     """
     Server-Sent Events endpoint
     """
 
     async def event_generator():
-        async for point in run_analysis(request_id):
+        async for point in run_analysis():
             # SSE format (IMPORTANT)
             yield (f"event: update\ndata: {json.dumps(point)}\n\n")
 
