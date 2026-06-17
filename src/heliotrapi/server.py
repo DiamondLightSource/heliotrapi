@@ -11,11 +11,11 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 import heliotrapi
-from heliotrapi import logger
 from heliotrapi._version import __version__
 from heliotrapi.analysis_core.loader import load_analyses, load_plugins
 from heliotrapi.api.routes import ROUTER
 from heliotrapi.config import Config
+from heliotrapi.logging import logger
 from heliotrapi.task_queue import QueueManager, RabbitMQListener, cleanup_results
 from heliotrapi.utils.messenger import Messenger
 

@@ -16,7 +16,7 @@ from pydantic import (
     ValidationError,
 )
 
-from heliotrapi import logger
+from heliotrapi.logging import logger
 from heliotrapi.models import AnalysisRequest
 
 ####### gda messages or nexus filewriter
@@ -70,10 +70,29 @@ class WorkerEvent(BaseModel):
 #### bluesky event_models
 
 
+class RunStartDoc(RunStart):
+    instrument: str
+    instrument_session: str
+    scan_file: str
+    plan_name: str
+
+
 # Validate against 'start' job messages
 class StartMessage(BaseModel):
     name: Literal["start"]
-    doc: RunStart
+    doc: RunStartDoc
+    task_id: str
+
+
+class RunStopDoc(RunStop):
+    # Incase anything more is added to BlueAPI
+    pass
+
+
+# Validate against 'stop' job messages
+class StopMessage(BaseModel):
+    name: Literal["stop"]
+    doc: RunStopDoc
     task_id: str
 
 
@@ -102,13 +121,6 @@ class StreamResourceMessage(BaseModel):
 class StreamDatumMessage(BaseModel):
     name: Literal["stream_datum"]
     doc: StreamDatum
-    task_id: str
-
-
-# Validate against 'stop' job messages
-class StopMessage(BaseModel):
-    name: Literal["stop"]
-    doc: RunStop
     task_id: str
 
 

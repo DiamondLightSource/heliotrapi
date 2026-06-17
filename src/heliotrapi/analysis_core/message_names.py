@@ -1,0 +1,5 @@
+START_MESSAGE_ANALYSIS_NAME = "start_message"
+STOP_MESSAGE_ANALYSIS_NAME = "stop_message"
+STARTED_NEXUS_ANALYSIS_NAME = "started_nexus_message"
+FINISHED_NEXUS_ANALYSIS_NAME = "finished_nexus_message"
+UPDATED_NEXUS_ANALYSIS_NAME = "updated_nexus_message"

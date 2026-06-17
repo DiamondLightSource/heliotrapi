@@ -4,8 +4,17 @@ import threading
 import time
 
 import stomp
+from pydantic import BaseModel
 
-from heliotrapi import logger
+from heliotrapi.analysis_core.decorator import (
+    FINISHED_NEXUS_ANALYSIS_NAME,
+    START_MESSAGE_ANALYSIS_NAME,
+    STARTED_NEXUS_ANALYSIS_NAME,
+    STOP_MESSAGE_ANALYSIS_NAME,
+    UPDATED_NEXUS_ANALYSIS_NAME,
+)
+from heliotrapi.analysis_core.registry import ANALYSIS_REGISTRY
+from heliotrapi.logging import logger
 from heliotrapi.models import AnalysisRequest
 from heliotrapi.task_queue import QueueManager
 from heliotrapi.task_queue.message_models import (
@@ -24,6 +33,18 @@ class _StompListener(stomp.ConnectionListener):
         self.queue_manager = queue_manager
         self.loop = loop
 
+    def _create_request_if_available(
+        self, validated_model: BaseModel, message_name: str
+    ) -> AnalysisRequest | None:
+
+        if message_name in ANALYSIS_REGISTRY:
+            return AnalysisRequest(
+                analysis_name=message_name,
+                inputs={"message": validated_model},
+            )
+        else:
+            return None
+
     def stomp_message_to_request(self, data: dict) -> AnalysisRequest | None:
         """Parse a STOMP message body into an AnalysisRequest, or None if the
         message should be ignored by the queuer.
@@ -38,18 +59,19 @@ class _StompListener(stomp.ConnectionListener):
             return validated_model
 
         elif isinstance(validated_model, StartMessage):
-            # need to ignore because event_model BaseModels allow extra and
-            # so BlueAPI spits out stuff not present in the BaseModel
-
-            scan_file = validated_model.doc.scan_file  # type: ignore
-            plan_name = validated_model.doc.plan_name  # type: ignore
+            scan_file = validated_model.doc.scan_file
+            plan_name = validated_model.doc.plan_name
             logger.info(f"StartMessage Received. {scan_file=} {plan_name=}")
+            return self._create_request_if_available(
+                validated_model, START_MESSAGE_ANALYSIS_NAME
+            )
 
         elif isinstance(validated_model, StopMessage):
-            # need to ignore because event_model BaseModels allow extra and
-            # so BlueAPI spits out stuff not present in the BaseModel
-            exit_status = validated_model.doc.exit_status  # type: ignore
+            exit_status = validated_model.doc.exit_status
             logger.info(f"StopMessage Received. {exit_status=}")
+            return self._create_request_if_available(
+                validated_model, STOP_MESSAGE_ANALYSIS_NAME
+            )
 
         elif isinstance(validated_model, NexusMessage):
             status = validated_model.status
@@ -57,12 +79,19 @@ class _StompListener(stomp.ConnectionListener):
             logger.info(f"NexusMessage Received. {status=} {filepath=}")
 
             if status == "STARTED":
-                pass
-            elif status == "UPDATED":
-                pass
-            elif status == "FINISHED":
-                pass
+                return self._create_request_if_available(
+                    validated_model, STARTED_NEXUS_ANALYSIS_NAME
+                )
 
+            elif status == "UPDATED":
+                return self._create_request_if_available(
+                    validated_model, UPDATED_NEXUS_ANALYSIS_NAME
+                )
+
+            elif status == "FINISHED":
+                return self._create_request_if_available(
+                    validated_model, FINISHED_NEXUS_ANALYSIS_NAME
+                )
         else:
             return None
 
