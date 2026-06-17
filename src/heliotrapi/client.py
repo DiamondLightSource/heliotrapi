@@ -1,3 +1,4 @@
+import json
 import time
 from collections.abc import Callable
 from datetime import datetime
@@ -14,6 +15,7 @@ from heliotrapi.api.endpoints import (
     RESULT_BY_ID_ROUTE,
     RESULT_LATEST_ROUTE,
     RESULTS_ALL_ROUTE,
+    STREAM_ROUTE,
 )
 from heliotrapi.logging import logger
 from heliotrapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
@@ -190,7 +192,52 @@ class AnalysisClient:
 
             time.sleep(poll_interval)
 
+    def stream(self):
+        url = f"{self.base_url}{STREAM_ROUTE}"
 
-# if __name__ == "__main__":
-#     client = AnalysisClient("http://i15-1-analysis.diamond.ac.uk")
-#     print(client.get_all_results())
+        with self.session.get(url, stream=True) as resp:
+            resp.raise_for_status()
+
+            event_type = None
+
+            for line in resp.iter_lines(decode_unicode=True):
+                if not line:
+                    continue
+
+                # event type
+                if line.startswith("event:"):
+                    event_type = line.replace("event: ", "").strip()
+
+                # data payload
+                elif line.startswith("data:"):
+                    payload = line.replace("data: ", "").strip()
+
+                    if event_type == "update":
+                        yield json.loads(payload)
+
+                    elif event_type == "done":
+                        return
+
+
+if __name__ == "__main__":
+    # client = AnalysisClient("http://i15-1-analysis.diamond.ac.uk")
+    # print(client.get_all_results())
+    import matplotlib.pyplot as plt
+
+    client = AnalysisClient()
+
+    x_data = []
+    y_data = []
+
+    plt.ion()
+    fig, ax = plt.subplots()
+
+    for point in client.stream():
+        x_data.append(point["x"])
+        y_data.append(point["y"])
+
+        ax.clear()
+        ax.plot(x_data, y_data)
+        ax.set_title("Live SSE Analysis Plot")
+
+        plt.pause(0.01)
