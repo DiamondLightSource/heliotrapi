@@ -5,7 +5,6 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.routing import APIRoute
 
-from heliotrapi import logger
 from heliotrapi.analysis_core.registry import get_analysis, list_analyses
 from heliotrapi.api.endpoints import (
     ANALYSE_ROUTE,
@@ -16,6 +15,7 @@ from heliotrapi.api.endpoints import (
     RESULT_LATEST_ROUTE,
     RESULTS_ALL_ROUTE,
 )
+from heliotrapi.logging import logger
 from heliotrapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
 from heliotrapi.task_queue import QueueManager
 

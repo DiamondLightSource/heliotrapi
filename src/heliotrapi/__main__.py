@@ -8,8 +8,8 @@ import numpy as np
 from heliotrapi.analyses.peak_fitting import gaussian
 from heliotrapi.client import AnalysisClient
 from heliotrapi.config import Config
-from heliotrapi.logging import logger
 
+# from heliotrapi.logging import logger
 from ._version import __version__
 
 __all__ = ["main"]
@@ -70,9 +70,6 @@ def serve(ctx: click.Context):
     from heliotrapi.server import start_api
 
     config = ctx.obj["config"]
-
-    logger.info(f"host: {config.server.host}")
-    logger.info(f"port {config.server.port}")
 
     uvicorn.run(
         start_api(),
