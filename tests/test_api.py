@@ -3,6 +3,7 @@ import time
 import pytest
 from fastapi.testclient import TestClient
 
+from heliotrapi.api.endpoints import ANALYSE_ROUTE
 from heliotrapi.config import Config
 from heliotrapi.models import AnalysisRequest
 from heliotrapi.server import start_api
@@ -19,7 +20,7 @@ def test_analysis_flow_with_post():
 
         request = AnalysisRequest(analysis_name="double", inputs={"number": 21})
 
-        response = client.post("/analyse", json=request.model_dump(mode="json"))
+        response = client.post(ANALYSE_ROUTE, json=request.model_dump(mode="json"))
 
         assert response.status_code == 200
 
