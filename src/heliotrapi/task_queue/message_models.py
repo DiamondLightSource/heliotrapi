@@ -16,7 +16,7 @@ from pydantic import (
     ValidationError,
 )
 
-from heliotrapi.logging import logger
+from heliotrapi.app_logging import logger
 from heliotrapi.models import AnalysisRequest
 
 ####### gda messages or nexus filewriter
