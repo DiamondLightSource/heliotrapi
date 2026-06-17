@@ -126,7 +126,9 @@ def test_parse_job_direct_analysis():
     ],
 )
 def test_stomp_message_to_request(message: dict, expected_type: type):
-    """currently this will always return None until we have added something else"""
+    """currently this will always return None until we have added something else
+    but we check that we have not left an analysis in the api code. decorated analyses
+    should be in the plugin only"""
 
     listener = _StompListener(
         queue_manager=cast(QueueManager, None),
