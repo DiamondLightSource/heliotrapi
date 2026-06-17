@@ -6,7 +6,6 @@ import time
 import stomp
 from pydantic import BaseModel
 
-from heliotrapi import logger
 from heliotrapi.analysis_core.decorator import (
     FINISHED_NEXUS_ANALYSIS_NAME,
     START_MESSAGE_ANALYSIS_NAME,
@@ -15,6 +14,7 @@ from heliotrapi.analysis_core.decorator import (
     UPDATED_NEXUS_ANALYSIS_NAME,
 )
 from heliotrapi.analysis_core.registry import ANALYSIS_REGISTRY
+from heliotrapi.logging import logger
 from heliotrapi.models import AnalysisRequest
 from heliotrapi.task_queue import QueueManager
 from heliotrapi.task_queue.message_models import (

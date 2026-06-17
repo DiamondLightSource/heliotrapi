@@ -4,8 +4,8 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from heliotrapi import logger
 from heliotrapi.analysis_core.registry import get_analysis
+from heliotrapi.logging import logger
 from heliotrapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
 from heliotrapi.utils.messenger import DEFAULT_DII_PROCESSED_DESTINATION, Messenger
 from heliotrapi.utils.serialisers import deserialise, serialise

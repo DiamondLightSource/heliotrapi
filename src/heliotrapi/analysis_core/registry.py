@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from typing import Any
 
-from heliotrapi import logger
+from heliotrapi.logging import logger
 
 
 class AnalysisNotFoundError(Exception):

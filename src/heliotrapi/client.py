@@ -6,7 +6,6 @@ from uuid import UUID
 
 import requests
 
-from heliotrapi import logger
 from heliotrapi.api.endpoints import (
     ANALYSE_ROUTE,
     ANALYSES_ROUTE,
@@ -16,6 +15,7 @@ from heliotrapi.api.endpoints import (
     RESULT_LATEST_ROUTE,
     RESULTS_ALL_ROUTE,
 )
+from heliotrapi.logging import logger
 from heliotrapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
 from heliotrapi.utils.serialisers import serialise
 

@@ -4,7 +4,6 @@ from typing import ParamSpec, TypeVar
 
 from pydantic import BaseModel
 
-from heliotrapi import logger
 from heliotrapi.analysis_core.async_func import make_function_async
 from heliotrapi.analysis_core.message_names import (
     FINISHED_NEXUS_ANALYSIS_NAME,
@@ -14,6 +13,7 @@ from heliotrapi.analysis_core.message_names import (
     UPDATED_NEXUS_ANALYSIS_NAME,
 )
 from heliotrapi.analysis_core.registry import register_analysis
+from heliotrapi.logging import logger
 from heliotrapi.task_queue.message_models import (
     NexusMessage,
     StartMessage,
@@ -64,7 +64,7 @@ def check_message_args(func: Callable, check_type: type[BaseModel]):
     )
 
     assert issubclass(annotation, check_type), (
-        f"{func.__name__}.message must be a BaseModel subtype"
+        f"{func.__name__}.message must be a {check_type} subtype"
     )
 
 
