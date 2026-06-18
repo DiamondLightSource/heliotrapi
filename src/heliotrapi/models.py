@@ -17,6 +17,16 @@ class AnalysisRequest(AnalysisBaseModel):
     created_at: datetime = Field(default_factory=datetime.now)
 
 
+class AnalysisStreamRequest(AnalysisRequest):
+    pass
+
+
+class StreamUpdate(AnalysisBaseModel):
+    x: int | float
+    y: int | float
+    z: int | float | None = Field(default=None)
+
+
 class AnalysisResult(AnalysisBaseModel):
     request_id: UUID | None = None
     status: Literal["error", "failed", "running", "completed"]

@@ -1,7 +1,6 @@
 import asyncio
 import inspect
 import json
-import math
 from typing import Any
 from uuid import UUID
 
@@ -21,7 +20,12 @@ from heliotrapi.api.endpoints import (
     STREAM_ROUTE,
 )
 from heliotrapi.logger import logger
-from heliotrapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
+from heliotrapi.models import (
+    AnalysisRequest,
+    AnalysisResponse,
+    AnalysisResult,
+    StreamUpdate,
+)
 from heliotrapi.task_queue import QueueManager
 
 ROUTER = APIRouter()
@@ -126,13 +130,23 @@ async def get_all_results(request: Request):
 
 
 async def run_analysis():
-    t = 0.0
 
-    while t < 50:
+    from heliotrapi.analyses.peak_fitting import gaussian
+
+    t = 0.0
+    amp = 10
+    x = 5
+    sig = 0.4
+
+    while t < 20:
         await asyncio.sleep(0.1)
         t += 0.1
 
-        yield {"x": t, "y": math.sin(t)}
+        gauss = gaussian(x=t, amplitude=amp, x0=x, sigma=sig)
+
+        update = StreamUpdate(x=t, y=gauss)
+
+        yield update.model_dump()
 
 
 @ROUTER.get(STREAM_ROUTE)

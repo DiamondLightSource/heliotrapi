@@ -192,10 +192,15 @@ class AnalysisClient:
 
             time.sleep(poll_interval)
 
-    def stream(self):
-        url = f"{self.base_url}{STREAM_ROUTE}"
+    def start_stream(self) -> UUID:
+        pass
 
-        with self.session.get(url, stream=True) as resp:
+    def stream_results(self, request_id: UUID):
+
+        stream_route = STREAM_ROUTE.format(request_id=request_id)
+        stream_url = f"{self.base_url}{stream_route}"
+
+        with self.session.get(stream_url, stream=True) as resp:
             resp.raise_for_status()
 
             event_type = None
@@ -230,13 +235,15 @@ if __name__ == "__main__":
 
     print(client.get_result())
 
+    client.start_stream()
+
     x_data = []
     y_data = []
 
     plt.ion()
     fig, ax = plt.subplots()
 
-    for point in client.stream():
+    for point in client.stream_results():
         x_data.append(point["x"])
         y_data.append(point["y"])
 
