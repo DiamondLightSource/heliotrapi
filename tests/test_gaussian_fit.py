@@ -13,6 +13,7 @@ def test_gaussian_fit_with_client():
     x = np.linspace(-5, 5, 200)
     true_amp, true_center, true_sigma = 3.0, 1.2, 0.8
     y = gaussian(x, true_amp, true_center, true_sigma)
+    assert isinstance(y, np.ndarray)
     y_noisy = y + np.random.rand(y.shape[-1]) / 5
 
     app = start_api()
