@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
+import matplotlib.pyplot as plt
 import requests
 
 from heliotrapi.api.endpoints import (
@@ -253,7 +254,7 @@ class AnalysisClient:
         stream = AnalysisStream()
 
         try:
-            for stream_update in client.stream_results(
+            for stream_update in self.stream_results(
                 analysis=analysis_name, inputs=inputs
             ):
                 update = StreamUpdate.model_validate(stream_update)
@@ -271,15 +272,14 @@ class AnalysisClient:
             print(e)
 
 
-if __name__ == "__main__":
-    # client = AnalysisClient("http://i15-1-analysis.diamond.ac.uk")
-    # print(client.get_all_results())
-    import matplotlib.pyplot as plt
+# if __name__ == "__main__":
+#     # client = AnalysisClient("http://i15-1-analysis.diamond.ac.uk")
+#     # print(client.get_all_results())
 
-    client = AnalysisClient()
+#     client = AnalysisClient()
 
-    client.submit(analysis="double", number=5)
+#     client.submit(analysis="double", number=5)
 
-    print(client.get_result())
+#     print(client.get_result())
 
-    client.plot_stream(analysis="double", number=2222)
+#     client.plot_stream(analysis="double", number=2222)
