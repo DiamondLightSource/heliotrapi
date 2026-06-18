@@ -100,6 +100,7 @@ class Messenger:
         self.scan_listener = ScanListener()
 
         self.run = True
+        self.conn = None
 
         if self.auto_connect:
             try:
@@ -124,27 +125,37 @@ class Messenger:
         self.conn.set_listener("scan_listener", self.scan_listener)
 
     def connect(self):
-        print("Connecting..")
 
-        if self.username and self.password:
-            self.conn.connect(self.username, self.password, wait=True)
+        if self.conn is not None:
+            print("Connecting..")
+
+            if self.username and self.password:
+                self.conn.connect(self.username, self.password, wait=True)
+            else:
+                self.conn.connect(wait=True)
+            print("Connected to STOMP server at", self.host, self.port)
+
         else:
-            self.conn.connect(wait=True)
-
-        print("Connected to STOMP server at", self.host, self.port)
+            print("Must setup connection first!")
 
     def disconnect(self):
-        self.conn.disconnect()
+        if self.conn is not None and self.is_connected():
+            self.conn.disconnect()
+        else:
+            print("Already not connected")
 
     def is_connected(self) -> bool:
-        return hasattr(self, "conn") and self.conn.is_connected()
+        connected = self.conn.is_connected() if self.conn is not None else False
+        return connected
 
     def subscribe(self):
-        if isinstance(self.destinations, list):
-            for i, dest in enumerate(self.destinations):
-                self.conn.subscribe(destination=dest, id=i + 1, ack="auto")
-        else:
-            self.conn.subscribe(destination=self.destinations, id=1, ack="auto")
+
+        if self.conn is not None and self.is_connected():
+            if isinstance(self.destinations, list):
+                for i, dest in enumerate(self.destinations):
+                    self.conn.subscribe(destination=dest, id=i + 1, ack="auto")
+            else:
+                self.conn.subscribe(destination=self.destinations, id=1, ack="auto")
 
     def send_file(self, path: str):
         """Use this when you want dawn to open and plot a file"""
@@ -177,11 +188,15 @@ class Messenger:
         self.send_message(destination, message)
 
     def send_message(self, destination: str, message: str):
-        try:
-            self.conn.send(destination=destination, body=message, ack="auto")
-            print(f"Message sent to: {destination}")
-        except Exception:
-            print("Could not send message!")
+
+        if self.conn is not None and self.is_connected():
+            try:
+                self.conn.send(destination=destination, body=message, ack="auto")
+                print(f"Message sent to: {destination}")
+            except Exception:
+                print("Could not send message!")
+        else:
+            print("Is not connected!")
 
     def stop(self):
         """Stop listening to destinations"""

@@ -22,6 +22,7 @@ from heliotrapi.models import (
     AnalysisRequest,
     AnalysisResponse,
     AnalysisResult,
+    StreamUpdate,
 )
 from heliotrapi.utils.serialisers import serialise
 
@@ -207,8 +208,7 @@ class AnalysisClient:
         analysis_request = AnalysisRequest(analysis_name=analysis_name, **inputs)
         analysis_request_json = analysis_request.model_dump(mode="json")
 
-        stream_route = STREAM_ROUTE.format(request_id=analysis_request.request_id)
-        stream_url = f"{self.base_url}{stream_route}"
+        stream_url = f"{self.base_url}{STREAM_ROUTE}"
 
         with self.session.get(
             stream_url, json=analysis_request_json, stream=True
@@ -243,9 +243,13 @@ class AnalysisClient:
         y_data = []
 
         try:
-            for point in client.stream_results(analysis=analysis, inputs=inputs):
-                x_data.append(point["x"])
-                y_data.append(point["y"])
+            for stream_update in client.stream_results(
+                analysis=analysis, inputs=inputs
+            ):
+                update = StreamUpdate.model_validate(stream_update)
+
+                x_data.append(update["x"])
+                y_data.append(update["y"])
 
                 ax.clear()
                 ax.plot(x_data, y_data)
@@ -253,9 +257,10 @@ class AnalysisClient:
 
                 plt.pause(0.01)
 
-        except Exception:
+        except Exception as e:
             ax.clear()
             plt.close()
+            print(e)
 
 
 if __name__ == "__main__":
@@ -267,8 +272,6 @@ if __name__ == "__main__":
 
     client.submit(analysis="double", number=5)
 
-    client.submit(analysis="beep", number=5)
-
     print(client.get_result())
 
-    client.plot_stream(analysis="double", number=5)
+    client.plot_stream(analysis="double", number=2222)

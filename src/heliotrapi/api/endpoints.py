@@ -11,6 +11,6 @@ ANALYSE_ROUTE = "/analyse"
 RESULT_LATEST_ROUTE = "/results/latest"
 RESULT_BY_ID_ROUTE = "/results/id/{request_id}"
 RESULTS_ALL_ROUTE = "/results/all"
-STREAM_ROUTE = "/results/stream/{request_id}"
+STREAM_ROUTE = "/results/stream/"
 
 # NOTE: IF YOU CHANGE THESE YOU MUST CHANGE THE .JS FILE TOO!!!

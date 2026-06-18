@@ -27,6 +27,7 @@ from heliotrapi.models import (
     StreamUpdate,
 )
 from heliotrapi.task_queue import QueueManager
+from heliotrapi.task_queue.manager import convert_inputs, get_function_annotations
 
 ROUTER = APIRouter()
 
@@ -159,28 +160,26 @@ async def run_analysis():
 
         yield update.model_dump()
 
-    # analysis_fn = get_analysis(job.analysis_name)
-    # annotations = get_function_annotations(analysis_fn)
-
-    # logger.info(annotations)
-
-    # # validate_inputs(analysis_fn, job.inputs)
-    # converted_inputs = convert_inputs(job.inputs, annotations)
-
-    # result_value = await analysis_fn(**converted_inputs)  # actually run job
-
 
 @ROUTER.get(STREAM_ROUTE)
-async def stream(request: Request, request_id: UUID):
+async def stream(request: Request, job: AnalysisRequest):
     """
     Server-Sent Events endpoint
     """
 
-    logger.info(request_id)
+    logger.info(job.request_id)
+
+    analysis_fn = get_analysis(job.analysis_name)
+    annotations = get_function_annotations(analysis_fn)
+    converted_inputs = convert_inputs(job.inputs, annotations)
+
+    _ = await analysis_fn(**converted_inputs)  # actually run job
+
+    logger.info(job.inputs)
 
     async def event_generator():
         async for point in run_analysis():
-            # SSE format (IMPORTANT)
+            # SSE format
             yield (f"event: update\ndata: {json.dumps(point)}\n\n")
 
         yield "event: done\ndata: {}\n\n"
