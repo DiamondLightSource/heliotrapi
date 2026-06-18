@@ -14,7 +14,7 @@ from heliotrapi.analysis_core.decorator import (
     UPDATED_NEXUS_ANALYSIS_NAME,
 )
 from heliotrapi.analysis_core.registry import ANALYSIS_REGISTRY
-from heliotrapi.app_logging import logger
+from heliotrapi.logger import logger
 from heliotrapi.models import AnalysisRequest
 from heliotrapi.task_queue import QueueManager
 from heliotrapi.task_queue.message_models import (

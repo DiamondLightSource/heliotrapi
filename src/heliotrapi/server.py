@@ -15,8 +15,8 @@ from heliotrapi._version import __version__
 from heliotrapi.analysis_core.loader import load_analyses, load_plugins
 from heliotrapi.api.endpoints import HEALTH_ROUTE, RESULTS_ALL_ROUTE
 from heliotrapi.api.routes import ROUTER
-from heliotrapi.app_logging import logger
 from heliotrapi.config import Config
+from heliotrapi.logger import logger
 from heliotrapi.task_queue import QueueManager, RabbitMQListener, cleanup_results
 from heliotrapi.utils.messenger import Messenger
 

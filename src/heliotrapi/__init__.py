@@ -14,6 +14,7 @@ from heliotrapi.analysis_core.decorator import (
     stop_message_analysis,
     updated_nexus_analysis,
 )
+from heliotrapi.client import AnalysisClient
 from heliotrapi.task_queue.message_models import NexusMessage, StartMessage, StopMessage
 
 from ._version import __version__
@@ -29,4 +30,5 @@ __all__ = [
     "NexusMessage",
     "StartMessage",
     "StopMessage",
+    "AnalysisClient",
 ]

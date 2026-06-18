@@ -5,7 +5,7 @@ from typing import Any
 from uuid import UUID
 
 from heliotrapi.analysis_core.registry import get_analysis
-from heliotrapi.app_logging import logger
+from heliotrapi.logger import logger
 from heliotrapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
 from heliotrapi.utils.messenger import DEFAULT_DII_PROCESSED_DESTINATION, Messenger
 from heliotrapi.utils.serialisers import deserialise, serialise

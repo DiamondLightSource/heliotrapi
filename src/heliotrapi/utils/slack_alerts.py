@@ -1,6 +1,6 @@
 import requests
 
-from heliotrapi.app_logging import logger
+from heliotrapi.logger import logger
 
 emojis = {
     "failure": ":x:",

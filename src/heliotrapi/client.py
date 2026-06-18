@@ -17,7 +17,7 @@ from heliotrapi.api.endpoints import (
     RESULTS_ALL_ROUTE,
     STREAM_ROUTE,
 )
-from heliotrapi.app_logging import logger
+from heliotrapi.logger import logger
 from heliotrapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
 from heliotrapi.utils.serialisers import serialise
 

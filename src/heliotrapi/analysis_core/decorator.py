@@ -13,7 +13,7 @@ from heliotrapi.analysis_core.message_names import (
     UPDATED_NEXUS_ANALYSIS_NAME,
 )
 from heliotrapi.analysis_core.registry import register_analysis
-from heliotrapi.app_logging import logger
+from heliotrapi.logger import logger
 from heliotrapi.task_queue.message_models import (
     NexusMessage,
     StartMessage,
