@@ -33,14 +33,14 @@ class AnalysisAPI {
     }
 
     async getResult(requestId) {
-        const response = await fetch(`${this.baseURL}/result/id/${requestId}`);
+        const response = await fetch(`${this.baseURL}/results/id/${requestId}`);
 
         if (!response.ok) throw new Error('Result not found');
         return response.json();
     }
 
     async getLatestResult() {
-        const response = await fetch(`${this.baseURL}/result/latest`);
+        const response = await fetch(`${this.baseURL}/results/latest`);
 
         if (!response.ok) throw new Error('No results available');
         return response.json();

@@ -3,7 +3,7 @@ import time
 import pytest
 from fastapi.testclient import TestClient
 
-from heliotrapi.api.endpoints import ANALYSE_ROUTE
+from heliotrapi.api.endpoints import ANALYSE_ROUTE, RESULT_BY_ID_ROUTE
 from heliotrapi.config import Config
 from heliotrapi.models import AnalysisRequest
 from heliotrapi.server import start_api
@@ -26,8 +26,10 @@ def test_analysis_flow_with_post():
 
         request_id = response.json()["request_id"]
 
+        url = RESULT_BY_ID_ROUTE.format(request_id=request_id)
+
         for _ in range(10):
-            r = client_http.get(f"/result/id/{request_id}")
+            r = client_http.get(url)
 
             print(r)
 

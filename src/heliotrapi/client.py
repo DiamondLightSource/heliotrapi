@@ -226,6 +226,10 @@ if __name__ == "__main__":
 
     client = AnalysisClient()
 
+    client.submit(analysis="double", number=5)
+
+    print(client.get_result())
+
     x_data = []
     y_data = []
 
