@@ -406,6 +406,7 @@ class AnalysisUI {
 
         const inputs = this.gatherInputs();
 
+        // gatherInputs() returns null if any validation failed and already called showError()
         if (!inputs) return;
 
         const submitBtn = document.getElementById('submit-btn');
@@ -420,6 +421,14 @@ class AnalysisUI {
                 this.selectedAnalysis.name,
                 inputs
             );
+
+            // Surface backend validation errors (accepted: false)
+            if (!result.accepted) {
+                this.showError(
+                    `Analysis rejected: ${result.error || 'Unknown error'}`
+                );
+                return;
+            }
 
             this.showSuccess(
                 `Analysis submitted! Request ID: ${result.request_id}`
@@ -485,7 +494,7 @@ class AnalysisUI {
                     inputs[param.name] = null;
                     continue;
                 }
-                this.showError(`Please fill in ${param.name}`);
+                this.showError(`Please fill in ${param.name}, and with correct type`);
                 return null;
             }
 
@@ -499,12 +508,8 @@ class AnalysisUI {
 
                 value = this.parseArrayInput(value, ann);
 
-                if (value === null) {
-                    this.showError(
-                        `Invalid array format for ${param.name}.`
-                    );
-                    return null;
-                }
+                // parseArrayInput returns null if conversion failed (error already shown)
+                if (value === null) return null;
 
             } else if (
                 ann.includes('int') &&
@@ -561,7 +566,7 @@ class AnalysisUI {
             }
 
         } catch (e) {
-            // Ignore
+            // Ignore JSON parse error, fall through to comma-separated
         }
 
         // Fallback to comma-separated
@@ -579,18 +584,21 @@ class AnalysisUI {
         const ann = annotation.toLowerCase();
 
         // Integer arrays
-        if (
-            ann.includes('int')
-        ) {
-            return arr.map(v => {
+        if (ann.includes('int')) {
+            const result = arr.map(v => {
                 const n = parseInt(v, 10);
-
-                if (isNaN(n)) {
-                    throw new Error(`Invalid integer value: ${v}`);
-                }
-
-                return n;
+                return isNaN(n) ? null : n;
             });
+
+            const badIndex = result.indexOf(null);
+            if (badIndex !== -1) {
+                this.showError(
+                    `Invalid integer value "${arr[badIndex]}" in array`
+                );
+                return null;
+            }
+
+            return result;
         }
 
         // Float-like arrays
@@ -600,15 +608,20 @@ class AnalysisUI {
             ann.includes('numpy') ||
             ann.includes('array')
         ) {
-            return arr.map(v => {
+            const result = arr.map(v => {
                 const n = parseFloat(v);
-
-                if (isNaN(n)) {
-                    throw new Error(`Invalid float value: ${v}`);
-                }
-
-                return n;
+                return isNaN(n) ? null : n;
             });
+
+            const badIndex = result.indexOf(null);
+            if (badIndex !== -1) {
+                this.showError(
+                    `Invalid float value "${arr[badIndex]}" in array`
+                );
+                return null;
+            }
+
+            return result;
         }
 
         // Default: strings

@@ -1,6 +1,7 @@
 import asyncio
 import inspect
 import json
+from collections.abc import Callable
 from typing import Any
 from uuid import UUID
 
@@ -140,23 +141,18 @@ async def get_all_results(request: Request):
     return results
 
 
-async def run_analysis():
-
-    from heliotrapi.analyses.peak_fitting import gaussian
+async def run_analysis(analysis_fn: Callable, inputs: dict[str, Any]):
 
     t = 0.0
-    amp = 10
-    x = 5
-    sig = 0.4
 
     while t < 20:
         await asyncio.sleep(0.1)
         t += 0.1
 
-        gauss = gaussian(x=t, amplitude=amp, x0=x, sigma=sig)
-        assert isinstance(gauss, (float | int))
+        result_value = await analysis_fn(**inputs)  # actually run job
+        assert isinstance(result_value, (float | int))
 
-        update = StreamUpdate(x=t, y=gauss)
+        update = StreamUpdate(x=t, y=result_value)
 
         yield update.model_dump()
 
@@ -173,12 +169,10 @@ async def stream(request: Request, job: AnalysisRequest):
     annotations = get_function_annotations(analysis_fn)
     converted_inputs = convert_inputs(job.inputs, annotations)
 
-    _ = await analysis_fn(**converted_inputs)  # actually run job
-
     logger.info(job.inputs)
 
     async def event_generator():
-        async for point in run_analysis():
+        async for point in run_analysis(analysis_fn, converted_inputs):
             # SSE format
             yield (f"event: update\ndata: {json.dumps(point)}\n\n")
 

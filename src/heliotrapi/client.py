@@ -22,6 +22,7 @@ from heliotrapi.models import (
     AnalysisRequest,
     AnalysisResponse,
     AnalysisResult,
+    AnalysisStream,
     StreamUpdate,
 )
 from heliotrapi.utils.serialisers import serialise
@@ -235,27 +236,34 @@ class AnalysisClient:
                     elif event_type == "done":
                         return
 
-    def plot_stream(self, analysis: str | Callable, **inputs: Any):
+    def plot_stream(
+        self,
+        analysis: str | Callable,
+        poll_interval: float = 0.01,
+        **inputs: Any,
+    ):
+
+        analysis_name = (
+            analysis.__name__ if isinstance(analysis, Callable) else analysis
+        )
 
         plt.ion()
         fig, ax = plt.subplots()
-        x_data = []
-        y_data = []
+
+        stream = AnalysisStream()
 
         try:
             for stream_update in client.stream_results(
-                analysis=analysis, inputs=inputs
+                analysis=analysis_name, inputs=inputs
             ):
                 update = StreamUpdate.model_validate(stream_update)
 
-                x_data.append(update["x"])
-                y_data.append(update["y"])
+                stream.append(update)
 
                 ax.clear()
-                ax.plot(x_data, y_data)
-                ax.set_title("Live SSE Analysis Plot")
-
-                plt.pause(0.01)
+                ax.plot(stream["x"], stream["y"])
+                ax.set_title(analysis_name)
+                plt.pause(poll_interval)
 
         except Exception as e:
             ax.clear()
