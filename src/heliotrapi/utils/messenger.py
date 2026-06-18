@@ -136,6 +136,9 @@ class Messenger:
     def disconnect(self):
         self.conn.disconnect()
 
+    def is_connected(self) -> bool:
+        return hasattr(self, "conn") and self.conn.is_connected()
+
     def subscribe(self):
         if isinstance(self.destinations, list):
             for i, dest in enumerate(self.destinations):

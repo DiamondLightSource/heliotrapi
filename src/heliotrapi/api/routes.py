@@ -82,9 +82,19 @@ async def analyse(request: Request, job: AnalysisRequest) -> AnalysisResponse:
         f"Received analysis request from host: {request.headers.get('Host')} | agent: {request.headers['user-agent']}"  # noqa
     )
 
-    queue: QueueManager = request.app.state.queue_manager
-    analysis_response = await queue.enqueue(job)
-    return analysis_response
+    try:
+        get_analysis(job.analysis_name)
+        queue: QueueManager = request.app.state.queue_manager
+        analysis_response = await queue.enqueue(job)
+        return analysis_response
+    except Exception as e:
+        return AnalysisResponse(
+            request_id=job.request_id,
+            analysis_name=job.analysis_name,
+            inputs=job.inputs,
+            error=str(e),
+            accepted=False,
+        )
 
 
 @ROUTER.get(RESULT_LATEST_ROUTE, response_model=AnalysisResult)
@@ -143,17 +153,30 @@ async def run_analysis():
         t += 0.1
 
         gauss = gaussian(x=t, amplitude=amp, x0=x, sigma=sig)
+        assert isinstance(gauss, (float | int))
 
         update = StreamUpdate(x=t, y=gauss)
 
         yield update.model_dump()
 
+    # analysis_fn = get_analysis(job.analysis_name)
+    # annotations = get_function_annotations(analysis_fn)
+
+    # logger.info(annotations)
+
+    # # validate_inputs(analysis_fn, job.inputs)
+    # converted_inputs = convert_inputs(job.inputs, annotations)
+
+    # result_value = await analysis_fn(**converted_inputs)  # actually run job
+
 
 @ROUTER.get(STREAM_ROUTE)
-async def stream():
+async def stream(request: Request, request_id: UUID):
     """
     Server-Sent Events endpoint
     """
+
+    logger.info(request_id)
 
     async def event_generator():
         async for point in run_analysis():

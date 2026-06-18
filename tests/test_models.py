@@ -37,9 +37,7 @@ def test_analysis_response_is_accepted():
 
 
 def test_analysis_response_rejects_unaccepted():
-    response = AnalysisResponse(
-        analysis_name="double", accepted=False, details="invalid"
-    )
+    response = AnalysisResponse(analysis_name="double", accepted=False, error="invalid")
 
     with pytest.raises(ValueError, match="was not accepted"):
         response.is_accepted()

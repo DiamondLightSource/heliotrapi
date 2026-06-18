@@ -332,7 +332,7 @@ def test_client_submit_rejected_analysis_raises_value_error():
         "request_id": str(uuid.uuid4()),
         "analysis_name": "bad_analysis",
         "inputs": {"x": 1},
-        "details": "Invalid input",
+        "error": "Invalid input",
         "accepted": False,
     }
 

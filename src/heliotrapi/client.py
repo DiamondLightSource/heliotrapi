@@ -18,7 +18,11 @@ from heliotrapi.api.endpoints import (
     STREAM_ROUTE,
 )
 from heliotrapi.logger import logger
-from heliotrapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
+from heliotrapi.models import (
+    AnalysisRequest,
+    AnalysisResponse,
+    AnalysisResult,
+)
 from heliotrapi.utils.serialisers import serialise
 
 
@@ -192,15 +196,23 @@ class AnalysisClient:
 
             time.sleep(poll_interval)
 
-    def start_stream(self) -> UUID:
-        pass
+    def stream_results(self, analysis: str | Callable, **inputs: Any):
 
-    def stream_results(self, request_id: UUID):
+        inputs = serialise(inputs)
 
-        stream_route = STREAM_ROUTE.format(request_id=request_id)
+        analysis_name = (
+            analysis.__name__ if isinstance(analysis, Callable) else analysis
+        )
+
+        analysis_request = AnalysisRequest(analysis_name=analysis_name, **inputs)
+        analysis_request_json = analysis_request.model_dump(mode="json")
+
+        stream_route = STREAM_ROUTE.format(request_id=analysis_request.request_id)
         stream_url = f"{self.base_url}{stream_route}"
 
-        with self.session.get(stream_url, stream=True) as resp:
+        with self.session.get(
+            stream_url, json=analysis_request_json, stream=True
+        ) as resp:
             resp.raise_for_status()
 
             event_type = None
@@ -223,6 +235,28 @@ class AnalysisClient:
                     elif event_type == "done":
                         return
 
+    def plot_stream(self, analysis: str | Callable, **inputs: Any):
+
+        plt.ion()
+        fig, ax = plt.subplots()
+        x_data = []
+        y_data = []
+
+        try:
+            for point in client.stream_results(analysis=analysis, inputs=inputs):
+                x_data.append(point["x"])
+                y_data.append(point["y"])
+
+                ax.clear()
+                ax.plot(x_data, y_data)
+                ax.set_title("Live SSE Analysis Plot")
+
+                plt.pause(0.01)
+
+        except Exception:
+            ax.clear()
+            plt.close()
+
 
 if __name__ == "__main__":
     # client = AnalysisClient("http://i15-1-analysis.diamond.ac.uk")
@@ -233,22 +267,8 @@ if __name__ == "__main__":
 
     client.submit(analysis="double", number=5)
 
+    client.submit(analysis="beep", number=5)
+
     print(client.get_result())
 
-    client.start_stream()
-
-    x_data = []
-    y_data = []
-
-    plt.ion()
-    fig, ax = plt.subplots()
-
-    for point in client.stream_results():
-        x_data.append(point["x"])
-        y_data.append(point["y"])
-
-        ax.clear()
-        ax.plot(x_data, y_data)
-        ax.set_title("Live SSE Analysis Plot")
-
-        plt.pause(0.01)
+    client.plot_stream(analysis="double", number=5)

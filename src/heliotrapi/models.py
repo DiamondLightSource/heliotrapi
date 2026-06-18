@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID, uuid4
@@ -27,6 +29,34 @@ class StreamUpdate(AnalysisBaseModel):
     z: int | float | None = Field(default=None)
 
 
+class AnalysisStream(AnalysisBaseModel):
+    x: list[float | int] = Field(default_factory=list)
+    y: list[float | int] = Field(default_factory=list)
+    z: list[float | int] | None = None
+
+    def append(self, other: AnalysisStream | StreamUpdate):
+
+        if isinstance(other, StreamUpdate):
+            self.x.append(other.x)
+        else:
+            self.x.extend(other.x)
+
+        if isinstance(other, StreamUpdate):
+            self.y.append(other.y)
+        else:
+            self.y.extend(other.y)
+
+        if self.z is not None and other.z is not None:
+            if isinstance(other, StreamUpdate):
+                self.z.append(other.z)
+            else:
+                self.z.extend(other.z)
+
+    def __add__(self, other: AnalysisStream | StreamUpdate):
+
+        return self.append(other)
+
+
 class AnalysisResult(AnalysisBaseModel):
     request_id: UUID | None = None
     status: Literal["error", "failed", "running", "completed"]
@@ -41,7 +71,7 @@ class AnalysisResponse(AnalysisBaseModel):
     request_id: UUID | None = None
     analysis_name: str
     inputs: dict[str, Any] | None = None
-    details: str | None = None
+    error: str | None = None
     accepted: bool = False
 
     def is_accepted(self) -> bool:
@@ -50,7 +80,7 @@ class AnalysisResponse(AnalysisBaseModel):
                 f"Analysis '{self.analysis_name}' "
                 f"with inputs {self.inputs} "
                 f"was not accepted for processing: "
-                f"{self.details}"
+                f"{self.error}"
             )
 
         return True

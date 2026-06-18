@@ -154,7 +154,7 @@ class QueueManager:
             analysis_response = AnalysisResponse(
                 request_id=job.request_id,
                 analysis_name=job.analysis_name,
-                details=str(e),
+                error=str(e),
                 inputs=job.inputs,
                 accepted=False,
             )
@@ -168,7 +168,7 @@ class QueueManager:
                     message=f"Job {job} failed: {str(e)}",
                 )
 
-        if self.messenger is not None:
+        if self.messenger is not None and self.messenger.is_connected():
             self.messenger.send_message(
                 DEFAULT_DII_PROCESSED_DESTINATION,
                 analysis_response.model_dump_json(),
@@ -226,7 +226,7 @@ class QueueManager:
             # store latest result
             self.latest_result = analysis_result
 
-            if self.messenger is not None:
+            if self.messenger is not None and self.messenger.is_connected():
                 self.messenger.send_message(
                     DEFAULT_DII_PROCESSED_DESTINATION,
                     analysis_result.model_dump_json(),
