@@ -25,7 +25,6 @@ dependencies = [
     "pyyaml",
     "h5py",
     "event_model",
-    "matplotlib",
 ] # Add project dependencies here, e.g. ["click", "numpy"]
 dynamic = ["version"]
 license.file = "LICENSE"
