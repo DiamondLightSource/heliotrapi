@@ -26,15 +26,15 @@ class AnalysisStreamRequest(AnalysisRequest):
 
 
 class StreamUpdate(AnalysisBaseModel):
-    x: int | float
-    y: int | float
-    z: int | float | None = Field(default=None)
+    x: float
+    y: float
+    z: float | None = Field(default=None)
 
 
 class AnalysisStream(AnalysisBaseModel):
-    x: list[float | int] = Field(default_factory=list)
-    y: list[float | int] = Field(default_factory=list)
-    z: list[float | int] | None = None
+    x: list[float] = Field(default_factory=list)
+    y: list[float] = Field(default_factory=list)
+    z: list[float] | None = None
 
     def append(self, other: AnalysisStream | StreamUpdate):
 
