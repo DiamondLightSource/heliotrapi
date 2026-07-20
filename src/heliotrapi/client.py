@@ -5,7 +5,6 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-import matplotlib.pyplot as plt
 import requests
 
 from heliotrapi.api.endpoints import (
@@ -24,6 +23,7 @@ from heliotrapi.models import (
     AnalysisResponse,
     AnalysisResult,
     AnalysisStream,
+    AnalysisStreamRequest,
     StreamUpdate,
 )
 from heliotrapi.utils.serialisers import serialise
@@ -207,7 +207,7 @@ class AnalysisClient:
             analysis.__name__ if isinstance(analysis, Callable) else analysis
         )
 
-        analysis_request = AnalysisRequest(analysis_name=analysis_name, **inputs)
+        analysis_request = AnalysisStreamRequest(analysis_name=analysis_name, **inputs)
         analysis_request_json = analysis_request.model_dump(mode="json")
 
         stream_url = f"{self.base_url}{STREAM_ROUTE}"
@@ -222,6 +222,8 @@ class AnalysisClient:
             for line in resp.iter_lines(decode_unicode=True):
                 if not line:
                     continue
+
+                line: str
 
                 # event type
                 if line.startswith("event:"):
@@ -244,6 +246,11 @@ class AnalysisClient:
         **inputs: Any,
     ):
 
+        try:
+            import matplotlib.pyplot as plt  # type: ignore
+        except Exception as e:
+            raise ImportError(f"You need to install matplotlib: {e}") from e
+
         analysis_name = (
             analysis.__name__ if isinstance(analysis, Callable) else analysis
         )
@@ -257,6 +264,8 @@ class AnalysisClient:
             for stream_update in self.stream_results(
                 analysis=analysis_name, inputs=inputs
             ):
+                print(stream_update)
+
                 update = StreamUpdate.model_validate(stream_update)
 
                 stream.append(update)
@@ -272,14 +281,14 @@ class AnalysisClient:
             print(e)
 
 
-# if __name__ == "__main__":
-#     # client = AnalysisClient("http://i15-1-analysis.diamond.ac.uk")
-#     # print(client.get_all_results())
+if __name__ == "__main__":
+    # client = AnalysisClient("http://i15-1-analysis.diamond.ac.uk")
+    # print(client.get_all_results())
 
-#     client = AnalysisClient()
+    client = AnalysisClient()
 
-#     client.submit(analysis="double", number=5)
+    client.submit(analysis="b_iso_to_u_iso", b_iso=[5])
 
-#     print(client.get_result())
+    print(client.get_result())
 
-#     client.plot_stream(analysis="double", number=2222)
+    client.plot_stream(analysis="double", number=2222)

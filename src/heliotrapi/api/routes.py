@@ -25,6 +25,7 @@ from heliotrapi.models import (
     AnalysisRequest,
     AnalysisResponse,
     AnalysisResult,
+    AnalysisStreamRequest,
     StreamUpdate,
 )
 from heliotrapi.task_queue import QueueManager
@@ -141,38 +142,56 @@ async def get_all_results(request: Request):
     return results
 
 
-async def run_analysis(analysis_fn: Callable, inputs: dict[str, Any]):
+async def run_stream_analysis(
+    analysis_fn: Callable,
+    inputs: dict[str, Any],
+    update_interval: float,
+    max_iterations: int,
+):
 
-    t = 0.0
+    iter = 0
 
-    while t < 20:
-        await asyncio.sleep(0.1)
-        t += 0.1
-
+    while iter < max_iterations:
         result_value = await analysis_fn(**inputs)  # actually run job
         assert isinstance(result_value, (float | int))
 
-        update = StreamUpdate(x=t, y=result_value)
+        update = StreamUpdate(x=iter, y=result_value)
+
+        iter = iter + 1
 
         yield update.model_dump()
 
+        await asyncio.sleep(update_interval)
+
+
+async def create_stream(job: AnalysisStreamRequest):
+    analysis_fn = get_analysis(job.analysis_name)
+    annotations = get_function_annotations(analysis_fn)
+    converted_inputs = convert_inputs(job.inputs, annotations)
+    update_interval = job.update_interval
+    max_iterations = job.max_iterations
+
+    logger.info(job.inputs)
+
+    async for point in run_stream_analysis(
+        analysis_fn=analysis_fn,
+        inputs=converted_inputs,
+        update_interval=update_interval,
+        max_iterations=max_iterations,
+    ):
+        yield point
+
 
 @ROUTER.get(STREAM_ROUTE)
-async def stream(request: Request, job: AnalysisRequest):
+async def stream(request: Request, job: AnalysisStreamRequest):
     """
     Server-Sent Events endpoint
     """
 
     logger.info(job.request_id)
 
-    analysis_fn = get_analysis(job.analysis_name)
-    annotations = get_function_annotations(analysis_fn)
-    converted_inputs = convert_inputs(job.inputs, annotations)
-
-    logger.info(job.inputs)
-
     async def event_generator():
-        async for point in run_analysis(analysis_fn, converted_inputs):
+        async for point in create_stream(job):
             # SSE format
             yield (f"event: update\ndata: {json.dumps(point)}\n\n")
 

@@ -20,7 +20,9 @@ class AnalysisRequest(AnalysisBaseModel):
 
 
 class AnalysisStreamRequest(AnalysisRequest):
-    pass
+    max_iterations: int = 100
+    iterable: list[Any] | None = None
+    update_interval: float = 0.1
 
 
 class StreamUpdate(AnalysisBaseModel):

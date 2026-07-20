@@ -19,6 +19,7 @@ dependencies = [
     "pydantic_settings",
     "requests",
     "uvicorn",
+    "matplotlib",
     "gitpython",
     "stomp.py",
     "fastapi",
