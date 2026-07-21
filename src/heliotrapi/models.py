@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class AnalysisBaseModel(BaseModel):
@@ -13,6 +14,8 @@ class AnalysisBaseModel(BaseModel):
 
 
 class AnalysisRequest(AnalysisBaseModel):
+    """This is used for basic call and response analyses"""
+
     analysis_name: str
     inputs: dict[str, Any]
     request_id: UUID = Field(default_factory=uuid4)
@@ -20,9 +23,26 @@ class AnalysisRequest(AnalysisBaseModel):
 
 
 class AnalysisStreamRequest(AnalysisRequest):
+    """This is used only for stream analyses
+
+    iterables are
+
+    """
+
     max_iterations: int = 100
-    iterable: list[Any] | None = None
+    iterables: dict[str, list[Iterable]] | None = None
     update_interval: float = 0.1
+
+    @classmethod
+    @field_validator("iterables")
+    def iterable_validator(cls, iterables):
+
+        vals = iterables.values()
+        first_item_len = len(vals[0])
+        if not all(len(item) == first_item_len for item in vals):
+            raise ValueError("All iterable items in iterables must have same length")
+
+        return iterables
 
 
 class StreamUpdate(AnalysisBaseModel):
@@ -67,6 +87,12 @@ class AnalysisResult(AnalysisBaseModel):
     result: Any
     created_at: datetime
     finished_at: datetime | None = None
+
+    def is_successful(self):
+        if self.status != "completed":
+            raise RuntimeError(
+                f"Analysis {self.request_id} did not complete succesfully"
+            )
 
 
 class AnalysisResponse(AnalysisBaseModel):

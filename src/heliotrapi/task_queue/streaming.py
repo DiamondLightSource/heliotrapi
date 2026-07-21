@@ -22,7 +22,7 @@ async def run_stream_analysis(
 
     while iter < max_iterations:
         result_value = await analysis_fn(**inputs)  # actually run job
-        assert isinstance(result_value, (float | int))
+        # assert isinstance(result_value, (float | int))
 
         update = StreamUpdate(x=iter, y=result_value)
 

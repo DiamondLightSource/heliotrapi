@@ -207,7 +207,9 @@ class AnalysisClient:
             analysis.__name__ if isinstance(analysis, Callable) else analysis
         )
 
-        analysis_request = AnalysisStreamRequest(analysis_name=analysis_name, **inputs)
+        analysis_request = AnalysisStreamRequest(
+            analysis_name=analysis_name, inputs=inputs
+        )
         analysis_request_json = analysis_request.model_dump(mode="json")
 
         stream_url = f"{self.base_url}{STREAM_ROUTE}"
@@ -261,9 +263,7 @@ class AnalysisClient:
         stream = AnalysisStream()
 
         try:
-            for stream_update in self.stream_results(
-                analysis=analysis_name, inputs=inputs
-            ):
+            for stream_update in self.stream_results(analysis=analysis_name, **inputs):
                 print(stream_update)
 
                 update = StreamUpdate.model_validate(stream_update)
@@ -280,6 +280,8 @@ class AnalysisClient:
             plt.close()
             print(e)
 
+        plt.close()
+
 
 if __name__ == "__main__":
     # client = AnalysisClient("http://i15-1-analysis.diamond.ac.uk")
@@ -291,4 +293,9 @@ if __name__ == "__main__":
 
     print(client.get_result())
 
-    client.plot_stream(analysis="double", number=2222)
+    client.plot_stream(analysis="beam_energy_to_wavelength", beam_energy=25)
+
+    for stream_update in client.stream_results(
+        analysis="beam_energy_to_wavelength", beam_energy=15
+    ):
+        print(stream_update)
