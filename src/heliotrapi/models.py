@@ -58,21 +58,18 @@ class AnalysisStream(AnalysisBaseModel):
 
     def append(self, other: AnalysisStream | StreamUpdate):
 
-        if isinstance(other, StreamUpdate):
-            self.x.append(other.x)
-        else:
-            self.x.extend(other.x)
+        self.x.append(other.x) if isinstance(other, StreamUpdate) else self.x.extend(
+            other.x
+        )
 
-        if isinstance(other, StreamUpdate):
-            self.y.append(other.y)
-        else:
-            self.y.extend(other.y)
+        self.y.append(other.y) if isinstance(other, StreamUpdate) else self.y.extend(
+            other.y
+        )
 
         if self.z is not None and other.z is not None:
-            if isinstance(other, StreamUpdate):
-                self.z.append(other.z)
-            else:
-                self.z.extend(other.z)
+            self.z.append(other.z) if isinstance(
+                other, StreamUpdate
+            ) else self.z.extend(other.z)
 
     def __add__(self, other: AnalysisStream | StreamUpdate):
 
