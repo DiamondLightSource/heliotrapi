@@ -58,12 +58,12 @@ def test_result_json_is_loaded():
 
 def test_result_json_doesnt_fail():
 
-    result = '{"hello":}'
+    str_result = '{"hello":}'
 
     result = AnalysisResult(
         status="completed",
         analysis_name="test",
-        result=result,
+        result=str_result,
     )
 
     assert isinstance(result.result, str)
