@@ -135,11 +135,29 @@ In the config or the helm chart you can changed the following lines:
         - ./plugins # local folder for plugins
       github_repos: # list of Https GitHub repos with analysis code (ending with .git)
         - https://github.com/DiamondLightSource/xrpd-toolbox.git
-      register_all: True # whether to register all analyses found in plugins or only those decorated
+      register_all: False # whether to register all analyses found in plugins or only those decorated
 ```
 
 In this example plugins will be downloaded and installed to ./plugins. The github repo https://github.com/DiamondLightSource/xrpd-toolbox.git
-will be cloned to the .plugins folder, and because register_all is True all of them will be added to heliotrapi's available analyses. Alternatively you can selectively add analyses to the api by adding a decorator to your function, in the repo.
+will be cloned to the .plugins folder.
+
+To add functions that are in your plugin repo, you can use the analysis decorator:
+
+```python
+import math
+
+from heliotrapi import analysis
+
+@analysis
+def my_custom_func(first_number: float, second_number: float) -> float:
+
+    return math.log(first_number) / math.log(second_number)
+
+```
+
+Functions should be be strongly typed and return something. By using @analysis in the plugin repo, and decorating your function, heliotrapi will register this as an available function. 
+
+Alternatively, you can set register_all to True all of them will be added to heliotrapi's available analyses. All function in the repo will be added to available analyses, with the exceptions of those prefixed with _ or test_. This is not recommended for production use, but is useful for testing.
 
 ## Kubernetes deployment
 
