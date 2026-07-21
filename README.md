@@ -5,7 +5,15 @@
 
 # heliotrapi
 
-An API for small fast data analysis jobs at Diamond Light Source.
+An API for small fast data analysis jobs at Diamond Light Source. It is effectively a cloud-native open source FaaS (Function as a Service) platform.
+
+Pluggable architecture that allows multiple function runtimes
+Support both sync and async functions
+Flexible autoscaling between 0 and N
+Advanced function ingress & traffic management powered by K8s Gateway API
+Flexible and easy-to-use events management framework
+A Web frontend
+
 
 [HEE-LEE-OH-TRAY-PEE-EYE]
 
