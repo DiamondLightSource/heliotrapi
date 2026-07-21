@@ -54,3 +54,16 @@ def test_result_json_is_loaded():
     )
 
     assert result.result["hello"] == 5
+
+
+def test_result_json_doesnt_fail():
+
+    result = '{"hello":}'
+
+    result = AnalysisResult(
+        status="completed",
+        analysis_name="test",
+        result=result,
+    )
+
+    assert isinstance(result.result, str)
