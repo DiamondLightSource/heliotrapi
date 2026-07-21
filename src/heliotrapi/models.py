@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable
 from datetime import datetime
 from typing import Any, Literal
@@ -33,8 +34,8 @@ class AnalysisStreamRequest(AnalysisRequest):
     iterables: dict[str, list[Iterable]] | None = None
     update_interval: float = 0.1
 
-    @classmethod
     @field_validator("iterables")
+    @classmethod
     def iterable_validator(cls, iterables):
 
         vals = iterables.values()
@@ -46,15 +47,15 @@ class AnalysisStreamRequest(AnalysisRequest):
 
 
 class StreamUpdate(AnalysisBaseModel):
-    x: float
-    y: float
-    z: float | None = Field(default=None)
+    x: Any
+    y: Any
+    z: Any | None = Field(default=None)
 
 
 class AnalysisStream(AnalysisBaseModel):
-    x: list[float] = Field(default_factory=list)
-    y: list[float] = Field(default_factory=list)
-    z: list[float] | None = None
+    x: list[Any] = Field(default_factory=list)
+    y: list[Any] = Field(default_factory=list)
+    z: list[Any] | None = None
 
     def append(self, other: AnalysisStream | StreamUpdate):
 
@@ -82,7 +83,7 @@ class AnalysisResult(AnalysisBaseModel):
     analysis_name: str
     inputs: dict[str, Any] | None = None
     result: Any
-    created_at: datetime
+    created_at: datetime = datetime.now()
     finished_at: datetime | None = None
 
     def is_successful(self) -> bool:
@@ -91,6 +92,15 @@ class AnalysisResult(AnalysisBaseModel):
                 f"Analysis {self.request_id} did not complete succesfully"
             )
         return True
+
+    @field_validator("result", mode="after")
+    @classmethod
+    def result_validator(cls, result):
+
+        try:
+            return json.loads(result)
+        except Exception:
+            return result
 
 
 class AnalysisResponse(AnalysisBaseModel):
@@ -113,4 +123,16 @@ class AnalysisResponse(AnalysisBaseModel):
 
 
 # if __name__ == "__main__":
-#     request = AnalysisRequest(analysis_name="double", inputs={"number": 5})
+#     result = '{"hello": 5}'
+
+#     from datetime import datetime
+
+#     print(json.loads(result))
+
+#     result = AnalysisResult(
+#         status="completed",
+#         analysis_name="test",
+#         result=result,
+#     )
+
+#     print(result.result["hello"])

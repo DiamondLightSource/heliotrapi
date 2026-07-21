@@ -217,9 +217,6 @@ class AnalysisClient:
             stream_url, json=analysis_request_json, stream=True
         ) as resp:
             resp.raise_for_status()
-            resp.raise_for_status()  # raise for 404 or other non-200 errors
-            analysis_response = AnalysisResponse.model_validate(resp.json())
-            analysis_response.is_accepted()  # will raise if not accepted
 
             event_type = None
 
