@@ -41,3 +41,16 @@ def test_analysis_response_rejects_unaccepted():
 
     with pytest.raises(ValueError, match="was not accepted"):
         response.is_accepted()
+
+
+def test_result_json_is_loaded():
+
+    result = '{"hello": 5}'
+
+    result = AnalysisResult(
+        status="completed",
+        analysis_name="test",
+        result=result,
+    )
+
+    assert result.result["hello"] == 5
