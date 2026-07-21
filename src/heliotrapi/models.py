@@ -88,11 +88,12 @@ class AnalysisResult(AnalysisBaseModel):
     created_at: datetime
     finished_at: datetime | None = None
 
-    def is_successful(self):
+    def is_successful(self) -> bool:
         if self.status != "completed":
             raise RuntimeError(
                 f"Analysis {self.request_id} did not complete succesfully"
             )
+        return True
 
 
 class AnalysisResponse(AnalysisBaseModel):
