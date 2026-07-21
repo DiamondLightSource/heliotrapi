@@ -122,17 +122,17 @@ class AnalysisResponse(AnalysisBaseModel):
         return True
 
 
-# if __name__ == "__main__":
-#     result = '{"hello": 5}'
+if __name__ == "__main__":
+    result = '{"hello": 5}'
 
-#     from datetime import datetime
+    from datetime import datetime
 
-#     print(json.loads(result))
+    print(json.loads(result))
 
-#     result = AnalysisResult(
-#         status="completed",
-#         analysis_name="test",
-#         result=result,
-#     )
+    result = AnalysisResult(
+        status="completed",
+        analysis_name="test",
+        result=result,
+    )
 
-#     print(result.result["hello"])
+    print(result.result["hello"])

@@ -13,6 +13,6 @@ def test_gaussian_function():
 
 @pytest.mark.asyncio
 async def test_gaussian_fit_invalid_data_returns_error():
-    result = await gaussian_fit([1], [1])  # noqs
+    result = gaussian_fit([1], [1])  # noqs
     assert isinstance(result, dict)
     assert "error" in result

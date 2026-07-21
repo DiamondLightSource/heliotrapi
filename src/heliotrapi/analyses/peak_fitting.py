@@ -4,7 +4,7 @@ from scipy.optimize import curve_fit
 from heliotrapi.analysis_core.decorator import analysis
 
 
-# @analysis()
+@analysis()
 def gaussian(
     x: np.ndarray | int | float, amplitude: float, x0: float, sigma: float
 ) -> np.ndarray | float:
