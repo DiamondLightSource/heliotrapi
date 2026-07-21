@@ -83,7 +83,7 @@ class AnalysisResult(AnalysisBaseModel):
     analysis_name: str
     inputs: dict[str, Any] | None = None
     result: Any
-    created_at: datetime = datetime.now()
+    created_at: datetime = Field(default_factory=datetime.now)
     finished_at: datetime | None = None
 
     def is_successful(self) -> bool:
