@@ -226,10 +226,12 @@ def clone_or_update_github_repo(repo_url: str, dest_dir: str | Path) -> Path:
 
     if is_new:
         Repo.clone_from(repo_url, dest_path)
+        _install_repo_and_dependencies(dest_path, requirements=True)
         logger.debug("Cloned '%s' -> '%s'", repo_url, dest_path)
     else:
         try:
             Repo(dest_path).remotes.origin.pull()
+            _install_repo_and_dependencies(dest_path, requirements=True)
             logger.debug("Pulled latest for '%s'", dest_path.name)
         except GitCommandError:
             logger.warning(
@@ -241,8 +243,6 @@ def clone_or_update_github_repo(repo_url: str, dest_dir: str | Path) -> Path:
         # since sys.path is not persisted between process restarts.
         if not (dest_path / "pyproject.toml").exists():
             _add_src_to_path(dest_path)
-
-    _install_repo_and_dependencies(dest_path, requirements=True)
 
     return dest_path
 
