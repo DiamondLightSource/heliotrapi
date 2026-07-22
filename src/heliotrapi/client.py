@@ -198,17 +198,20 @@ class AnalysisClient:
 
             time.sleep(poll_interval)
 
-    def stream_results(self, analysis: str | Callable, **inputs: Any):
+    def stream_results(
+        self, analysis: str | Callable, max_iterations: int = 100, **kwargs: Any
+    ):
 
-        inputs = serialise(inputs)
+        inputs = serialise(kwargs)
 
         analysis_name = (
             analysis.__name__ if isinstance(analysis, Callable) else analysis
         )
 
         analysis_request = AnalysisStreamRequest(
-            analysis_name=analysis_name, inputs=inputs
+            analysis_name=analysis_name, inputs=inputs, max_iterations=max_iterations
         )
+
         analysis_request_json = analysis_request.model_dump(mode="json")
 
         stream_url = f"{self.base_url}{STREAM_ROUTE}"
@@ -244,7 +247,7 @@ class AnalysisClient:
         self,
         analysis: str | Callable,
         poll_interval: float = 0.01,
-        **inputs: Any,
+        **kwargs: Any,
     ):
 
         try:
@@ -262,7 +265,7 @@ class AnalysisClient:
         stream = AnalysisStream()
 
         try:
-            for stream_update in self.stream_results(analysis=analysis_name, **inputs):
+            for stream_update in self.stream_results(analysis=analysis_name, **kwargs):
                 print(stream_update)
 
                 update = StreamUpdate.model_validate(stream_update)
@@ -292,9 +295,9 @@ if __name__ == "__main__":
 
     print(client.get_result())
 
-    client.plot_stream(analysis="beam_energy_to_wavelength", beam_energy=25)
+    # client.plot_stream(analysis="beam_energy_to_wavelength", beam_energy=25)
 
     for stream_update in client.stream_results(
-        analysis="beam_energy_to_wavelength", beam_energy=15
+        analysis="beam_energy_to_wavelength", beam_energy=15, max_iterations=10
     ):
         print(stream_update)

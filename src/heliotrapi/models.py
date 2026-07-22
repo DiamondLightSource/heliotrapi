@@ -36,9 +36,9 @@ class AnalysisStreamRequest(AnalysisRequest):
 
     @field_validator("iterables")
     @classmethod
-    def iterable_validator(cls, iterables):
+    def iterable_validator(cls, iterables: dict[str, list[Iterable]]):
 
-        vals = iterables.values()
+        vals = list(iterables.values())
         first_item_len = len(vals[0])
         if not all(len(item) == first_item_len for item in vals):
             raise ValueError("All iterable items in iterables must have same length")
@@ -96,10 +96,16 @@ class AnalysisResult(AnalysisBaseModel):
     @field_validator("result", mode="after")
     @classmethod
     def result_validator(cls, result):
+        """Because result is Any, if it's a json str it
+        will return as a json str and not a dict.
+        Hence json.loads()"""
 
-        try:
-            return json.loads(result)
-        except Exception:
+        if isinstance(result, str):
+            try:
+                return json.loads(result)
+            except Exception:
+                return result
+        else:
             return result
 
 
