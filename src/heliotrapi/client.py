@@ -87,9 +87,7 @@ class AnalysisClient:
 
         inputs = serialise(inputs)
 
-        analysis_name = (
-            analysis.__name__ if isinstance(analysis, Callable) else analysis
-        )
+        analysis_name = self._get_analysis_name(analysis)
 
         analysis_request = AnalysisRequest(analysis_name=analysis_name, inputs=inputs)
         json = analysis_request.model_dump(mode="json")
