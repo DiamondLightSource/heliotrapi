@@ -198,15 +198,21 @@ class AnalysisClient:
 
             time.sleep(poll_interval)
 
+    def _get_analysis_name(self, analysis: str | Callable):
+
+        analysis_name = (
+            analysis.__name__ if isinstance(analysis, Callable) else analysis
+        )
+
+        return analysis_name
+
     def stream_results(
         self, analysis: str | Callable, max_iterations: int = 100, **kwargs: Any
     ):
 
         inputs = serialise(kwargs)
 
-        analysis_name = (
-            analysis.__name__ if isinstance(analysis, Callable) else analysis
-        )
+        analysis_name = self._get_analysis_name(analysis)
 
         analysis_request = AnalysisStreamRequest(
             analysis_name=analysis_name, inputs=inputs, max_iterations=max_iterations
@@ -255,9 +261,7 @@ class AnalysisClient:
         except Exception as e:
             raise ImportError(f"You need to install matplotlib: {e}") from e
 
-        analysis_name = (
-            analysis.__name__ if isinstance(analysis, Callable) else analysis
-        )
+        analysis_name = self._get_analysis_name(analysis)
 
         plt.ion()
         fig, ax = plt.subplots()
@@ -283,6 +287,8 @@ class AnalysisClient:
             print(e)
 
         plt.close()
+
+        return stream
 
 
 if __name__ == "__main__":
