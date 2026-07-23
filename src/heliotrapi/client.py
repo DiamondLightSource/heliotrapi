@@ -1,6 +1,6 @@
 import json
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from datetime import datetime
 from typing import Any
 from uuid import UUID
@@ -92,9 +92,9 @@ class AnalysisClient:
         analysis_name = self._get_analysis_name(analysis)
 
         analysis_request = AnalysisRequest(analysis_name=analysis_name, inputs=inputs)
-        json = analysis_request.model_dump(mode="json")
+        json_payload = analysis_request.model_dump(mode="json")
 
-        resp = self.session.post(f"{self.base_url}{ANALYSE_ROUTE}", json=json)
+        resp = self.session.post(f"{self.base_url}{ANALYSE_ROUTE}", json=json_payload)
 
         resp.raise_for_status()  # raise for 404 or other non-200 errors
         analysis_response = AnalysisResponse.model_validate(resp.json())
@@ -213,7 +213,7 @@ class AnalysisClient:
 
     def stream_results(
         self, analysis: str | Callable, max_iterations: int = 100, **kwargs: Any
-    ):
+    ) -> Generator[StreamUpdate]:
         """This will open up a server side event,
         and keep getting results from a particular analysis job"""
 
@@ -251,7 +251,7 @@ class AnalysisClient:
                     payload = line.replace("data: ", "").strip()
 
                     if event_type == "update":
-                        yield json.loads(payload)
+                        yield StreamUpdate.model_validate(json.loads(payload))
 
                     elif event_type == "done":
                         return
@@ -262,7 +262,6 @@ class AnalysisClient:
         poll_interval: float = 0.01,
         **kwargs: Any,
     ):
-        """Opens up a stream and plots the results as they come in"""
 
         try:
             import matplotlib.pyplot as plt  # type: ignore
@@ -280,9 +279,9 @@ class AnalysisClient:
             for stream_update in self.stream_results(analysis=analysis_name, **kwargs):
                 print(stream_update)
 
-                update = StreamUpdate.model_validate(stream_update)
+                stream_update: StreamUpdate
 
-                stream.append(update)
+                stream.append(stream_update)
 
                 ax.clear()
                 ax.plot(stream["x"], stream["y"])

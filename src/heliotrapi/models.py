@@ -36,14 +36,19 @@ class AnalysisStreamRequest(AnalysisRequest):
 
     @field_validator("iterables")
     @classmethod
-    def iterable_validator(cls, iterables: dict[str, list[Iterable]]):
+    def iterable_validator(cls, iterables: dict[str, list[Iterable]] | None):
 
-        vals = list(iterables.values())
-        first_item_len = len(vals[0])
-        if not all(len(item) == first_item_len for item in vals):
-            raise ValueError("All iterable items in iterables must have same length")
+        if iterables is not None:
+            vals = list(iterables.values())
+            first_item_len = len(vals[0])  # type: ignore
+            if not all(len(item) == first_item_len for item in vals):
+                raise ValueError(
+                    "All iterable items in iterables must have same length"
+                )
 
-        return iterables
+            return iterables
+        else:
+            return iterables
 
 
 class StreamUpdate(AnalysisBaseModel):
