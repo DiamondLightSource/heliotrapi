@@ -14,8 +14,8 @@ from heliotrapi.task_queue.manager import convert_inputs, get_function_annotatio
 async def run_stream_analysis(
     analysis_fn: Callable,
     inputs: dict[str, Any],
-    update_interval: float,
-    max_iterations: int,
+    update_interval: float = 0.1,
+    max_iterations: int = 100,
 ):
 
     iter = 0

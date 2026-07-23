@@ -1,4 +1,8 @@
-from heliotrapi.models import AnalysisStream, StreamUpdate
+from collections.abc import AsyncGenerator
+
+from heliotrapi.analysis_core.registry import get_analysis
+from heliotrapi.models import AnalysisStream, AnalysisStreamRequest, StreamUpdate
+from heliotrapi.task_queue.streaming import run_stream_analysis
 
 
 class TestAnalysisStreamAppend:
@@ -141,3 +145,23 @@ class TestAnalysisStreamAdd:
         assert stream.x == [1, 3]
         assert stream.y == [2, 4]
         assert result is None
+
+
+def test_run_stream_analysis_is_async():
+
+    double_fn = get_analysis("double")
+
+    analysis_stream = run_stream_analysis(
+        double_fn, inputs={"number": 5}, max_iterations=10
+    )
+
+    assert isinstance(analysis_stream, AsyncGenerator)
+
+
+def test_create_stream():
+
+    stream_double = AnalysisStreamRequest(
+        analysis_name="double", inputs={"number": 5}, max_iterations=10
+    )
+
+    assert stream_double
