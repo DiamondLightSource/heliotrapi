@@ -46,6 +46,7 @@ class AnalysisClient:
     def available_analyses(
         self, as_strings: bool = True
     ) -> list[dict[str, Any]] | list[str]:
+        """returns a list of all the analyses that can be submitted"""
         resp = self.session.get(f"{self.base_url}{ANALYSES_ROUTE}")
         resp.raise_for_status()
         analyses = resp.json()
@@ -73,6 +74,7 @@ class AnalysisClient:
         return signature
 
     def health(self) -> dict[str, Any]:
+        """checks the API is alive - returns status: ok if it is"""
         resp = self.session.get(f"{self.base_url}{HEALTH_ROUTE}")
         resp.raise_for_status()
         return resp.json()
@@ -104,6 +106,9 @@ class AnalysisClient:
         return request_id
 
     def request_result(self, request_id: UUID) -> AnalysisResult | None:
+        """Requests a result once - with a given request_id
+        - doesn't guareteee to return a result
+        ie if the job hasn't finished"""
 
         route = RESULT_BY_ID_ROUTE.format(request_id=request_id)
         resp = self.session.get(f"{self.base_url}{route}")
@@ -121,6 +126,9 @@ class AnalysisClient:
         timeout: float = 5.0,
         poll_interval: float = 0.1,
     ) -> AnalysisResult:
+        """Get the last completed result that has been submitted -
+        even if YOU didn't submit it. The last result may not be the result you want
+        ie if the job you last submitted hasn't finished"""
 
         start_time = time.time()
 
@@ -149,16 +157,11 @@ class AnalysisClient:
         timeout: float = 5.0,
         poll_interval: float = 0.1,
     ) -> AnalysisResult:
+        """Get the result that this client last submitted.
+        If this client hasn't submitted any it will raise"""
 
         if self.latest_request_id is None:
-            return AnalysisResult(
-                status="error",
-                analysis_name="",
-                inputs={},
-                result=None,
-                created_at=datetime.now(),
-                finished_at=datetime.now(),
-            )
+            raise ValueError("You have not submitted any analyses!")
 
         return self.get_request_id_result(
             self.latest_request_id,
@@ -167,11 +170,14 @@ class AnalysisClient:
         )
 
     def get_endpoints(self):
+        """get all available endpoitns"""
+
         resp = self.session.get(f"{self.base_url}{ENDPOINTS_ROUTE}")
         resp.raise_for_status()
         return resp.json()
 
     def get_all_results(self):
+        """get all the results that are current stored in memory"""
         resp = self.session.get(f"{self.base_url}{RESULTS_ALL_ROUTE}")
         resp.raise_for_status()
         return resp.json()
@@ -182,6 +188,7 @@ class AnalysisClient:
         timeout: float = 30.0,
         poll_interval: float = 0.1,
     ) -> AnalysisResult:
+        """get a specific result, but requesting the result with a given request_id"""
 
         start_time = time.time()
 
