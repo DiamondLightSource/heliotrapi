@@ -84,8 +84,8 @@ async def analyse(request: Request, job: AnalysisRequest) -> AnalysisResponse:
 
     try:
         get_analysis(job.analysis_name)
-        queue: QueueManager = request.app.state.queue_manager
-        analysis_response = await queue.enqueue(job)
+        queue_manager: QueueManager = request.app.state.queue_manager
+        analysis_response = await queue_manager.enqueue(job)
         return analysis_response
     except Exception as e:
         return AnalysisResponse(
@@ -100,7 +100,7 @@ async def analyse(request: Request, job: AnalysisRequest) -> AnalysisResponse:
 @ROUTER.get(RESULT_LATEST_ROUTE, response_model=AnalysisResult)
 async def get_latest_result(request: Request) -> AnalysisResult:
 
-    queue_manager = request.app.state.queue_manager
+    queue_manager: QueueManager = request.app.state.queue_manager
 
     if queue_manager.latest_result is None:
         raise HTTPException(status_code=404, detail="No results yet")
@@ -110,10 +110,10 @@ async def get_latest_result(request: Request) -> AnalysisResult:
 
 @ROUTER.get(RESULT_BY_ID_ROUTE)
 async def result(request: Request, request_id: UUID):
-    queue: QueueManager = request.app.state.queue_manager
-    if request_id not in queue.results:
+    queue_manager: QueueManager = request.app.state.queue_manager
+    if request_id not in queue_manager.results:
         raise HTTPException(404, "Result not found")
-    result = queue.results[request_id]
+    result = queue_manager.results[request_id]
     return result
 
 
@@ -132,9 +132,9 @@ async def get_endpoints():
 
 @ROUTER.get(RESULTS_ALL_ROUTE)
 async def get_all_results(request: Request):
-    queue: QueueManager = request.app.state.queue_manager
+    queue_manager: QueueManager = request.app.state.queue_manager
     # Return all jobs (pending, running, completed, failed), sorted by created_at
-    results = list(queue.results.values())
+    results = list(queue_manager.results.values())
     results.sort(key=lambda r: getattr(r, "created_at", None) or 0, reverse=True)
     return results
 
