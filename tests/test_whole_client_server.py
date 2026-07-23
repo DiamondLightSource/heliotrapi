@@ -73,3 +73,19 @@ def test_client_runs_argument_with_none():
         result = client.get_result()
 
         assert len(result.result) == 100
+
+
+def stream_results():
+
+    app = start_api()
+
+    with TestClient(app) as client_http:
+        client = AnalysisClient(base_url=str(client_http.base_url), session=client_http)  # type: ignore
+
+        count = 1
+
+        for _ in client.stream_results(
+            analysis="beam_energy_to_wavelength", beam_energy=15, max_iterations=10
+        ):
+            count = count + 1
+        assert count == 10
