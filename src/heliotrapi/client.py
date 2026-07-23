@@ -214,6 +214,8 @@ class AnalysisClient:
     def stream_results(
         self, analysis: str | Callable, max_iterations: int = 100, **kwargs: Any
     ):
+        """This will open up a server side event,
+        and keep getting results from a particular analysis job"""
 
         inputs = serialise(kwargs)
 
@@ -260,6 +262,7 @@ class AnalysisClient:
         poll_interval: float = 0.01,
         **kwargs: Any,
     ):
+        """Opens up a stream and plots the results as they come in"""
 
         try:
             import matplotlib.pyplot as plt  # type: ignore
