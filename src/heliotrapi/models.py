@@ -8,6 +8,8 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, field_validator
 
+from heliotrapi._version import __version__
+
 
 class AnalysisBaseModel(BaseModel):
     def __getitem__(self, key):
@@ -90,6 +92,7 @@ class AnalysisResult(AnalysisBaseModel):
     result: Any
     created_at: datetime = Field(default_factory=datetime.now)
     finished_at: datetime | None = None
+    version: str = __version__
 
     def is_successful(self) -> bool:
         if self.status != "completed":
