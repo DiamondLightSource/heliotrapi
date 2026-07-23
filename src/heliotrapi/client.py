@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-import requests
+import httpx
 
 from heliotrapi.api.endpoints import (
     ANALYSE_ROUTE,
@@ -37,11 +37,11 @@ class AnalysisClient:
     def __init__(
         self,
         base_url: str = "http://127.0.0.1:8000",
-        session: requests.Session | None = None,
+        session: httpx.Client | None = None,
     ):
         self.base_url = base_url.rstrip("/")
         self.latest_request_id: UUID | None = None
-        self.session = session or requests.Session()
+        self.session = session or httpx.Client()
 
     def available_analyses(
         self, as_strings: bool = True
@@ -229,14 +229,12 @@ class AnalysisClient:
 
         stream_url = f"{self.base_url}{STREAM_ROUTE}"
 
-        with self.session.get(
-            stream_url, json=analysis_request_json, stream=True
-        ) as resp:
+        with self.session.stream("GET", stream_url, json=analysis_request_json) as resp:
             resp.raise_for_status()
 
             event_type = None
 
-            for line in resp.iter_lines(decode_unicode=True):
+            for line in resp.iter_lines():
                 if not line:
                     continue
 
@@ -298,19 +296,19 @@ class AnalysisClient:
         return stream
 
 
-# if __name__ == "__main__":
-#     # client = AnalysisClient("http://i15-1-analysis.diamond.ac.uk")
-#     # print(client.get_all_results())
+if __name__ == "__main__":
+    # client = AnalysisClient("http://i15-1-analysis.diamond.ac.uk")
+    # print(client.get_all_results())
 
-#     client = AnalysisClient()
+    client = AnalysisClient()
 
-#     client.submit(analysis="b_iso_to_u_iso", b_iso=[5])
+    client.submit(analysis="b_iso_to_u_iso", b_iso=[5])
 
-#     print(client.get_result())
+    print(client.get_result())
 
-#     # client.plot_stream(analysis="beam_energy_to_wavelength", beam_energy=25)
+    # client.plot_stream(analysis="beam_energy_to_wavelength", beam_energy=25)
 
-#     for stream_update in client.stream_results(
-#         analysis="beam_energy_to_wavelength", beam_energy=15, max_iterations=10
-#     ):
-#         print(stream_update)
+    for stream_update in client.stream_results(
+        analysis="beam_energy_to_wavelength", beam_energy=15, max_iterations=10
+    ):
+        print(stream_update)

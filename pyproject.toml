@@ -17,7 +17,7 @@ dependencies = [
     "scipy",
     "pydantic",
     "pydantic_settings",
-    "requests",
+    "httpx",
     "uvicorn",
     "matplotlib",
     "gitpython",
@@ -34,7 +34,6 @@ requires-python = ">=3.11"
 
 [dependency-groups]
 dev = [
-    "httpx",
     "copier",
     "pre-commit",
     "pyright",

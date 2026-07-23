@@ -82,7 +82,7 @@ def test_stream_results():
     with TestClient(app) as client_http:
         client = AnalysisClient(base_url=str(client_http.base_url), session=client_http)  # type: ignore
 
-        count = 1
+        count = 0
 
         for _ in client.stream_results(
             analysis="beam_energy_to_wavelength", beam_energy=15, max_iterations=10
