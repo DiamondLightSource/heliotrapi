@@ -15,6 +15,7 @@ class AnalysisRequest(AnalysisBaseModel):
     inputs: dict[str, Any]
     request_id: UUID = Field(default_factory=uuid4)
     created_at: datetime = Field(default_factory=datetime.now)
+    password: str | None = None
 
 
 class AnalysisResult(AnalysisBaseModel):

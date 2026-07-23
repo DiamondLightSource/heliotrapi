@@ -92,6 +92,8 @@ config:
       - "/topic/public.analysis.trigger" # custom topic for triggering analyses from other services
   alerts:
     slack_webhook_url: "" # Webhook URL for sending alerts to Slack, leave empty to disable
+  auth:
+    password: null #password - if not null it must be a string. You must then provide this to send requests
   uvicorn:
     workers: 1
   logging:

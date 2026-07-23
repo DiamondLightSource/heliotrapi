@@ -29,10 +29,12 @@ class AnalysisClient:
         self,
         base_url: str = "http://127.0.0.1:8000",
         session: requests.Session | None = None,
+        password: str | None = None,
     ):
         self.base_url = base_url.rstrip("/")
         self.latest_request_id: UUID | None = None
         self.session = session or requests.Session()
+        self.password = password
 
     def available_analyses(
         self, as_strings: bool = True
@@ -82,7 +84,9 @@ class AnalysisClient:
             analysis.__name__ if isinstance(analysis, Callable) else analysis
         )
 
-        analysis_request = AnalysisRequest(analysis_name=analysis_name, inputs=inputs)
+        analysis_request = AnalysisRequest(
+            analysis_name=analysis_name, inputs=inputs, password=self.password
+        )
         json = analysis_request.model_dump(mode="json")
 
         resp = self.session.post(f"{self.base_url}{ANALYSE_ROUTE}", json=json)
@@ -191,6 +195,6 @@ class AnalysisClient:
             time.sleep(poll_interval)
 
 
-# if __name__ == "__main__":
-#     client = AnalysisClient("http://i15-1-analysis.diamond.ac.uk")
-#     print(client.get_all_results())
+if __name__ == "__main__":
+    client = AnalysisClient(password="test")
+    print(client.available_analyses())

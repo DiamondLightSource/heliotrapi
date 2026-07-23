@@ -1,9 +1,10 @@
 import inspect
-from typing import Any
+from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.routing import APIRoute
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 from heliotrapi.analysis_core.registry import get_analysis, list_analyses
 from heliotrapi.api.endpoints import (
@@ -14,6 +15,7 @@ from heliotrapi.api.endpoints import (
     RESULT_BY_ID_ROUTE,
     RESULT_LATEST_ROUTE,
     RESULTS_ALL_ROUTE,
+    USER_ROUTE,
 )
 from heliotrapi.app_logging import logger
 from heliotrapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
@@ -21,10 +23,17 @@ from heliotrapi.task_queue import QueueManager
 
 ROUTER = APIRouter()
 
+security = HTTPBasic()
+
 
 @ROUTER.get(HEALTH_ROUTE)
 async def health():
     return {"status": "ok"}
+
+
+@ROUTER.get(USER_ROUTE)
+def read_current_user(credentials: Annotated[HTTPBasicCredentials, Depends(security)]):
+    return {"username": credentials.username, "password": credentials.password}
 
 
 def annotation_to_str(annotation) -> str:
@@ -39,7 +48,9 @@ def annotation_to_str(annotation) -> str:
 
 
 @ROUTER.get(ANALYSES_ROUTE)
-async def available_analyses() -> list[dict[str, Any]]:
+async def available_analyses(
+    credentials: Annotated[HTTPBasicCredentials, Depends(security)],
+) -> list[dict[str, Any]]:
     analyses_info = []
     for name in list_analyses():
         func = get_analysis(name)
@@ -81,7 +92,7 @@ async def analyse(request: Request, job: AnalysisRequest) -> AnalysisResponse:
 @ROUTER.get(RESULT_LATEST_ROUTE, response_model=AnalysisResult)
 async def get_latest_result(request: Request) -> AnalysisResult:
 
-    queue_manager = request.app.state.queue_manager
+    queue_manager: QueueManager = request.app.state.queue_manager
 
     if queue_manager.latest_result is None:
         raise HTTPException(status_code=404, detail="No results yet")
@@ -91,10 +102,10 @@ async def get_latest_result(request: Request) -> AnalysisResult:
 
 @ROUTER.get(RESULT_BY_ID_ROUTE)
 async def result(request: Request, request_id: UUID):
-    queue: QueueManager = request.app.state.queue_manager
-    if request_id not in queue.results:
+    queue_manager: QueueManager = request.app.state.queue_manager
+    if request_id not in queue_manager.results:
         raise HTTPException(404, "Result not found")
-    result = queue.results[request_id]
+    result = queue_manager.results[request_id]
     return result
 
 
@@ -114,8 +125,8 @@ async def get_endpoints():
 # New endpoint to return all jobs/results if enabled in config
 @ROUTER.get(RESULTS_ALL_ROUTE)
 async def get_all_results(request: Request):
-    queue: QueueManager = request.app.state.queue_manager
+    queue_manager: QueueManager = request.app.state.queue_manager
     # Return all jobs (pending, running, completed, failed), sorted by created_at
-    results = list(queue.results.values())
+    results = list(queue_manager.results.values())
     results.sort(key=lambda r: getattr(r, "created_at", None) or 0, reverse=True)
     return results

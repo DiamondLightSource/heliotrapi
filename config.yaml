@@ -32,3 +32,6 @@ rabbitmq:
 
 alerts:
   slack_webhook_url: "" # Webhook URL for sending alerts to Slack, leave empty to disable
+
+auth:
+  password: "test"
