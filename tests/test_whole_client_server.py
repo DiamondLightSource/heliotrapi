@@ -75,7 +75,7 @@ def test_client_runs_argument_with_none():
         assert len(result.result) == 100
 
 
-def stream_results():
+def test_stream_results():
 
     app = start_api()
 
