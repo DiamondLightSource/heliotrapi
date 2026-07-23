@@ -298,19 +298,19 @@ class AnalysisClient:
         return stream
 
 
-if __name__ == "__main__":
-    # client = AnalysisClient("http://i15-1-analysis.diamond.ac.uk")
-    # print(client.get_all_results())
+# if __name__ == "__main__":
+#     # client = AnalysisClient("http://i15-1-analysis.diamond.ac.uk")
+#     # print(client.get_all_results())
 
-    client = AnalysisClient()
+#     client = AnalysisClient()
 
-    client.submit(analysis="b_iso_to_u_iso", b_iso=[5])
+#     client.submit(analysis="b_iso_to_u_iso", b_iso=[5])
 
-    print(client.get_result())
+#     print(client.get_result())
 
-    # client.plot_stream(analysis="beam_energy_to_wavelength", beam_energy=25)
+#     # client.plot_stream(analysis="beam_energy_to_wavelength", beam_energy=25)
 
-    for stream_update in client.stream_results(
-        analysis="beam_energy_to_wavelength", beam_energy=15, max_iterations=10
-    ):
-        print(stream_update)
+#     for stream_update in client.stream_results(
+#         analysis="beam_energy_to_wavelength", beam_energy=15, max_iterations=10
+#     ):
+#         print(stream_update)
