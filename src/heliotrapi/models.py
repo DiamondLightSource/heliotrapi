@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Iterable
 from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID, uuid4
@@ -33,12 +32,12 @@ class AnalysisStreamRequest(AnalysisRequest):
     """
 
     max_iterations: int = 100
-    iterables: dict[str, list[Iterable]] | None = None
+    iterables: dict[str, list[Any]] | None = None
     update_interval: float = 0.1
 
     @field_validator("iterables")
     @classmethod
-    def iterable_validator(cls, iterables: dict[str, list[Iterable]] | None):
+    def iterable_validator(cls, iterables: dict[str, list[Any]] | None):
 
         if iterables is not None:
             vals = list(iterables.values())
