@@ -48,8 +48,6 @@ class AnalysisStreamRequest(AnalysisRequest):
                 )
 
             return iterables
-        else:
-            return iterables
 
 
 class StreamUpdate(AnalysisBaseModel):
