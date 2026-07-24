@@ -1,4 +1,4 @@
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable
 from inspect import signature
 from typing import ParamSpec, TypeVar
 
@@ -13,7 +13,7 @@ from heliotrapi.analysis_core.message_names import (
     UPDATED_NEXUS_ANALYSIS_NAME,
 )
 from heliotrapi.analysis_core.registry import register_analysis
-from heliotrapi.app_logging import logger
+from heliotrapi.logger import logger
 from heliotrapi.task_queue.message_models import (
     NexusMessage,
     StartMessage,
@@ -26,16 +26,20 @@ R = TypeVar("R")
 
 def analysis(
     name: str | None = None,
-) -> Callable[[Callable[P, R]], Callable[P, Awaitable[R]]]:
+) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """Decorator to register a function as an analysis.
-    Converts sync functions to async."""
 
-    def decorator(func: Callable[P, R]) -> Callable[P, Awaitable[R]]:
-        async_fn = make_function_async(func)
+    Registers an async-wrapped copy of *func* in the analysis registry (so the
+    loader can call it uniformly), but returns *func* itself, completely
+    unmodified. Importing the decorated function elsewhere therefore gives you
+    back the original sync (or async) callable, with its original signature
+    and return type.
+    """
+
+    def decorator(func: Callable[P, R]) -> Callable[P, R]:
         name_to_register = name or func.__name__
-
-        register_analysis(name_to_register, async_fn)
-        return async_fn
+        register_analysis(name_to_register, make_function_async(func))
+        return func
 
     return decorator
 
@@ -68,7 +72,7 @@ def check_message_args(func: Callable, check_type: type[BaseModel]):
     )
 
 
-def start_message_analysis(func: Callable[P, R]) -> Callable[P, Awaitable[R]] | None:
+def start_message_analysis(func: Callable[P, R]) -> Callable[P, R] | None:
     try:
         check_message_args(func, StartMessage)
         return analysis(START_MESSAGE_ANALYSIS_NAME)(func)
@@ -77,31 +81,34 @@ def start_message_analysis(func: Callable[P, R]) -> Callable[P, Awaitable[R]] | 
             f"{func.__name__} does not have proper arguments: {e}. "
             f"Nothing will happen on {FINISHED_NEXUS_ANALYSIS_NAME} "
         )
+        return None
 
 
-def stop_message_analysis(func: Callable[P, R]) -> Callable[P, Awaitable[R]] | None:
+def stop_message_analysis(func: Callable[P, R]) -> Callable[P, R] | None:
     try:
         check_message_args(func, StopMessage)
         return analysis(STOP_MESSAGE_ANALYSIS_NAME)(func)
     except Exception as e:
         logger.error(
             f"{func.__name__} does not have proper arguments: {e}. "
-            f"Nothing will happen on {STOP_MESSAGE_ANALYSIS_NAME}"
+            f"Nothing will happen on {STOP_MESSAGE_ANALYSIS_NAME} "
         )
+        return None
 
 
-def started_nexus_analysis(func: Callable[P, R]) -> Callable[P, Awaitable[R]] | None:
+def started_nexus_analysis(func: Callable[P, R]) -> Callable[P, R] | None:
     try:
         check_message_args(func, NexusMessage)
         return analysis(STARTED_NEXUS_ANALYSIS_NAME)(func)
     except Exception as e:
         logger.error(
             f"{func.__name__} does not have proper arguments: {e}. "
-            f"Nothing will happen on {STARTED_NEXUS_ANALYSIS_NAME}"
+            f"Nothing will happen on {STARTED_NEXUS_ANALYSIS_NAME} "
         )
+        return None
 
 
-def updated_nexus_analysis(func: Callable[P, R]) -> Callable[P, Awaitable[R]] | None:
+def updated_nexus_analysis(func: Callable[P, R]) -> Callable[P, R] | None:
     try:
         check_message_args(func, NexusMessage)
         return analysis(UPDATED_NEXUS_ANALYSIS_NAME)(func)
@@ -112,7 +119,7 @@ def updated_nexus_analysis(func: Callable[P, R]) -> Callable[P, Awaitable[R]] | 
         )
 
 
-def finished_nexus_analysis(func: Callable[P, R]) -> Callable[P, Awaitable[R]] | None:
+def finished_nexus_analysis(func: Callable[P, R]) -> Callable[P, R] | None:
     try:
         check_message_args(func, NexusMessage)
         return analysis(FINISHED_NEXUS_ANALYSIS_NAME)(func)

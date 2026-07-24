@@ -94,10 +94,10 @@ via curl the example command would be:
 curl -X POST https://ixx-analysis.diamond.ac.uk/analyse -H "Content-Type: application/json" -d '{"analysis_name":"double","inputs":{"number":5}}'
 ```
 
-and to get the last result from `/result/latest` as a GET request
+and to get the last result from `/results/latest` as a GET request
 
 ```bash
-curl -X GET https://i15-1-analysis.diamond.ac.uk/result/latest
+curl -X GET https://i15-1-analysis.diamond.ac.uk/results/latest
 ```
 
 If you are getting redirected due to the a proxy use curl -LX ...
@@ -113,7 +113,7 @@ You can also navigate to the url or the ip address to be met with:
 - AnalysisClient submits jobs to `/analyse`
 - Jobs are queued in `QueueManager`
 - Workers process jobs in FIFO order
-- Results are returned via `/result/id/{request_id}` or `/result/latest`
+- Results are returned via `/results/id/{request_id}` or `/results/latest`
 - Optional RabbitMQ listener can enqueue jobs automatically
 
                      AnalysisClient ─────--────────────────

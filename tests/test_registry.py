@@ -1,5 +1,4 @@
 import asyncio
-import inspect
 
 import pytest
 
@@ -19,7 +18,6 @@ def test_analysis_decorator_registers_sync_function():
         def my_double(number: int) -> int:
             return number * 2
 
-        assert inspect.iscoroutinefunction(my_double)
         fn = get_analysis("my_test_double")
         result = asyncio.run(fn(3))
         assert result == 6

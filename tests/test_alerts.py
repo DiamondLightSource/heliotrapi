@@ -1,6 +1,6 @@
 from unittest.mock import Mock, patch
 
-import requests
+import httpx
 
 from heliotrapi.utils.slack_alerts import (
     emojis,
@@ -10,7 +10,7 @@ from heliotrapi.utils.slack_alerts import (
 
 
 @patch("heliotrapi.utils.slack_alerts.logger")
-@patch("heliotrapi.utils.slack_alerts.requests.post")
+@patch("heliotrapi.utils.slack_alerts.httpx.post")
 def test_send_slack_message_success(mock_post, mock_logger):
     response = Mock()
     response.raise_for_status.return_value = None
@@ -27,9 +27,9 @@ def test_send_slack_message_success(mock_post, mock_logger):
 
 
 @patch("heliotrapi.utils.slack_alerts.logger")
-@patch("heliotrapi.utils.slack_alerts.requests.post")
+@patch("heliotrapi.utils.slack_alerts.httpx.post")
 def test_send_slack_message_request_exception(mock_post, mock_logger):
-    mock_post.side_effect = requests.exceptions.RequestException("boom")
+    mock_post.side_effect = httpx.RequestError("boom")
 
     webhook_url = "https://example.com/webhook"
 

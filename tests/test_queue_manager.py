@@ -10,6 +10,17 @@ from heliotrapi.task_queue.manager import QueueManager, validate_inputs
 from heliotrapi.utils.messenger import Messenger
 
 
+class FakeMessenger:
+    def __init__(self):
+        self.sent = []
+
+    def is_connected(self):
+        return True
+
+    def send_message(self, destination, message):
+        self.sent.append((destination, message))
+
+
 @pytest.mark.asyncio
 async def test_queue_manager_worker_success(monkeypatch):
     queue_manager = QueueManager(workers=1)
@@ -38,12 +49,6 @@ async def test_queue_manager_worker_success(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_queue_manager_enqueue_success_sends_message(monkeypatch):
-    class FakeMessenger:
-        def __init__(self):
-            self.sent = []
-
-        def send_message(self, destination, message):
-            self.sent.append((destination, message))
 
     messenger = FakeMessenger()
     queue_manager = QueueManager(
@@ -91,12 +96,6 @@ def test_validate_inputs_unknown_extra_parameter():
 
 @pytest.mark.asyncio
 async def test_queue_manager_worker_failure_sends_message(monkeypatch):
-    class FakeMessenger:
-        def __init__(self):
-            self.sent = []
-
-        def send_message(self, destination, message):
-            self.sent.append((destination, message))
 
     messenger = FakeMessenger()
     queue_manager = QueueManager(
@@ -131,12 +130,6 @@ async def test_queue_manager_worker_failure_sends_message(monkeypatch):
 async def test_queue_manager_enqueue_failure_sets_latest_result_and_sends_message(
     monkeypatch,
 ):
-    class FakeMessenger:
-        def __init__(self):
-            self.sent = []
-
-        def send_message(self, destination, message):
-            self.sent.append((destination, message))
 
     messenger = FakeMessenger()
     queue_manager = QueueManager(

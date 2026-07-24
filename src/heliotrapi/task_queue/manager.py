@@ -5,7 +5,7 @@ from typing import Any
 from uuid import UUID
 
 from heliotrapi.analysis_core.registry import get_analysis
-from heliotrapi.app_logging import logger
+from heliotrapi.logger import logger
 from heliotrapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
 from heliotrapi.utils.messenger import DEFAULT_DII_PROCESSED_DESTINATION, Messenger
 from heliotrapi.utils.serialisers import deserialise, serialise
@@ -154,7 +154,7 @@ class QueueManager:
             analysis_response = AnalysisResponse(
                 request_id=job.request_id,
                 analysis_name=job.analysis_name,
-                details=str(e),
+                error=str(e),
                 inputs=job.inputs,
                 accepted=False,
             )
@@ -168,7 +168,7 @@ class QueueManager:
                     message=f"Job {job} failed: {str(e)}",
                 )
 
-        if self.messenger is not None:
+        if self.messenger is not None and self.messenger.is_connected():
             self.messenger.send_message(
                 DEFAULT_DII_PROCESSED_DESTINATION,
                 analysis_response.model_dump_json(),
@@ -226,7 +226,7 @@ class QueueManager:
             # store latest result
             self.latest_result = analysis_result
 
-            if self.messenger is not None:
+            if self.messenger is not None and self.messenger.is_connected():
                 self.messenger.send_message(
                     DEFAULT_DII_PROCESSED_DESTINATION,
                     analysis_result.model_dump_json(),

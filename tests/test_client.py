@@ -175,11 +175,10 @@ def test_client_get_all_results():
 
 
 def test_client_get_last_submitted_result_no_latest():
-    client = AnalysisClient(session=Mock())
-    result = client.get_last_submitted_result(timeout=0.01, poll_interval=0.01)
 
-    assert result.status == "error"
-    assert result.analysis_name == ""
+    with pytest.raises(Exception):  # noqa
+        client = AnalysisClient(session=Mock())
+        _ = client.get_last_submitted_result(timeout=0.01, poll_interval=0.01)
 
 
 def test_client_get_request_id_result_success(monkeypatch):
@@ -332,7 +331,7 @@ def test_client_submit_rejected_analysis_raises_value_error():
         "request_id": str(uuid.uuid4()),
         "analysis_name": "bad_analysis",
         "inputs": {"x": 1},
-        "details": "Invalid input",
+        "error": "Invalid input",
         "accepted": False,
     }
 

@@ -13,9 +13,10 @@ from fastapi.staticfiles import StaticFiles
 import heliotrapi
 from heliotrapi._version import __version__
 from heliotrapi.analysis_core.loader import load_analyses, load_plugins
+from heliotrapi.api.endpoints import HEALTH_ROUTE, RESULTS_ALL_ROUTE
 from heliotrapi.api.routes import ROUTER
-from heliotrapi.app_logging import logger
 from heliotrapi.config import Config
+from heliotrapi.logger import logger
 from heliotrapi.task_queue import QueueManager, RabbitMQListener, cleanup_results
 from heliotrapi.utils.messenger import Messenger
 
@@ -107,7 +108,7 @@ async def lifespan(app: FastAPI):
 class HealthzAccessLogFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         message = record.getMessage()
-        return "/healthz" not in message and "/results/all" not in message
+        return HEALTH_ROUTE not in message and RESULTS_ALL_ROUTE not in message
 
 
 def configure_access_log_filter() -> None:

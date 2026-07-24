@@ -1,8 +1,10 @@
 import inspect
+import json
 from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import StreamingResponse
 from fastapi.routing import APIRoute
 
 from heliotrapi.analysis_core.registry import get_analysis, list_analyses
@@ -14,10 +16,17 @@ from heliotrapi.api.endpoints import (
     RESULT_BY_ID_ROUTE,
     RESULT_LATEST_ROUTE,
     RESULTS_ALL_ROUTE,
+    STREAM_ROUTE,
 )
-from heliotrapi.app_logging import logger
-from heliotrapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
+from heliotrapi.logger import logger
+from heliotrapi.models import (
+    AnalysisRequest,
+    AnalysisResponse,
+    AnalysisResult,
+    AnalysisStreamRequest,
+)
 from heliotrapi.task_queue import QueueManager
+from heliotrapi.task_queue.streaming import create_stream
 
 ROUTER = APIRouter()
 
@@ -73,15 +82,25 @@ async def analyse(request: Request, job: AnalysisRequest) -> AnalysisResponse:
         f"Received analysis request from host: {request.headers.get('Host')} | agent: {request.headers['user-agent']}"  # noqa
     )
 
-    queue: QueueManager = request.app.state.queue_manager
-    analysis_response = await queue.enqueue(job)
-    return analysis_response
+    try:
+        get_analysis(job.analysis_name)
+        queue_manager: QueueManager = request.app.state.queue_manager
+        analysis_response = await queue_manager.enqueue(job)
+        return analysis_response
+    except Exception as e:
+        return AnalysisResponse(
+            request_id=job.request_id,
+            analysis_name=job.analysis_name,
+            inputs=job.inputs,
+            error=str(e),
+            accepted=False,
+        )
 
 
 @ROUTER.get(RESULT_LATEST_ROUTE, response_model=AnalysisResult)
 async def get_latest_result(request: Request) -> AnalysisResult:
 
-    queue_manager = request.app.state.queue_manager
+    queue_manager: QueueManager = request.app.state.queue_manager
 
     if queue_manager.latest_result is None:
         raise HTTPException(status_code=404, detail="No results yet")
@@ -91,10 +110,10 @@ async def get_latest_result(request: Request) -> AnalysisResult:
 
 @ROUTER.get(RESULT_BY_ID_ROUTE)
 async def result(request: Request, request_id: UUID):
-    queue: QueueManager = request.app.state.queue_manager
-    if request_id not in queue.results:
+    queue_manager: QueueManager = request.app.state.queue_manager
+    if request_id not in queue_manager.results:
         raise HTTPException(404, "Result not found")
-    result = queue.results[request_id]
+    result = queue_manager.results[request_id]
     return result
 
 
@@ -111,11 +130,36 @@ async def get_endpoints():
     ]
 
 
-# New endpoint to return all jobs/results if enabled in config
 @ROUTER.get(RESULTS_ALL_ROUTE)
 async def get_all_results(request: Request):
-    queue: QueueManager = request.app.state.queue_manager
+    queue_manager: QueueManager = request.app.state.queue_manager
     # Return all jobs (pending, running, completed, failed), sorted by created_at
-    results = list(queue.results.values())
+    results = list(queue_manager.results.values())
     results.sort(key=lambda r: getattr(r, "created_at", None) or 0, reverse=True)
     return results
+
+
+@ROUTER.get(STREAM_ROUTE)
+async def stream(request: Request, job: AnalysisStreamRequest) -> StreamingResponse:
+    """
+    Server-Sent Events endpoint
+    """
+
+    logger.info(job.request_id)
+
+    async def event_generator():
+        async for point in create_stream(job):
+            # SSE format
+            yield (f"event: update\ndata: {json.dumps(point)}\n\n")
+
+        yield "event: done\ndata: {}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )

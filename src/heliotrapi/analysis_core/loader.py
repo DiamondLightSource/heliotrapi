@@ -11,8 +11,8 @@ from git import GitCommandError, Repo
 
 from heliotrapi.analysis_core.async_func import make_function_async
 from heliotrapi.analysis_core.registry import register_analysis
-from heliotrapi.app_logging import logger
 from heliotrapi.config import Config
+from heliotrapi.logger import logger
 
 
 def load_analyses(package: types.ModuleType) -> list[str]:
@@ -226,11 +226,12 @@ def clone_or_update_github_repo(repo_url: str, dest_dir: str | Path) -> Path:
 
     if is_new:
         Repo.clone_from(repo_url, dest_path)
-        logger.debug("Cloned '%s' -> '%s'", repo_url, dest_path)
         _install_repo_and_dependencies(dest_path, requirements=True)
+        logger.debug("Cloned '%s' -> '%s'", repo_url, dest_path)
     else:
         try:
             Repo(dest_path).remotes.origin.pull()
+            _install_repo_and_dependencies(dest_path, requirements=True)
             logger.debug("Pulled latest for '%s'", dest_path.name)
         except GitCommandError:
             logger.warning(

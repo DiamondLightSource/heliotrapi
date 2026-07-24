@@ -1,6 +1,6 @@
-import requests
+import httpx
 
-from heliotrapi.app_logging import logger
+from heliotrapi.logger import logger
 
 emojis = {
     "failure": ":x:",
@@ -13,10 +13,10 @@ emojis = {
 def send_slack_message(message: str, webhook_url: str):
     payload = {"message": message}
     try:
-        response = requests.post(webhook_url, json=payload)
+        response = httpx.post(webhook_url, json=payload)
         response.raise_for_status()
         logger.info("Message sent to Slack")
-    except requests.exceptions.RequestException as e:
+    except httpx.RequestError as e:
         logger.error(f"Failed to send message to Slack: {e} at URL: {webhook_url}")
 
 
