@@ -212,7 +212,11 @@ class AnalysisClient:
         return analysis_name
 
     def stream_results(
-        self, analysis: str | Callable, max_iterations: int = 100, **kwargs: Any
+        self,
+        analysis: str | Callable,
+        max_iterations: int = 100,
+        update_interval: float = 0.1,
+        **kwargs: Any,
     ) -> Generator[StreamUpdate]:
         """This will open up a server side event,
         and keep getting results from a particular analysis job"""
@@ -222,7 +226,10 @@ class AnalysisClient:
         analysis_name = self._get_analysis_name(analysis)
 
         analysis_request = AnalysisStreamRequest(
-            analysis_name=analysis_name, inputs=inputs, max_iterations=max_iterations
+            analysis_name=analysis_name,
+            inputs=inputs,
+            update_interval=update_interval,
+            max_iterations=max_iterations,
         )
 
         analysis_request_json = analysis_request.model_dump(mode="json")
@@ -257,7 +264,8 @@ class AnalysisClient:
     def plot_stream(
         self,
         analysis: str | Callable,
-        poll_interval: float = 0.01,
+        update_interval: float = 0.1,
+        max_iterations=100,
         **kwargs: Any,
     ):
 
@@ -274,7 +282,12 @@ class AnalysisClient:
         stream = AnalysisStream()
 
         try:
-            for stream_update in self.stream_results(analysis=analysis_name, **kwargs):
+            for stream_update in self.stream_results(
+                analysis=analysis_name,
+                max_iterations=max_iterations,
+                update_interval=update_interval,
+                **kwargs,
+            ):
                 print(stream_update)
 
                 stream_update: StreamUpdate
@@ -284,12 +297,13 @@ class AnalysisClient:
                 ax.clear()
                 ax.plot(stream["x"], stream["y"])
                 ax.set_title(analysis_name)
-                plt.pause(poll_interval)
+                fig.canvas.draw()
+                fig.canvas.flush_events()
 
         except Exception as e:
             ax.clear()
             plt.close()
-            print(e)
+            raise Exception(e) from e
 
         plt.close()
 
@@ -306,7 +320,11 @@ if __name__ == "__main__":
 
     print(client.get_result())
 
-    # client.plot_stream(analysis="beam_energy_to_wavelength", beam_energy=25)
+    stream = client.plot_stream(
+        analysis="beam_energy_to_wavelength", beam_energy=25, max_iterations=10
+    )
+
+    assert len(stream.x) == 10
 
     for stream_update in client.stream_results(
         analysis="beam_energy_to_wavelength", beam_energy=15, max_iterations=10

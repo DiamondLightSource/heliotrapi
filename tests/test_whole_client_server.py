@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 from heliotrapi.analyses.peak_fitting import gaussian, gaussian_fit
 from heliotrapi.analyses.simple_maths import sine_wave
 from heliotrapi.client import AnalysisClient
+from heliotrapi.models import AnalysisStream
 from heliotrapi.server import start_api
 
 
@@ -84,8 +85,20 @@ def test_stream_results():
 
         count = 0
 
-        for _ in client.stream_results(
-            analysis="beam_energy_to_wavelength", beam_energy=15, max_iterations=10
-        ):
+        for _ in client.stream_results(analysis="double", number=15, max_iterations=10):
             count = count + 1
         assert count == 10
+
+
+def test_plot_stream():
+
+    app = start_api()
+
+    with TestClient(app) as client_http:
+        client = AnalysisClient(base_url=str(client_http.base_url), session=client_http)  # type: ignore
+
+        stream = client.plot_stream(analysis="double", number=15, max_iterations=10)
+
+        assert isinstance(stream, AnalysisStream)
+
+        assert len(stream.x) == 10
