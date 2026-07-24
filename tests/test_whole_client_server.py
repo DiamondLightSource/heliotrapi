@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 from heliotrapi.analyses.peak_fitting import gaussian, gaussian_fit
 from heliotrapi.analyses.simple_maths import sine_wave
 from heliotrapi.client import AnalysisClient
-from heliotrapi.models import AnalysisStream
+from heliotrapi.models import AnalysisRequest, AnalysisStream
 from heliotrapi.server import start_api
 
 
@@ -102,3 +102,21 @@ def test_plot_stream():
         assert isinstance(stream, AnalysisStream)
 
         assert len(stream.x) == 10
+
+
+def test_analysis_request_error():
+
+    app = start_api()
+
+    # Use context manager to trigger lifespan
+    with TestClient(app) as client_http:
+        # Now queue_manager exists
+        client = AnalysisClient(base_url=str(client_http.base_url), session=client_http)  # type: ignore
+
+        analysis_request = AnalysisRequest(analysis_name="bad_request", inputs={})
+
+        result = client.submit_analysis_request(analysis_request)
+
+        assert result.error is not None
+
+        assert "analysis not found" in result.error

@@ -79,6 +79,17 @@ class AnalysisClient:
         resp.raise_for_status()
         return resp.json()
 
+    def submit_analysis_request(
+        self, analysis_request: AnalysisRequest
+    ) -> AnalysisResponse:
+
+        json_payload = analysis_request.model_dump(mode="json")
+        resp = self.session.post(f"{self.base_url}{ANALYSE_ROUTE}", json=json_payload)
+        resp.raise_for_status()  # raise for 404 or other non-200 errors
+        analysis_response = AnalysisResponse.model_validate(resp.json())
+
+        return analysis_response
+
     def submit(self, analysis: str | Callable, **inputs: Any) -> UUID:
         """
         Submit an analysis job.
@@ -92,15 +103,14 @@ class AnalysisClient:
         analysis_name = self._get_analysis_name(analysis)
 
         analysis_request = AnalysisRequest(analysis_name=analysis_name, inputs=inputs)
-        json_payload = analysis_request.model_dump(mode="json")
 
-        resp = self.session.post(f"{self.base_url}{ANALYSE_ROUTE}", json=json_payload)
+        analysis_response = self.submit_analysis_request(analysis_request)
 
-        resp.raise_for_status()  # raise for 404 or other non-200 errors
-        analysis_response = AnalysisResponse.model_validate(resp.json())
         analysis_response.is_accepted()  # will raise if not accepted
 
-        request_id = UUID(resp.json()["request_id"])
+        assert analysis_response.request_id is not None
+
+        request_id = analysis_response.request_id
         self.latest_request_id = request_id
 
         return request_id
