@@ -279,10 +279,7 @@ class AnalysisClient:
         **kwargs: Any,
     ):
 
-        try:
-            import matplotlib.pyplot as plt  # type: ignore
-        except Exception as e:
-            raise ImportError(f"You need to install matplotlib: {e}") from e
+        import matplotlib.pyplot as plt  # type: ignore
 
         analysis_name = self._get_analysis_name(analysis)
 
