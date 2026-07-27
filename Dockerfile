@@ -72,7 +72,9 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --no-ins
     nano \
     # May be required if attaching devcontainer
     libnss-ldapd \
-    && apt-get dist-clean 
+    # `heliotrapi serve` starts this itself if config.redis isn't reachable
+    redis-server \
+    && apt-get dist-clean
 
 # Install uv to allow setup-scratch to run
 COPY --from=ghcr.io/astral-sh/uv:0.11 /uv /uvx /bin/

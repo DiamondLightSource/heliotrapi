@@ -1,5 +1,5 @@
-from .cleanup import cleanup_results
 from .manager import QueueManager
 from .rabbitmq import RabbitMQListener
+from .single_instance_lock import SingleInstanceLock
 
-__all__ = ["cleanup_results", "QueueManager", "RabbitMQListener"]
+__all__ = ["QueueManager", "RabbitMQListener", "SingleInstanceLock"]

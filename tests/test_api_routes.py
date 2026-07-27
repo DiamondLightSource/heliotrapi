@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 from datetime import datetime
 
@@ -49,7 +50,7 @@ def test_api_result_latest_and_not_found():
             created_at=datetime.now(),
             finished_at=datetime.now(),
         )
-        client.app.state.queue_manager.latest_result = result  # type: ignore
+        asyncio.run(client.app.state.queue_manager._store_result(result))
 
         latest_response = client.get(RESULT_LATEST_ROUTE)
         assert latest_response.status_code == 200
@@ -82,7 +83,7 @@ def test_api_result_by_id():
             created_at=datetime.now(),
             finished_at=datetime.now(),
         )
-        client.app.state.queue_manager.results[result.request_id] = result  # type: ignore
+        asyncio.run(client.app.state.queue_manager._store_result(result))
 
         result_url = RESULT_BY_ID_ROUTE.format(request_id=result.request_id)
 
@@ -102,7 +103,7 @@ def test_api_result_all_results():
             created_at=datetime.now(),
             finished_at=datetime.now(),
         )
-        client.app.state.queue_manager.results[result.request_id] = result  # type: ignore
+        asyncio.run(client.app.state.queue_manager._store_result(result))
 
         all_response = client.get(RESULTS_ALL_ROUTE)
 

@@ -60,6 +60,10 @@ spec:
             - name: config-volume
               mountPath: "/etc/config/config.yaml"
               subPath: config.yaml
+            {{- if .Values.persistence.enabled }}
+            - name: redis-data
+              mountPath: {{ .Values.config.redis.data_dir }}
+            {{- end }}
           {{- with .Values.volumeMounts }}
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -72,6 +76,11 @@ spec:
             sources:
             - configMap:
                 name: {{ include "heliotrapi.fullname" . }}-config
+        {{- if .Values.persistence.enabled }}
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: {{ include "heliotrapi.fullname" . }}-redis-data
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

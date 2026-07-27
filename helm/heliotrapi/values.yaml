@@ -72,8 +72,16 @@ config:
     workers: 4
   results:
     ttl_seconds: 3600
-  cleanup:
-    interval_seconds: 300
+  redis:
+    # localhost: heliotrapi starts its own redis-server (see
+    # redis_service.py) and persists it to data_dir below, which is backed
+    # by the PVC configured under `persistence` - survives pod restarts.
+    # Point this at a separately managed Redis instead if you have one.
+    host: "localhost"
+    port: 6379
+    db: 0
+    key_prefix: "heliotrapi"
+    data_dir: "/data/redis"
   plugins:
     paths:
       - ./plugins
@@ -107,3 +115,14 @@ volumeMounts: []
 volumes: []
 nodeSelector: {}
 tolerations: []
+
+# Backs config.redis.data_dir (the embedded redis-server's storage) with a
+# PVC, so queue/results state survives a pod restart. Only meaningful while
+# replicaCount is 1 and config.redis.host is "localhost" - a shared/external
+# Redis is required instead if this is ever scaled to multiple replicas.
+persistence:
+  enabled: true
+  size: 1Gi
+  storageClassName: ""
+  accessModes:
+    - ReadWriteOnce

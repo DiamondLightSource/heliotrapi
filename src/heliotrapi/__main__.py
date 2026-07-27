@@ -5,6 +5,7 @@ from pathlib import Path
 import click
 import numpy as np
 
+from heliotrapi import redis_service
 from heliotrapi.analyses.peak_fitting import gaussian
 from heliotrapi.client import AnalysisClient
 from heliotrapi.config import Config
@@ -61,15 +62,11 @@ def main(
         print("Please invoke subcommand!")
 
 
-@main.command(name="serve")
-@click.pass_context
-def serve(ctx: click.Context):
-
+def _run_uvicorn(config: Config) -> None:
+    """Single OS process, run in this one - the dev/local default."""
     import uvicorn
 
     from heliotrapi.server import start_api
-
-    config = ctx.obj["config"]
 
     uvicorn.run(
         start_api(),
@@ -78,6 +75,59 @@ def serve(ctx: click.Context):
         port=int(config.server.port),
         reload=False,
     )
+
+
+def _run_gunicorn(config: Config) -> None:
+    """Multiple OS worker processes: launch Gunicorn in-process (this CLI
+    process becomes the Gunicorn arbiter) with --preload, so plugin and
+    analysis loading (which can do git clone/uv pip install) happens once
+    before forking workers, not once per worker."""
+    from gunicorn.app.base import BaseApplication
+    from gunicorn.util import import_app
+
+    class _GunicornApp(BaseApplication):
+        def __init__(self, app_uri: str, options: dict):
+            self.app_uri = app_uri
+            self.options = options
+            super().__init__()
+
+        def load_config(self):
+            for key, value in self.options.items():
+                self.cfg.set(key, value)
+
+        def load(self):
+            return import_app(self.app_uri)
+
+    _GunicornApp(
+        "heliotrapi.asgi:app",
+        {
+            "bind": f"{config.server.host}:{int(config.server.port)}",
+            "workers": int(config.uvicorn.workers),
+            "worker_class": "uvicorn.workers.UvicornWorker",
+            "preload_app": True,
+        },
+    ).run()
+
+
+@main.command(name="serve")
+@click.pass_context
+def serve(ctx: click.Context):
+
+    config = ctx.obj["config"]
+
+    # Starts a local redis-server if config.redis isn't already reachable,
+    # so `heliotrapi serve` is self-contained rather than requiring Redis to
+    # be booted separately. Must happen once here, before Gunicorn forks any
+    # workers, so they all connect to the same instance.
+    redis_process = redis_service.ensure_running(config)
+
+    try:
+        if int(config.uvicorn.workers) <= 1:
+            _run_uvicorn(config)
+        else:
+            _run_gunicorn(config)
+    finally:
+        redis_service.stop(redis_process)
 
 
 @main.command(name="run_client_test")

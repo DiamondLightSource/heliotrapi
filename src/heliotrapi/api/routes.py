@@ -102,18 +102,20 @@ async def get_latest_result(request: Request) -> AnalysisResult:
 
     queue_manager: QueueManager = request.app.state.queue_manager
 
-    if queue_manager.latest_result is None:
+    latest_result = await queue_manager.get_latest_result()
+
+    if latest_result is None:
         raise HTTPException(status_code=404, detail="No results yet")
 
-    return queue_manager.latest_result
+    return latest_result
 
 
 @ROUTER.get(RESULT_BY_ID_ROUTE)
 async def result(request: Request, request_id: UUID):
     queue_manager: QueueManager = request.app.state.queue_manager
-    if request_id not in queue_manager.results:
+    result = await queue_manager.get_result(request_id)
+    if result is None:
         raise HTTPException(404, "Result not found")
-    result = queue_manager.results[request_id]
     return result
 
 
@@ -133,10 +135,8 @@ async def get_endpoints():
 @ROUTER.get(RESULTS_ALL_ROUTE)
 async def get_all_results(request: Request):
     queue_manager: QueueManager = request.app.state.queue_manager
-    # Return all jobs (pending, running, completed, failed), sorted by created_at
-    results = list(queue_manager.results.values())
-    results.sort(key=lambda r: getattr(r, "created_at", None) or 0, reverse=True)
-    return results
+    # Already newest-first (sorted by created_at in Redis) - see get_all_results()
+    return await queue_manager.get_all_results()
 
 
 @ROUTER.get(STREAM_ROUTE)

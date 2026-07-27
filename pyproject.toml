@@ -26,6 +26,8 @@ dependencies = [
     "pyyaml",
     "h5py",
     "event_model",
+    "redis>=8.0.1",
+    "gunicorn>=26.0.0",
 ] # Add project dependencies here, e.g. ["click", "numpy"]
 dynamic = ["version"]
 license.file = "LICENSE"
@@ -44,6 +46,7 @@ dev = [
     "tox-uv",
     "types-mock",
     "pytest-mock",
+    "fakeredis>=2.37.0",
 ]
 
 [project.scripts]

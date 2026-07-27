@@ -57,14 +57,58 @@ def test_cli_serve_invokes_uvicorn():
     assert "Started server process" in output
 
 
+def test_cli_serve_multi_worker_launches_gunicorn():
+    from gunicorn.app.base import BaseApplication
+
+    # serve() reads ctx.obj["config"], but that's set by the `main` group's
+    # own callback (via Config.load_config()) before any subcommand runs -
+    # passing obj={...} to runner.invoke() would just get overwritten, so
+    # the config must be mocked at its source instead.
+    config_mock = MagicMock()
+    config_mock.server.host = "localhost"
+    config_mock.server.port = 8000
+    config_mock.uvicorn.workers = 3
+
+    captured = {}
+
+    def fake_run(self):
+        captured["app_uri"] = self.app_uri
+        captured["options"] = self.options
+
+    runner = CliRunner()
+    with (
+        patch("heliotrapi.__main__.Config.load_config", return_value=config_mock),
+        patch("heliotrapi.redis_service.ensure_running", return_value=None),
+        patch.object(BaseApplication, "run", fake_run),
+    ):
+        result = runner.invoke(
+            main,
+            ["serve"],
+            catch_exceptions=False,
+        )
+
+    assert result.exit_code == 0
+    assert captured["app_uri"] == "heliotrapi.asgi:app"
+    assert captured["options"] == {
+        "bind": "localhost:8000",
+        "workers": 3,
+        "worker_class": "uvicorn.workers.UvicornWorker",
+        "preload_app": True,
+    }
+
+
 def test_serve_raises_exception_when_dependencies_missing():
     runner = CliRunner()
 
     config_mock = MagicMock()
     config_mock.server.host = "localhost"
     config_mock.server.port = "8000"
+    config_mock.uvicorn.workers = 1
 
-    with pytest.raises(ImportError):
+    with (
+        pytest.raises(ImportError),
+        patch("heliotrapi.redis_service.ensure_running", return_value=None),
+    ):
         with patch.dict("sys.modules", {"uvicorn": None, "heliotrapi.server": None}):
             result = runner.invoke(
                 main,

@@ -4,13 +4,20 @@ server:
   suppress_polling_logs: true
 
 queue:
-  workers: 4
+  workers: 4 # concurrent async consumer loops per OS process
 
 results:
-  ttl_seconds: 3600 #time to live of results before deletion
+  ttl_seconds: 3600 #time to live of results before deletion (Redis key TTL)
 
-cleanup:
-  interval_seconds: 300 #frequency of checking for deletable results
+redis:
+  host: "localhost"
+  port: 6379
+  db: 0
+  key_prefix: "heliotrapi"
+  data_dir: "./data/redis" # where the auto-started redis-server persists its data
+
+uvicorn:
+  workers: 1 # OS-level Gunicorn worker processes; >1 launches Gunicorn+preload
 
 plugins:
   paths:

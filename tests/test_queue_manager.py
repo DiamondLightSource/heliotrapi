@@ -5,62 +5,51 @@ from uuid import uuid4
 
 import pytest
 
-from heliotrapi.models import AnalysisRequest, AnalysisResult
+from heliotrapi.models import AnalysisRequest
 from heliotrapi.task_queue.manager import QueueManager, validate_inputs
 from heliotrapi.utils.messenger import Messenger
 
 
 class FakeMessenger:
-    def __init__(self):
-        self.sent = []
+    def __init__(self) -> None:
+        self.sent: list[tuple[str, str]] = []
 
-    def is_connected(self):
+    def is_connected(self) -> bool:
         return True
 
-    def send_message(self, destination, message):
+    def send_message(self, destination: str, message: str) -> None:
         self.sent.append((destination, message))
 
 
 @pytest.mark.asyncio
-async def test_queue_manager_worker_success(monkeypatch):
-    queue_manager = QueueManager(workers=1)
-
-    async def fake_analysis(number):
-        return number * 2
-
-    monkeypatch.setattr(
-        "heliotrapi.analysis_core.registry.get_analysis", lambda name: fake_analysis
-    )
+async def test_queue_manager_worker_success(fake_redis_client):
+    queue_manager = QueueManager(redis_client=fake_redis_client, workers=1)
 
     job = AnalysisRequest(analysis_name="double", inputs={"number": 2})
     await queue_manager.enqueue(job)
 
-    worker_task = asyncio.create_task(queue_manager.worker())
-    await asyncio.wait_for(queue_manager.queue.join(), timeout=1.0)
+    result = await queue_manager._process_job(job)
 
-    assert job.request_id in queue_manager.results
-    assert queue_manager.latest_result is not None
-    assert queue_manager.latest_result.analysis_name == "double"
+    assert result.analysis_name == "double"
+    assert result.result == 4
 
-    worker_task.cancel()
-    with pytest.raises(asyncio.CancelledError):
-        await worker_task
+    stored = await queue_manager.get_result(job.request_id)
+    assert stored is not None
+    assert stored.status == "completed"
+
+    latest = await queue_manager.get_latest_result()
+    assert latest is not None
+    assert latest.analysis_name == "double"
 
 
 @pytest.mark.asyncio
-async def test_queue_manager_enqueue_success_sends_message(monkeypatch):
+async def test_queue_manager_enqueue_success_sends_message(fake_redis_client):
 
     messenger = FakeMessenger()
     queue_manager = QueueManager(
+        redis_client=fake_redis_client,
         workers=1,
         messenger=cast(Messenger, messenger),
-    )
-
-    async def fake_analysis(number):
-        return number * 2
-
-    monkeypatch.setattr(
-        "heliotrapi.analysis_core.registry.get_analysis", lambda name: fake_analysis
     )
 
     job = AnalysisRequest(analysis_name="double", inputs={"number": 2})
@@ -95,109 +84,63 @@ def test_validate_inputs_unknown_extra_parameter():
 
 
 @pytest.mark.asyncio
-async def test_queue_manager_worker_failure_sends_message(monkeypatch):
+async def test_queue_manager_worker_failure_sends_message(fake_redis_client):
 
     messenger = FakeMessenger()
     queue_manager = QueueManager(
+        redis_client=fake_redis_client,
         workers=1,
         messenger=cast(Messenger, messenger),
     )
 
-    async def failing_analysis():
+    async def failing_analysis(**kwargs):
         raise KeyError("missing")
 
-    monkeypatch.setattr(
-        "heliotrapi.analysis_core.registry.get_analysis",
-        lambda name: failing_analysis,
-    )
-
     job = AnalysisRequest(analysis_name="missing", inputs={})
-    await queue_manager.enqueue(job)
-
-    worker_task = asyncio.create_task(queue_manager.worker())
-    await asyncio.wait_for(queue_manager.queue.join(), timeout=1.0)
-    assert job.request_id in queue_manager.results
-    assert queue_manager.latest_result is not None
-    assert queue_manager.latest_result.status == "failed"
-    assert messenger.sent
-
-    worker_task.cancel()
-    with pytest.raises(asyncio.CancelledError):
-        await worker_task
-
-
-@pytest.mark.asyncio
-async def test_queue_manager_enqueue_failure_sets_latest_result_and_sends_message(
-    monkeypatch,
-):
-
-    messenger = FakeMessenger()
-    queue_manager = QueueManager(
-        workers=1,
-        messenger=cast(Messenger, messenger),
-    )
-
-    monkeypatch.setattr(
-        "heliotrapi.analysis_core.registry.get_analysis",
-        lambda name: (_ for _ in ()).throw(KeyError("missing")),
-    )
-
-    job = AnalysisRequest(analysis_name="missing", inputs={})
-    response = await queue_manager.enqueue(job)
-
-    assert response.accepted is False
-    assert queue_manager.latest_result is not None
-    assert queue_manager.latest_result.status == "failed"
-    assert messenger.sent
-    assert job.request_id in queue_manager.results
-
-
-@pytest.mark.asyncio
-async def test_worker_catches_exception_and_marks_job_failed():
-    async def failing_analysis(**kwargs):
-        raise RuntimeError("analysis exploded")
-
-    job = AnalysisRequest(
-        request_id=uuid4(),
-        analysis_name="test_analysis",
-        inputs={},
-    )
-
-    qm = QueueManager()
-
-    qm.results[job.request_id] = AnalysisResult(
-        request_id=job.request_id,
-        analysis_name=job.analysis_name,
-        inputs=job.inputs,
-        status="running",
-        result=None,
-        created_at=job.created_at,
-        finished_at=None,
-    )
-
-    await qm.queue.put(job)
 
     with patch(
         "heliotrapi.task_queue.manager.get_analysis",
         return_value=failing_analysis,
     ):
-        worker_task = asyncio.create_task(qm.worker())
-
-        await qm.queue.join()
-
-        worker_task.cancel()
-        with pytest.raises(asyncio.CancelledError):
-            await worker_task
-
-    result = qm.results[job.request_id]
+        result = await queue_manager._process_job(job)
 
     assert result.status == "failed"
-    assert "analysis exploded" in result.result
-    assert qm.latest_result == result
+    assert messenger.sent
 
 
 @pytest.mark.asyncio
-async def test_worker_sends_slack_message_on_failure():
+async def test_queue_manager_enqueue_failure_sets_latest_result_and_sends_message(
+    fake_redis_client,
+):
+
+    messenger = FakeMessenger()
+    queue_manager = QueueManager(
+        redis_client=fake_redis_client,
+        workers=1,
+        messenger=cast(Messenger, messenger),
+    )
+
+    job = AnalysisRequest(analysis_name="missing", inputs={})
+
+    with patch(
+        "heliotrapi.task_queue.manager.get_analysis",
+        side_effect=Exception("boom"),
+    ):
+        response = await queue_manager.enqueue(job)
+
+    assert response.accepted is False
+
+    latest = await queue_manager.get_latest_result()
+    assert latest is not None
+    assert latest.status == "failed"
+    assert messenger.sent
+
+    stored = await queue_manager.get_result(job.request_id)
+    assert stored is not None
+
+
+@pytest.mark.asyncio
+async def test_worker_catches_exception_and_marks_job_failed(fake_redis_client):
     async def failing_analysis(**kwargs):
         raise RuntimeError("analysis exploded")
 
@@ -207,19 +150,35 @@ async def test_worker_sends_slack_message_on_failure():
         inputs={},
     )
 
-    qm = QueueManager(slack_webhook_url="https://slack.example.com")
+    qm = QueueManager(redis_client=fake_redis_client)
 
-    qm.results[job.request_id] = AnalysisResult(
-        request_id=job.request_id,
-        analysis_name=job.analysis_name,
-        inputs=job.inputs,
-        status="running",
-        result=None,
-        created_at=job.created_at,
-        finished_at=None,
+    with patch(
+        "heliotrapi.task_queue.manager.get_analysis",
+        return_value=failing_analysis,
+    ):
+        result = await qm._process_job(job)
+
+    assert result.status == "failed"
+    assert "analysis exploded" in result.result
+
+    latest = await qm.get_latest_result()
+    assert latest == result
+
+
+@pytest.mark.asyncio
+async def test_worker_sends_slack_message_on_failure(fake_redis_client):
+    async def failing_analysis(**kwargs):
+        raise RuntimeError("analysis exploded")
+
+    job = AnalysisRequest(
+        request_id=uuid4(),
+        analysis_name="test_analysis",
+        inputs={},
     )
 
-    await qm.queue.put(job)
+    qm = QueueManager(
+        redis_client=fake_redis_client, slack_webhook_url="https://slack.example.com"
+    )
 
     with (
         patch(
@@ -228,13 +187,7 @@ async def test_worker_sends_slack_message_on_failure():
         ),
         patch("heliotrapi.task_queue.manager.send_slack_failure") as mock_slack,
     ):
-        worker_task = asyncio.create_task(qm.worker())
-
-        await qm.queue.join()
-
-        worker_task.cancel()
-        with pytest.raises(asyncio.CancelledError):
-            await worker_task
+        await qm._process_job(job)
 
     mock_slack.assert_called_once()
 
@@ -244,7 +197,8 @@ async def test_worker_sends_slack_message_on_failure():
     assert "analysis exploded" in kwargs["message"]
 
 
-def test_enqueue_sends_slack_on_failure():
+@pytest.mark.asyncio
+async def test_enqueue_sends_slack_on_failure(fake_redis_client):
 
     job = AnalysisRequest(
         request_id=uuid4(),
@@ -252,7 +206,9 @@ def test_enqueue_sends_slack_on_failure():
         inputs={"x": "bad"},
     )
 
-    qm = QueueManager(slack_webhook_url="https://slack.example.com")
+    qm = QueueManager(
+        redis_client=fake_redis_client, slack_webhook_url="https://slack.example.com"
+    )
 
     with (
         patch(
@@ -261,11 +217,37 @@ def test_enqueue_sends_slack_on_failure():
         ),
         patch("heliotrapi.task_queue.manager.send_slack_failure") as mock_slack,
     ):
-        import asyncio
-
-        asyncio.run(qm.enqueue(job))
+        await qm.enqueue(job)
 
     mock_slack.assert_called_once()
 
     _, kwargs = mock_slack.call_args
     assert "boom" in kwargs["message"]
+
+
+@pytest.mark.asyncio
+async def test_queue_manager_worker_reads_from_queue(fake_redis_client):
+    """A thin end-to-end check that worker() dequeues and processes a real
+    job via BRPOP, separate from the _process_job unit tests above."""
+    queue_manager = QueueManager(redis_client=fake_redis_client, workers=1)
+    job = AnalysisRequest(analysis_name="double", inputs={"number": 3})
+    await queue_manager.enqueue(job)
+
+    worker_task = asyncio.create_task(queue_manager.worker())
+    try:
+        for _ in range(200):
+            result = await queue_manager.get_result(job.request_id)
+            if result is not None and result.status == "completed":
+                break
+            await asyncio.sleep(0.01)
+        else:
+            pytest.fail("worker() never processed the enqueued job")
+    finally:
+        # Fire-and-forget cancel, matching server.py's own shutdown path -
+        # fakeredis's blocking BRPOP spawns an internal task that doesn't
+        # reliably respond to the awaiting task's cancellation in every
+        # interleaving, so we don't assert on it finishing here.
+        worker_task.cancel()
+
+    assert result is not None
+    assert result.result == 6

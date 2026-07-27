@@ -1,8 +1,9 @@
-import asyncio
 import inspect
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
+
+from redis.asyncio import Redis
 
 from heliotrapi.analysis_core.registry import get_analysis
 from heliotrapi.logger import logger
@@ -104,19 +105,91 @@ def validate_inputs(func, inputs: dict):
 
 
 class QueueManager:
+    """Dispatches analysis jobs through a Redis-backed queue.
+
+    State (the job queue, per-job results, and the latest result) lives in
+    Redis rather than process memory, so it's shared correctly across
+    multiple OS worker processes (see src/heliotrapi/asgi.py and
+    __main__.py's Gunicorn branch) rather than being private to whichever
+    process happened to accept a given request.
+    """
+
     def __init__(
         self,
+        redis_client: Redis,
         workers: int = 2,
         messenger: Messenger | None = None,
         slack_webhook_url: str | None = None,
+        key_prefix: str = "heliotrapi",
+        results_ttl_seconds: int = 3600,
     ):
-        self.queue: asyncio.Queue[AnalysisRequest] = asyncio.Queue(maxsize=0)  # 0 = inf
-        self.results: dict[UUID, AnalysisResult] = {}
+        self._redis = redis_client
         self.workers = workers
-        self.latest_result: AnalysisResult | None = None
         self.messenger = messenger
         self.slack_webhook_url = slack_webhook_url
-        logger.info(self.queue)
+        self.key_prefix = key_prefix
+        self.results_ttl_seconds = results_ttl_seconds
+        logger.info(f"QueueManager using Redis queue '{self._queue_key}'")
+
+    @property
+    def _queue_key(self) -> str:
+        return f"{self.key_prefix}:queue:jobs"
+
+    @property
+    def _latest_key(self) -> str:
+        return f"{self.key_prefix}:result:latest"
+
+    @property
+    def _index_key(self) -> str:
+        return f"{self.key_prefix}:results:index"
+
+    def _result_key(self, request_id: UUID) -> str:
+        return f"{self.key_prefix}:result:{request_id}"
+
+    async def _store_result(self, result: AnalysisResult) -> None:
+        payload = result.model_dump_json()
+        created_at = result.created_at or datetime.now()
+
+        async with self._redis.pipeline(transaction=True) as pipe:
+            pipe.set(
+                self._result_key(result.request_id),
+                payload,
+                ex=self.results_ttl_seconds,
+            )
+            pipe.set(self._latest_key, payload)
+            pipe.zadd(self._index_key, {str(result.request_id): created_at.timestamp()})
+            await pipe.execute()
+
+    async def get_result(self, request_id: UUID) -> AnalysisResult | None:
+        payload = await self._redis.get(self._result_key(request_id))
+        if payload is None:
+            return None
+        return AnalysisResult.model_validate_json(payload)
+
+    async def get_latest_result(self) -> AnalysisResult | None:
+        payload = await self._redis.get(self._latest_key)
+        if payload is None:
+            return None
+        return AnalysisResult.model_validate_json(payload)
+
+    async def get_all_results(self) -> list[AnalysisResult]:
+        ids = await self._redis.zrevrangebyscore(self._index_key, "+inf", "-inf")
+
+        results = []
+        expired = []
+
+        for request_id in ids:
+            payload = await self._redis.get(self._result_key(UUID(request_id)))
+            if payload is None:
+                # TTL already expired this result; drop the stale index entry.
+                expired.append(request_id)
+                continue
+            results.append(AnalysisResult.model_validate_json(payload))
+
+        if expired:
+            await self._redis.zrem(self._index_key, *expired)
+
+        return results
 
     async def enqueue(self, job: AnalysisRequest) -> AnalysisResponse:
         job.created_at = datetime.now()
@@ -135,8 +208,8 @@ class QueueManager:
         try:
             analysis_fn = get_analysis(job.analysis_name)  # will raise if no analysis
             validate_inputs(analysis_fn, job.inputs)  # will raise if inputs are invalid
-            self.results[job.request_id] = pending_result
-            await self.queue.put(job)
+            await self._store_result(pending_result)
+            await self._redis.lpush(self._queue_key, job.model_dump_json())
             analysis_response = AnalysisResponse(
                 request_id=job.request_id,
                 analysis_name=job.analysis_name,
@@ -148,8 +221,7 @@ class QueueManager:
             pending_result.status = "failed"
             pending_result.result = str(e)
             pending_result.finished_at = datetime.now()
-            self.results[job.request_id] = pending_result
-            self.latest_result = pending_result
+            await self._store_result(pending_result)
 
             analysis_response = AnalysisResponse(
                 request_id=job.request_id,
@@ -176,58 +248,75 @@ class QueueManager:
 
         return analysis_response
 
-    async def worker(self):
+    async def worker(self) -> None:
         while True:
-            job = await self.queue.get()
+            # redis-py's stubs type this as bytes|str regardless of
+            # decode_responses, since that flag isn't tracked statically.
+            item = await self._redis.brpop([self._queue_key], timeout=5)
+            if item is None:
+                continue  # timed out waiting for a job; loop and block again
 
-            try:
-                analysis_fn = get_analysis(job.analysis_name)
-                annotations = get_function_annotations(analysis_fn)
+            _, payload = item
+            job = AnalysisRequest.model_validate_json(payload)
+            await self._process_job(job)
 
-                logger.info(annotations)
+    async def _process_job(self, job: AnalysisRequest) -> AnalysisResult:
+        """Run a single dequeued job and store its result. Split out of
+        worker() so it can be unit-tested directly, without a real blocking
+        BRPOP loop to spin up and tear down."""
+        result: Any
+        status: Literal["completed", "failed"]
 
-                # validate_inputs(analysis_fn, job.inputs)
-                converted_inputs = convert_inputs(job.inputs, annotations)
+        try:
+            analysis_fn = get_analysis(job.analysis_name)
+            annotations = get_function_annotations(analysis_fn)
 
-                result_value = await analysis_fn(**converted_inputs)  # actually run job
+            logger.info(annotations)
 
-                # Convert numpy and other non-serializable types
-                result_value = serialise(result_value)
+            converted_inputs = convert_inputs(job.inputs, annotations)
 
-                result = result_value
-                status = "completed"
-                finished_at = datetime.now()
+            result_value = await analysis_fn(**converted_inputs)  # actually run job
 
-            except Exception as e:
-                result = str(e)
-                status = "failed"
-                finished_at = datetime.now()
+            # Convert numpy and other non-serializable types
+            result = serialise(result_value)
+            status = "completed"
+            finished_at = datetime.now()
 
-                if self.slack_webhook_url is not None:
-                    send_slack_failure(
-                        webhook_url=self.slack_webhook_url,
-                        message=f"Job {job} failed: {str(e)}",
-                    )
+        except Exception as e:
+            result = str(e)
+            status = "failed"
+            finished_at = datetime.now()
 
-            finally:
-                self.queue.task_done()
+            if self.slack_webhook_url is not None:
+                send_slack_failure(
+                    webhook_url=self.slack_webhook_url,
+                    message=f"Job {job} failed: {str(e)}",
+                )
 
-            logger.info(
-                f"Job {job.request_id} finished with status '{status}' and result: {result}"  # noqa
+        logger.info(
+            f"Job {job.request_id} finished with status '{status}' and result: {result}"  # noqa
+        )
+
+        # preserve the original created_at recorded at enqueue time
+        pending_result = await self.get_result(job.request_id)
+        created_at = pending_result.created_at if pending_result else job.created_at
+
+        analysis_result = AnalysisResult(
+            request_id=job.request_id,
+            analysis_name=job.analysis_name,
+            inputs=job.inputs,
+            status=status,
+            result=result,
+            created_at=created_at,
+            finished_at=finished_at,
+        )
+
+        await self._store_result(analysis_result)
+
+        if self.messenger is not None and self.messenger.is_connected():
+            self.messenger.send_message(
+                DEFAULT_DII_PROCESSED_DESTINATION,
+                analysis_result.model_dump_json(),
             )
 
-            # get pending result and update with final status and result
-            analysis_result: AnalysisResult = self.results[job.request_id]
-            analysis_result.status = status
-            analysis_result.result = result
-            analysis_result.finished_at = finished_at
-
-            self.results[job.request_id] = analysis_result
-            # store latest result
-            self.latest_result = analysis_result
-
-            if self.messenger is not None and self.messenger.is_connected():
-                self.messenger.send_message(
-                    DEFAULT_DII_PROCESSED_DESTINATION,
-                    analysis_result.model_dump_json(),
-                )
+        return analysis_result

@@ -1,23 +1,27 @@
 """Interface for `python -m heliotrapi`."""
 
 import asyncio
+import contextlib
 import importlib
 import logging
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from redis.asyncio import Redis
 
 import heliotrapi
+from heliotrapi import redis_service
 from heliotrapi._version import __version__
 from heliotrapi.analysis_core.loader import load_analyses, load_plugins
 from heliotrapi.api.endpoints import HEALTH_ROUTE, RESULTS_ALL_ROUTE
 from heliotrapi.api.routes import ROUTER
 from heliotrapi.config import Config
 from heliotrapi.logger import logger
-from heliotrapi.task_queue import QueueManager, RabbitMQListener, cleanup_results
+from heliotrapi.task_queue import QueueManager, RabbitMQListener, SingleInstanceLock
 from heliotrapi.utils.messenger import Messenger
 
 config: Config = Config.load_config()
@@ -38,54 +42,94 @@ def initialize_analyses(register_all: bool = False):
     load_plugins(config, register_all=register_all)
 
 
+@dataclass
+class _RabbitMQRuntime:
+    """The listener plus the background task that guards it with a lock so
+    only one uvicorn.workers process runs it at a time."""
+
+    listener: RabbitMQListener
+    lock_task: asyncio.Task
+
+
+def _start_rabbitmq(
+    config: Config, queue_manager: QueueManager, redis_client: Redis
+) -> _RabbitMQRuntime:
+    listener = RabbitMQListener(
+        queue_manager=queue_manager,
+        host=config.rabbitmq.host,
+        port=config.rabbitmq.port,
+        username=config.rabbitmq.username,
+        password=config.rabbitmq.password,
+        destinations=config.rabbitmq.destinations,
+    )
+
+    # STOMP topic subscriptions are pub/sub, so with multiple uvicorn.workers
+    # every process would otherwise receive and enqueue every message. Only
+    # the process holding this lock runs the listener; if it dies, the lock
+    # expires and a sibling takes over.
+    lock_config = config.rabbitmq.listener_lock
+    lock = SingleInstanceLock(
+        redis_client,
+        lock_key=f"{config.redis.key_prefix}:rabbitmq:listener-lock",
+        ttl_seconds=lock_config.ttl_seconds,
+        renew_interval_seconds=lock_config.renew_interval_seconds,
+        retry_interval_seconds=lock_config.retry_interval_seconds,
+    )
+    lock_task = asyncio.create_task(
+        lock.run_while_held(
+            on_acquire=listener.start,
+            on_lose=lambda: asyncio.to_thread(listener.stop),
+        )
+    )
+    return _RabbitMQRuntime(listener=listener, lock_task=lock_task)
+
+
+async def _stop_rabbitmq(rabbitmq: _RabbitMQRuntime | None) -> None:
+    if rabbitmq is None:
+        return
+    rabbitmq.lock_task.cancel()
+    with contextlib.suppress(asyncio.CancelledError):
+        await rabbitmq.lock_task
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 
-    rabbit_task = None
+    redis_client = redis_service.build_client(config)
 
-    if config.rabbitmq.enabled:
-        messenger = Messenger(
+    messenger = (
+        Messenger(
             host=config.rabbitmq.host,
             port=config.rabbitmq.port,
             username=config.rabbitmq.username,
             password=config.rabbitmq.password,
             auto_subscribe=False,
         )
-    else:
-        messenger = None
+        if config.rabbitmq.enabled
+        else None
+    )
 
     queue_manager = QueueManager(
+        redis_client=redis_client,
         workers=config.queue.workers,
         messenger=messenger,
         slack_webhook_url=config.alerts.slack_webhook_url
         if config.alerts.slack_webhook_url != ""
         else None,
+        key_prefix=config.redis.key_prefix,
+        results_ttl_seconds=config.results.ttl_seconds,
     )
 
-    workers = [
+    worker_tasks = [
         asyncio.create_task(queue_manager.worker())
         for _ in range(queue_manager.workers)
     ]
 
-    cleanup_task = asyncio.create_task(
-        cleanup_results(
-            queue_manager,
-            ttl=config.results.ttl_seconds,
-            interval=config.cleanup.interval_seconds,
-        )
+    rabbitmq = (
+        _start_rabbitmq(config, queue_manager, redis_client)
+        if config.rabbitmq.enabled
+        else None
     )
-
-    if config.rabbitmq.enabled:
-        rabbit_listener = RabbitMQListener(
-            queue_manager=queue_manager,
-            host=config.rabbitmq.host,
-            port=config.rabbitmq.port,
-            username=config.rabbitmq.username,
-            password=config.rabbitmq.password,
-            destinations=config.rabbitmq.destinations,
-        )
-
-        rabbit_task = asyncio.create_task(rabbit_listener.start())
 
     app.state.queue_manager = queue_manager
     app.state.config = config
@@ -96,13 +140,11 @@ async def lifespan(app: FastAPI):
 
     logging.info("Shutting down")
 
-    for task in workers:
+    for task in worker_tasks:
         task.cancel()
 
-    cleanup_task.cancel()
-
-    if rabbit_task is not None:
-        rabbit_task.cancel()
+    await _stop_rabbitmq(rabbitmq)
+    await redis_client.aclose()
 
 
 class HealthzAccessLogFilter(logging.Filter):
