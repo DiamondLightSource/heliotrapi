@@ -23,7 +23,7 @@ def test_send_slack_message_success(mock_post, mock_logger):
         json={"message": "hello"},
     )
     response.raise_for_status.assert_called_once()
-    mock_logger.info.assert_called_once_with("Message sent to Slack")
+    mock_logger.info.assert_called_once_with("Message sent to Slack: hello")
 
 
 @patch("heliotrapi.utils.slack_alerts.logger")
@@ -36,7 +36,7 @@ def test_send_slack_message_request_exception(mock_post, mock_logger):
     send_slack_message("hello", webhook_url)
 
     mock_logger.error.assert_called_once_with(
-        f"Failed to send message to Slack: boom at URL: {webhook_url}"
+        f"Failed to send message: hello to Slack: boom at URL: {webhook_url}"
     )
 
 

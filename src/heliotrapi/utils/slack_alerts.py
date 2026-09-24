@@ -18,7 +18,7 @@ def send_slack_message(message: str, webhook_url: str):
         logger.info(f"Message sent to Slack: {message}")
     except httpx.RequestError as e:
         logger.error(
-            f"Failed to send message {message} to Slack: {e} at URL: {webhook_url}"
+            f"Failed to send message: {message} to Slack: {e} at URL: {webhook_url}"
         )
 
 
