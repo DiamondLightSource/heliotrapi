@@ -15,9 +15,11 @@ def send_slack_message(message: str, webhook_url: str):
     try:
         response = httpx.post(webhook_url, json=payload)
         response.raise_for_status()
-        logger.info("Message sent to Slack")
+        logger.info(f"Message sent to Slack: {message}")
     except httpx.RequestError as e:
-        logger.error(f"Failed to send message to Slack: {e} at URL: {webhook_url}")
+        logger.error(
+            f"Failed to send message {message} to Slack: {e} at URL: {webhook_url}"
+        )
 
 
 def send_slack_failure(message: str, webhook_url: str):
