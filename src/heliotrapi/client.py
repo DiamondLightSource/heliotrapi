@@ -197,8 +197,11 @@ class AnalysisClient:
         request_id: UUID,
         timeout: float = 30.0,
         poll_interval: float = 0.1,
+        must_complete=True,
     ) -> AnalysisResult:
-        """get a specific result, but requesting the result with a given request_id"""
+        """get a specific result, but requesting the result with a given request_id.
+        Waits for completion if must_complete is True, otherwise returns first result.
+        """
 
         start_time = time.time()
 
@@ -206,7 +209,8 @@ class AnalysisClient:
             result = self.request_result(request_id)
 
             if result is not None:
-                return result
+                if result.status == "completed" or not must_complete:
+                    return result
 
             if time.time() - start_time > timeout:
                 raise TimeoutError(f"Result not ready after {timeout} seconds")
