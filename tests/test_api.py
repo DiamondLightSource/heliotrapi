@@ -33,7 +33,7 @@ def test_analysis_flow_with_post():
         url = RESULT_BY_ID_ROUTE.format(request_id=request_id)
 
         for _ in range(10):
-            r = client_http.get(url)
+            r = client_http.get(url, auth=("admin", "password"))
 
             print(r)
 

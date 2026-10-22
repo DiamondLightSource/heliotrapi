@@ -102,7 +102,11 @@ async def analyse(
         )
 
 
-@ROUTER.get(RESULT_LATEST_ROUTE, response_model=AnalysisResult)
+@ROUTER.get(
+    RESULT_LATEST_ROUTE,
+    response_model=AnalysisResult,
+    dependencies=[Depends(require_auth)],
+)
 async def get_latest_result(request: Request) -> AnalysisResult:
 
     queue_manager: QueueManager = request.app.state.queue_manager
@@ -113,7 +117,7 @@ async def get_latest_result(request: Request) -> AnalysisResult:
     return queue_manager.latest_result
 
 
-@ROUTER.get(RESULT_BY_ID_ROUTE)
+@ROUTER.get(RESULT_BY_ID_ROUTE, dependencies=[Depends(require_auth)])
 async def result(request: Request, request_id: UUID):
     queue_manager: QueueManager = request.app.state.queue_manager
     if request_id not in queue_manager.results:
@@ -135,7 +139,7 @@ async def get_endpoints():
     ]
 
 
-@ROUTER.get(RESULTS_ALL_ROUTE)
+@ROUTER.get(RESULTS_ALL_ROUTE, dependencies=[Depends(require_auth)])
 async def get_all_results(request: Request):
     queue_manager: QueueManager = request.app.state.queue_manager
     # Return all jobs (pending, running, completed, failed), sorted by created_at
