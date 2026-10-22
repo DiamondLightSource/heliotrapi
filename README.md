@@ -292,3 +292,50 @@ http://localhost:8000/
 ## Example Kubernetes Deployment
 
 Go to the i15-services repo on gitlab.diamond.ac.uk to see an example of how to set it up
+
+
+## Create a secret:
+
+
+
+1. Go to the right cluster and namespace. Do:
+'''bash
+module load k8s-ixx
+```
+
+2. Type your password. Nothing shows while you type:
+'''bash
+read -rsp "Password: " PW; echo
+
+3. Create the sealed secret (change ixx-heliotrapi to your beamline):
+'''bash
+kubectl create secret generic heliotrapi-auth --dry-run=client -o yaml --from-literal=username='ixx-heliotrapi' --from-literal=password="$PW" | kubeseal -o yaml | kubectl create -f -
+```
+
+4. Clear the password from your shell:
+```bash
+unset PW
+```
+
+5. Check it. Both a sealedsecret and a secret should be listed:
+```bash
+kubectl get sealedsecret,secret heliotrapi-auth
+```
+
+6. Now add to the blueapi config:
+
+```
+env:
+  - name: HELIOTRAPI_USERNAME
+    valueFrom:
+      secretKeyRef:
+        name: heliotrapi-auth
+        key: username
+  - name: HELIOTRAPI_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: heliotrapi-auth
+        key: password
+```
+
+7. Deploy. Go to the webpage and use ixx-heliotrapi as the username and your password as the password to see results on the frontend
