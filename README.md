@@ -337,3 +337,10 @@ env:
 ```
 
 7. Deploy. Restart the pod. Go to the webpage and use ixx-heliotrapi as the username and your password as the password to see results on the frontend
+
+
+8?. If you need to delet the secret and re-do it:
+
+```bash
+kubectl delete sealedsecret heliotrapi-auth
+```
