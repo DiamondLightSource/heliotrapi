@@ -42,3 +42,23 @@ def test_rabbitmq_address_property():
         host="example.com", username="alice", password="secret", port=1234
     )
     assert cfg.address == "stomp://alice:secret@example.com:1234/"
+
+
+def test_config_auth_defaults():
+    cfg = Config()
+    assert cfg.auth.enabled is True
+    assert cfg.auth.username == "admin"
+    assert cfg.auth.password == "password"
+
+
+def test_config_loads_auth(tmp_path):
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        "auth:\n  enabled: false\n  username: alice\n  password: secret\n"
+    )
+
+    cfg = Config.load_config(config_file)
+
+    assert cfg.auth.enabled is False
+    assert cfg.auth.username == "alice"
+    assert cfg.auth.password == "secret"

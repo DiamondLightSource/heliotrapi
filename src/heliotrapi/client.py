@@ -38,10 +38,16 @@ class AnalysisClient:
         self,
         base_url: str = "http://127.0.0.1:8000",
         session: httpx.Client | None = None,
+        username: str | None = None,
+        password: str | None = None,
     ):
         self.base_url = base_url.rstrip("/")
         self.latest_request_id: UUID | None = None
         self.session = session or httpx.Client()
+
+        # HTTP Basic auth, needed to submit analyses if the server has auth enabled
+        if username is not None and password is not None:
+            self.session.auth = (username, password)
 
     def available_analyses(
         self, as_strings: bool = True

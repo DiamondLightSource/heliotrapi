@@ -1,7 +1,12 @@
 server:
   host: "localhost"
-  port: 8000
+  port: 8001
   suppress_polling_logs: true
+
+auth: # HTTP Basic auth required to submit analyses (POST /analyse and the stream endpoint)
+  enabled: true
+  username: "admin"
+  password: "password" # change this for any real deployment
 
 queue:
   workers: 4

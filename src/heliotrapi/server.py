@@ -15,7 +15,7 @@ from heliotrapi._version import __version__
 from heliotrapi.analysis_core.loader import load_analyses, load_plugins
 from heliotrapi.api.endpoints import HEALTH_ROUTE, RESULTS_ALL_ROUTE
 from heliotrapi.api.routes import ROUTER
-from heliotrapi.config import Config
+from heliotrapi.config import AuthConfig, Config
 from heliotrapi.logger import logger
 from heliotrapi.task_queue import QueueManager, RabbitMQListener, cleanup_results
 from heliotrapi.utils.messenger import Messenger
@@ -89,6 +89,11 @@ async def lifespan(app: FastAPI):
 
     app.state.queue_manager = queue_manager
     app.state.config = config
+
+    if not config.auth.enabled:
+        logger.warning("Auth is disabled - anyone can submit analyses")
+    elif config.auth.password == AuthConfig().password:
+        logger.warning("Auth is using the default password - change auth.password")
 
     logging.info("API started")
 

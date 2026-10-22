@@ -22,7 +22,12 @@ def test_gaussian_fit_with_client():
     # Use context manager to trigger lifespan
     with TestClient(app) as client_http:
         # Now queue_manager exists
-        client = AnalysisClient(base_url=str(client_http.base_url), session=client_http)  # type: ignore
+        client = AnalysisClient(
+            base_url=str(client_http.base_url),
+            session=client_http,
+            username="admin",
+            password="password",
+        )  # type: ignore
 
         # Submit job
         client.submit(gaussian_fit.__name__, x=x, y=y_noisy)
@@ -42,7 +47,12 @@ def test_client_lists_analyses():
     # Use context manager to trigger lifespan
     with TestClient(app) as client_http:
         # Now queue_manager exists
-        client = AnalysisClient(base_url=str(client_http.base_url), session=client_http)  # type: ignore
+        client = AnalysisClient(
+            base_url=str(client_http.base_url),
+            session=client_http,
+            username="admin",
+            password="password",
+        )  # type: ignore
 
         client.available_analyses()
 
@@ -52,7 +62,12 @@ def test_client_lists_analyses_as_strings():
     app = start_api()
 
     with TestClient(app) as client_http:
-        client = AnalysisClient(base_url=str(client_http.base_url), session=client_http)  # type: ignore
+        client = AnalysisClient(
+            base_url=str(client_http.base_url),
+            session=client_http,
+            username="admin",
+            password="password",
+        )  # type: ignore
 
         signatures = client.available_analyses(as_strings=True)
 
@@ -67,7 +82,12 @@ def test_client_runs_argument_with_none():
     app = start_api()
 
     with TestClient(app) as client_http:
-        client = AnalysisClient(base_url=str(client_http.base_url), session=client_http)  # type: ignore
+        client = AnalysisClient(
+            base_url=str(client_http.base_url),
+            session=client_http,
+            username="admin",
+            password="password",
+        )  # type: ignore
 
         _ = client.submit(sine_wave.__name__, array=None)
 
@@ -81,7 +101,12 @@ def test_stream_results():
     app = start_api()
 
     with TestClient(app) as client_http:
-        client = AnalysisClient(base_url=str(client_http.base_url), session=client_http)  # type: ignore
+        client = AnalysisClient(
+            base_url=str(client_http.base_url),
+            session=client_http,
+            username="admin",
+            password="password",
+        )  # type: ignore
 
         count = 0
 
@@ -95,7 +120,12 @@ def test_plot_stream():
     app = start_api()
 
     with TestClient(app) as client_http:
-        client = AnalysisClient(base_url=str(client_http.base_url), session=client_http)  # type: ignore
+        client = AnalysisClient(
+            base_url=str(client_http.base_url),
+            session=client_http,
+            username="admin",
+            password="password",
+        )  # type: ignore
 
         stream = client.plot_stream(analysis="double", number=15, max_iterations=10)
 
@@ -111,7 +141,12 @@ def test_analysis_request_error():
     # Use context manager to trigger lifespan
     with TestClient(app) as client_http:
         # Now queue_manager exists
-        client = AnalysisClient(base_url=str(client_http.base_url), session=client_http)  # type: ignore
+        client = AnalysisClient(
+            base_url=str(client_http.base_url),
+            session=client_http,
+            username="admin",
+            password="password",
+        )  # type: ignore
 
         analysis_request = AnalysisRequest(analysis_name="bad_request", inputs={})
 

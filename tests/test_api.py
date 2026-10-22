@@ -20,7 +20,11 @@ def test_analysis_flow_with_post():
 
         request = AnalysisRequest(analysis_name="double", inputs={"number": 21})
 
-        response = client.post(ANALYSE_ROUTE, json=request.model_dump(mode="json"))
+        response = client.post(
+            ANALYSE_ROUTE,
+            json=request.model_dump(mode="json"),
+            auth=("admin", "password"),
+        )
 
         assert response.status_code == 200
 

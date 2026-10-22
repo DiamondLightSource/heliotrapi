@@ -56,7 +56,15 @@ class AlertConfig(BaseModel):
     slack_webhook_url: str | None = None
 
 
+class AuthConfig(BaseModel):
+    # HTTP Basic auth for endpoints that submit analyses
+    enabled: bool = True
+    username: str = "admin"
+    password: str = "password"
+
+
 class Config(BaseSettings):
+    auth: AuthConfig = Field(default_factory=AuthConfig)
     rabbitmq: RabbitMQConfig = Field(default_factory=RabbitMQConfig)
     server: ServerConfig = Field(default_factory=ServerConfig)
     queue: QueueConfig = Field(default_factory=QueueConfig)

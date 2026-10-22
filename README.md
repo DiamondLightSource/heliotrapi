@@ -52,7 +52,11 @@ The app accepts analysis jobs via HTTP or the client and stores results in memor
 
 from heliotrapi.client import AnalysisClient
 
-client = AnalysisClient("https://ixx-analysis.diamond.ac.uk")
+client = AnalysisClient(
+    "https://ixx-analysis.diamond.ac.uk",
+    username="admin",
+    password="password",  # needed to submit analyses, see Authentication below
+)
 
 print(client.available_analyses()) #see available analyses
 
@@ -91,7 +95,7 @@ and create a uuid and timestamp yourself:
 via curl the example command would be:
 
 ```bash
-curl -X POST https://ixx-analysis.diamond.ac.uk/analyse -H "Content-Type: application/json" -d '{"analysis_name":"double","inputs":{"number":5}}'
+curl -X POST https://ixx-analysis.diamond.ac.uk/analyse -u admin:password -H "Content-Type: application/json" -d '{"analysis_name":"double","inputs":{"number":5}}'
 ```
 
 and to get the last result from `/results/latest` as a GET request
@@ -101,6 +105,30 @@ curl -X GET https://i15-1-analysis.diamond.ac.uk/results/latest
 ```
 
 If you are getting redirected due to the a proxy use curl -LX ...
+
+## Authentication
+
+Submitting analyses (`POST /analyse` and the stream endpoint) requires HTTP Basic auth.
+Everything else (health check, listing analyses, reading results) is open.
+
+Set the username and password in the config:
+
+```yaml
+auth:
+  enabled: true
+  username: "admin"
+  password: "password"
+```
+
+The defaults are `admin` / `password` - change the password for any real deployment.
+The server logs a warning on startup if the default password is in use.
+Set `enabled: false` to turn auth off.
+
+- Python client: pass `username=` and `password=` to `AnalysisClient`
+- curl: add `-u username:password`
+- WebUI: the browser asks for the username and password the first time you submit
+
+Basic auth sends the credentials with every request, so only expose the API over HTTPS.
 
 ## Using the WebUI
 
@@ -197,6 +225,19 @@ config:
       - "/topic/gda.messages.processing"
       - "/topic/public.analysis.trigger"
 ```
+
+### Auth config
+
+```yaml
+config:
+  auth:
+    enabled: true
+    username: admin
+    password: password
+```
+
+Override the password at install time rather than committing it, e.g.
+`helm upgrade --install heliotrapi ./helm/heliotrapi --set config.auth.password=...`
 
 ## Helm usage
 

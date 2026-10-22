@@ -1,13 +1,14 @@
 import inspect
 import json
-from typing import Any
+from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from fastapi.routing import APIRoute
 
 from heliotrapi.analysis_core.registry import get_analysis, list_analyses
+from heliotrapi.api.auth import require_auth
 from heliotrapi.api.endpoints import (
     ANALYSE_ROUTE,
     ANALYSES_ROUTE,
@@ -76,10 +77,14 @@ async def available_analyses() -> list[dict[str, Any]]:
 
 
 @ROUTER.post(ANALYSE_ROUTE)
-async def analyse(request: Request, job: AnalysisRequest) -> AnalysisResponse:
+async def analyse(
+    request: Request,
+    job: AnalysisRequest,
+    username: Annotated[str | None, Depends(require_auth)],
+) -> AnalysisResponse:
 
     logger.info(
-        f"Received analysis request from host: {request.headers.get('Host')} | agent: {request.headers['user-agent']}"  # noqa
+        f"Received analysis request from host: {request.headers.get('Host')} | agent: {request.headers['user-agent']} | user: {username}"  # noqa
     )
 
     try:
@@ -139,7 +144,7 @@ async def get_all_results(request: Request):
     return results
 
 
-@ROUTER.get(STREAM_ROUTE)
+@ROUTER.get(STREAM_ROUTE, dependencies=[Depends(require_auth)])
 async def stream(request: Request, job: AnalysisStreamRequest) -> StreamingResponse:
     """
     Server-Sent Events endpoint
