@@ -91,7 +91,9 @@ def run_client_test(ctx: click.Context):
 
     url = f"http://{config.server.host}:{config.server.port}"
 
-    client = AnalysisClient(url)
+    client = AnalysisClient(
+        url, username=config.auth.username, password=config.auth.password
+    )
 
     for i in range(5):
         id = client.submit("double", number=i)

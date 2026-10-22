@@ -52,7 +52,11 @@ The app accepts analysis jobs via HTTP or the client and stores results in memor
 
 from heliotrapi.client import AnalysisClient
 
-client = AnalysisClient("https://ixx-analysis.diamond.ac.uk")
+client = AnalysisClient(
+    "https://ixx-analysis.diamond.ac.uk",
+    username="admin",
+    password="password",  # needed to submit analyses, see Authentication below
+)
 
 print(client.available_analyses()) #see available analyses
 
@@ -91,7 +95,7 @@ and create a uuid and timestamp yourself:
 via curl the example command would be:
 
 ```bash
-curl -X POST https://ixx-analysis.diamond.ac.uk/analyse -H "Content-Type: application/json" -d '{"analysis_name":"double","inputs":{"number":5}}'
+curl -X POST https://ixx-analysis.diamond.ac.uk/analyse -u admin:password -H "Content-Type: application/json" -d '{"analysis_name":"double","inputs":{"number":5}}'
 ```
 
 and to get the last result from `/results/latest` as a GET request
@@ -101,6 +105,29 @@ curl -X GET https://i15-1-analysis.diamond.ac.uk/results/latest
 ```
 
 If you are getting redirected due to the a proxy use curl -LX ...
+
+## Authentication
+
+Submitting analyses, streaming, and reading results (`/results/...`) require HTTP Basic auth.
+The health check, `/get_analyses` and `/endpoints` are open.
+
+Auth is on by default. Turn it off in the config with:
+
+```yaml
+auth:
+  enabled: false
+```
+
+The username and password are read from the `HELIOTRAPI_USERNAME` and `HELIOTRAPI_PASSWORD`
+environment variables. Never put them in a config file. If they aren't set, they default to
+`admin` / `password` for local development, and the server logs a warning on startup.
+On Kubernetes they come from a SealedSecret, see [Auth credentials](#auth-credentials).
+
+- Python client: pass `username=` and `password=` to `AnalysisClient`
+- curl: add `-u username:password`
+- WebUI: the browser asks for the username and password when the page loads
+
+Basic auth sends the credentials with every request, so only expose the API over HTTPS.
 
 ## Using the WebUI
 
@@ -198,6 +225,24 @@ config:
       - "/topic/public.analysis.trigger"
 ```
 
+### Auth credentials
+
+When `config.auth.enabled` is true (the default), the pod reads `HELIOTRAPI_USERNAME` and
+`HELIOTRAPI_PASSWORD` from the Secret named by `authSecretName` (default `heliotrapi-auth`).
+Create it with a [SealedSecret](https://dev-guide.diamond.ac.uk/kubernetes/tutorials/secrets/#credential-management)
+while logged in to the target cluster and namespace:
+
+```bash
+kubectl create secret generic heliotrapi-auth --dry-run=client -o yaml \
+  --from-literal=username='<username>' --from-literal=password='<password>' \
+  | kubeseal -o yaml > heliotrapi-auth-sealed.yaml
+
+kubectl create -f heliotrapi-auth-sealed.yaml
+```
+
+`heliotrapi-auth-sealed.yaml` is encrypted, so it's safe to commit. Never commit the plain Secret.
+Create the SealedSecret before deploying - the pod won't start until the Secret exists.
+
 ## Helm usage
 
 1. Build and push your Docker image
@@ -247,3 +292,59 @@ http://localhost:8000/
 ## Example Kubernetes Deployment
 
 Go to the i15-services repo on gitlab.diamond.ac.uk to see an example of how to set it up
+
+
+## Create a secret:
+
+1. Go to the right cluster and namespace. Do:
+
+'''bash
+module load k8s-ixx
+```
+
+2. Type your password. Nothing shows while you type:
+
+'''bash
+read -rsp "Password: " PW; echo
+```
+
+3. Create the sealed secret (change ixx-heliotrapi to your beamline):
+
+'''bash
+kubectl create secret generic heliotrapi-auth --dry-run=client -o yaml --from-literal=username='ixx-heliotrapi' --from-literal=password="$PW" | kubeseal -o yaml | kubectl create -f -
+```
+
+4. Clear the password from your shell:
+```bash
+unset PW
+```
+
+5. Check it. Both a sealedsecret and a secret should be listed:
+```bash
+kubectl get sealedsecret,secret heliotrapi-auth
+```
+
+6. Now add to the blueapi config:
+
+```
+env:
+  - name: HELIOTRAPI_USERNAME
+    valueFrom:
+      secretKeyRef:
+        name: heliotrapi-auth
+        key: username
+  - name: HELIOTRAPI_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: heliotrapi-auth
+        key: password
+```
+
+7. Deploy. Restart the pod. Go to the webpage and use ixx-heliotrapi as the username and your password as the password to see results on the frontend
+
+
+8?. If you need to delete the secret and re-do it:
+
+```bash
+kubectl delete sealedsecret heliotrapi-auth
+```

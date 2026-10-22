@@ -13,6 +13,8 @@ from heliotrapi.api.endpoints import (
 from heliotrapi.models import AnalysisResult
 from heliotrapi.server import start_api
 
+AUTH = ("admin", "password")
+
 
 def test_health_route_is_healthz():
 
@@ -29,6 +31,7 @@ def test_resultd_by_id_wont_clash():
 def test_api_health_and_endpoints_routes():
     app = start_api()
     with TestClient(app) as client:
+        client.auth = AUTH
         response = client.get(HEALTH_ROUTE)
         assert response.status_code == 200
         assert response.json() == {"status": "ok"}
@@ -41,6 +44,7 @@ def test_api_health_and_endpoints_routes():
 def test_api_result_latest_and_not_found():
     app = start_api()
     with TestClient(app) as client:
+        client.auth = AUTH
         result = AnalysisResult(
             request_id=uuid.uuid4(),
             analysis_name="double",
@@ -66,6 +70,7 @@ def test_api_result_latest_and_not_found():
 def test_api_latest_result_not_found():
     app = start_api()
     with TestClient(app) as client:
+        client.auth = AUTH
         response = client.get(RESULT_LATEST_ROUTE)
         assert response.status_code == 404
         assert response.json()["detail"] == "No results yet"
@@ -74,6 +79,7 @@ def test_api_latest_result_not_found():
 def test_api_result_by_id():
     app = start_api()
     with TestClient(app) as client:
+        client.auth = AUTH
         result = AnalysisResult(
             request_id=uuid.uuid4(),
             analysis_name="double",
@@ -94,6 +100,7 @@ def test_api_result_by_id():
 def test_api_result_all_results():
     app = start_api()
     with TestClient(app) as client:
+        client.auth = AUTH
         result = AnalysisResult(
             request_id=uuid.uuid4(),
             analysis_name="double",
