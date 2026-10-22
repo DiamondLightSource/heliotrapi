@@ -108,25 +108,24 @@ If you are getting redirected due to the a proxy use curl -LX ...
 
 ## Authentication
 
-Submitting analyses (`POST /analyse` and the stream endpoint) requires HTTP Basic auth.
-Everything else (health check, listing analyses, reading results) is open.
+Submitting analyses, streaming, and reading results (`/results/...`) require HTTP Basic auth.
+The health check, `/get_analyses` and `/endpoints` are open.
 
-Set the username and password in the config:
+Auth is on by default. Turn it off in the config with:
 
 ```yaml
 auth:
-  enabled: true
-  username: "admin"
-  password: "password"
+  enabled: false
 ```
 
-The defaults are `admin` / `password` - change the password for any real deployment.
-The server logs a warning on startup if the default password is in use.
-Set `enabled: false` to turn auth off.
+The username and password are read from the `HELIOTRAPI_USERNAME` and `HELIOTRAPI_PASSWORD`
+environment variables. Never put them in a config file. If they aren't set, they default to
+`admin` / `password` for local development, and the server logs a warning on startup.
+On Kubernetes they come from a SealedSecret, see [Auth credentials](#auth-credentials).
 
 - Python client: pass `username=` and `password=` to `AnalysisClient`
 - curl: add `-u username:password`
-- WebUI: the browser asks for the username and password the first time you submit
+- WebUI: the browser asks for the username and password when the page loads
 
 Basic auth sends the credentials with every request, so only expose the API over HTTPS.
 
@@ -226,18 +225,23 @@ config:
       - "/topic/public.analysis.trigger"
 ```
 
-### Auth config
+### Auth credentials
 
-```yaml
-config:
-  auth:
-    enabled: true
-    username: admin
-    password: password
+When `config.auth.enabled` is true (the default), the pod reads `HELIOTRAPI_USERNAME` and
+`HELIOTRAPI_PASSWORD` from the Secret named by `authSecretName` (default `heliotrapi-auth`).
+Create it with a [SealedSecret](https://dev-guide.diamond.ac.uk/kubernetes/tutorials/secrets/#credential-management)
+while logged in to the target cluster and namespace:
+
+```bash
+kubectl create secret generic heliotrapi-auth --dry-run=client -o yaml \
+  --from-literal=username='<username>' --from-literal=password='<password>' \
+  | kubeseal -o yaml > heliotrapi-auth-sealed.yaml
+
+kubectl create -f heliotrapi-auth-sealed.yaml
 ```
 
-Override the password at install time rather than committing it, e.g.
-`helm upgrade --install heliotrapi ./helm/heliotrapi --set config.auth.password=...`
+`heliotrapi-auth-sealed.yaml` is encrypted, so it's safe to commit. Never commit the plain Secret.
+Create the SealedSecret before deploying - the pod won't start until the Secret exists.
 
 ## Helm usage
 

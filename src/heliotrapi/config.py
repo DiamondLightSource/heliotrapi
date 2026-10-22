@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Self
 
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -77,6 +77,14 @@ class Config(BaseSettings):
         env_nested_delimiter="__",
         extra="ignore",
     )
+
+    @model_validator(mode="after")
+    def auth_credentials_from_env(self) -> Self:
+        # credentials come from env vars (a SealedSecret on Kubernetes),
+        # so they never need to be written in the config file
+        self.auth.username = os.getenv("HELIOTRAPI_USERNAME", self.auth.username)
+        self.auth.password = os.getenv("HELIOTRAPI_PASSWORD", self.auth.password)
+        return self
 
     @classmethod
     def load_config(cls, path: str | Path | None = None) -> Self:
