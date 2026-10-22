@@ -1,6 +1,6 @@
 server:
   host: "localhost"
-  port: 8001
+  port: 8000
   suppress_polling_logs: true
 
 auth: # HTTP Basic auth required to submit analyses (POST /analyse and the stream endpoint)
