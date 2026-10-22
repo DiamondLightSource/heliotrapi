@@ -296,8 +296,6 @@ Go to the i15-services repo on gitlab.diamond.ac.uk to see an example of how to 
 
 ## Create a secret:
 
-
-
 1. Go to the right cluster and namespace. Do:
 '''bash
 module load k8s-ixx
