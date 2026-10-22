@@ -338,4 +338,4 @@ env:
         key: password
 ```
 
-7. Deploy. Go to the webpage and use ixx-heliotrapi as the username and your password as the password to see results on the frontend
+7. Deploy. Restart the pod. Go to the webpage and use ixx-heliotrapi as the username and your password as the password to see results on the frontend
