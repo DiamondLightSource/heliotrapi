@@ -297,15 +297,19 @@ Go to the i15-services repo on gitlab.diamond.ac.uk to see an example of how to 
 ## Create a secret:
 
 1. Go to the right cluster and namespace. Do:
+
 '''bash
 module load k8s-ixx
 ```
 
 2. Type your password. Nothing shows while you type:
+
 '''bash
 read -rsp "Password: " PW; echo
+```
 
 3. Create the sealed secret (change ixx-heliotrapi to your beamline):
+
 '''bash
 kubectl create secret generic heliotrapi-auth --dry-run=client -o yaml --from-literal=username='ixx-heliotrapi' --from-literal=password="$PW" | kubeseal -o yaml | kubectl create -f -
 ```
@@ -339,7 +343,7 @@ env:
 7. Deploy. Restart the pod. Go to the webpage and use ixx-heliotrapi as the username and your password as the password to see results on the frontend
 
 
-8?. If you need to delet the secret and re-do it:
+8?. If you need to delete the secret and re-do it:
 
 ```bash
 kubectl delete sealedsecret heliotrapi-auth
