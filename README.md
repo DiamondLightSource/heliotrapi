@@ -315,6 +315,7 @@ kubectl create secret generic heliotrapi-auth --dry-run=client -o yaml --from-li
 ```
 
 4. Clear the password from your shell:
+
 ```bash
 unset PW
 ```
