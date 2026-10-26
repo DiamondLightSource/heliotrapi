@@ -298,19 +298,19 @@ Go to the i15-services repo on gitlab.diamond.ac.uk to see an example of how to 
 
 1. Go to the right cluster and namespace. Do:
 
-'''bash
+```bash
 module load k8s-ixx
 ```
 
 2. Type your password. Nothing shows while you type:
 
-'''bash
+```bash
 read -rsp "Password: " PW; echo
 ```
 
 3. Create the sealed secret (change ixx-heliotrapi to your beamline):
 
-'''bash
+```bash
 kubectl create secret generic heliotrapi-auth --dry-run=client -o yaml --from-literal=username='ixx-heliotrapi' --from-literal=password="$PW" | kubeseal -o yaml | kubectl create -f -
 ```
 
