@@ -331,7 +331,9 @@ class AnalysisClient:
 #     # client = AnalysisClient("http://i15-1-analysis.diamond.ac.uk")
 #     # print(client.get_all_results())
 
-#     client = AnalysisClient()
+#     client = AnalysisClient(
+#         base_url="http://127.0.0.1:8000/", username="admin", password="password"
+#     )
 
 #     client.submit(analysis="b_iso_to_u_iso", b_iso=[5])
 
