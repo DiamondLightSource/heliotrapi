@@ -42,3 +42,38 @@ def test_rabbitmq_address_property():
         host="example.com", username="alice", password="secret", port=1234
     )
     assert cfg.address == "stomp://alice:secret@example.com:1234/"
+
+
+def test_config_auth_defaults():
+    cfg = Config()
+    assert cfg.auth.enabled is True
+    assert cfg.auth.username == "admin"
+    assert cfg.auth.password == "password"
+
+
+def test_config_loads_auth(tmp_path):
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        "auth:\n  enabled: false\n  username: alice\n  password: secret\n"
+    )
+
+    cfg = Config.load_config(config_file)
+
+    assert cfg.auth.enabled is False
+    assert cfg.auth.username == "alice"
+    assert cfg.auth.password == "secret"
+
+
+def test_auth_credentials_from_env(tmp_path, monkeypatch):
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        "auth:\n  enabled: true\n  username: alice\n  password: secret\n"
+    )
+    monkeypatch.setenv("HELIOTRAPI_USERNAME", "bob")
+    monkeypatch.setenv("HELIOTRAPI_PASSWORD", "from-secret")
+
+    cfg = Config.load_config(config_file)
+
+    assert cfg.auth.username == "bob"
+    assert cfg.auth.password == "from-secret"
+    assert cfg.auth.enabled is True

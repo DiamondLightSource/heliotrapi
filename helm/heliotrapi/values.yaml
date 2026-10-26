@@ -22,6 +22,10 @@ service:
   type: ClusterIP
   port: 8000
 
+# Name of the Secret holding the config.auth credentials (keys: username, password).
+# Create it from a SealedSecret applied with kubectl, see README "Auth credentials".
+authSecretName: heliotrapi-auth
+
 ingress:
   enabled: false
   className: ""
@@ -68,6 +72,9 @@ config:
     host: "0.0.0.0"
     port: 8000
     suppress_polling_logs: false
+  auth: # HTTP Basic auth required to submit analyses and read results
+    enabled: true
+    # username and password come from the Secret named in authSecretName, never put them here
   queue:
     workers: 4
   results:

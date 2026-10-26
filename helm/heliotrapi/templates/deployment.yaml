@@ -44,6 +44,18 @@ spec:
           env:
             - name: CONFIG_PATH
               value: "/etc/config/config.yaml"
+            {{- if .Values.config.auth.enabled }}
+            - name: HELIOTRAPI_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.authSecretName }}
+                  key: username
+            - name: HELIOTRAPI_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.authSecretName }}
+                  key: password
+            {{- end }}
           {{- with .Values.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}

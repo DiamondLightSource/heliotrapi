@@ -3,6 +3,11 @@ server:
   port: 8000
   suppress_polling_logs: true
 
+auth: # HTTP Basic auth required to submit analyses and read results
+  enabled: true
+  # credentials default to admin / password for local development
+  # set HELIOTRAPI_USERNAME and HELIOTRAPI_PASSWORD env vars to change them - don't put them here
+
 queue:
   workers: 4
 

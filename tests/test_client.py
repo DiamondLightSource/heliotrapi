@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 from unittest.mock import Mock
 
+import httpx
 import numpy as np
 import pytest
 
@@ -369,3 +370,15 @@ def test_client_format_analysis_signature_variants():
     assert "x: np.ndarray" in param_signature
     assert "scale: float = 1.0" in param_signature
     assert param_signature.endswith("-> AnalysisResult:")
+
+
+def test_client_sets_basic_auth_on_session():
+    session = Mock()
+    AnalysisClient(session=session, username="admin", password="password")
+    assert session.auth == ("admin", "password")
+
+
+def test_client_without_credentials_leaves_session_auth():
+    session = httpx.Client()
+    AnalysisClient(session=session)
+    assert session.auth is None
