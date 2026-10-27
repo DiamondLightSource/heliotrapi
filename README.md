@@ -17,8 +17,9 @@ HeliotrAPI - The API that comes after blue.
 
 `heliotrapi` exposes an HTTP API to submit analysis jobs, return queued results, and optionally consume messages from RabbitMQ.
 
-Source          | <https://github.com/DiamondLightSource/heliotrapi>
+What            | Where
 :---:           | :---:
+Source          | <https://github.com/DiamondLightSource/heliotrapi>
 PyPI            | `pip install heliotrapi`
 Docker          | `docker run ghcr.io/diamondlightsource/heliotrapi:latest`
 Releases        | <https://github.com/DiamondLightSource/heliotrapi/releases>

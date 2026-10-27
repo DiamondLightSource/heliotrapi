@@ -1,6 +1,6 @@
 # The devcontainer should use the developer target and run as root with podman
 # or docker with user namespaces.
-FROM ghcr.io/diamondlightsource/ubuntu-devcontainer:noble AS developer
+FROM ghcr.io/diamondlightsource/ubuntu-devcontainer:resolute AS developer
 
 # Add any system dependencies for the developer/build environment here
 RUN apt-get update -y && apt-get install -y --no-install-recommends \
@@ -56,12 +56,15 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 # The runtime stage copies the built venv into a runtime container
 FROM ubuntu:resolute AS runtime
+<<<<<<< before updating
 
 ENV HOME=/tmp
 ENV XDG_CACHE_HOME=/tmp/uv-cache
 ENV UV_CACHE_DIR=/tmp/uv-cache
 
 RUN mkdir -p /tmp/uv-cache && chmod -R 777 /tmp/uv-cache
+=======
+>>>>>>> after updating
 
 # Add apt-get system dependecies for runtime here if needed
 RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --no-install-recommends \

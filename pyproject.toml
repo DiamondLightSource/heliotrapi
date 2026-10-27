@@ -10,6 +10,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 description = "An API for small fast data analysis jobs at Diamond Light Source"
 dependencies = [
@@ -34,7 +35,6 @@ requires-python = ">=3.11"
 
 [dependency-groups]
 dev = [
-    "copier",
     "pre-commit",
     "pyright",
     "pytest",
@@ -55,6 +55,10 @@ GitHub = "https://github.com/DiamondLightSource/heliotrapi"
 [[project.authors]] # Further authors may be added by duplicating this section
 email = "Richard.Dixey@Diamond.ac.uk"
 name = "Richard Dixey"
+
+[tool.uv]
+# Minimum uv to fix eMudhra CA cert incident (see discuss.python.org/t/109576)
+required-version = ">=0.13.5"
 
 [tool.setuptools_scm]
 version_file = "src/heliotrapi/_version.py"
