@@ -1,12 +1,13 @@
 import asyncio
 import inspect
 from datetime import datetime
+from pathlib import Path
 from typing import Any
-from uuid import UUID
 
 from heliotrapi.analysis_core.registry import get_analysis
 from heliotrapi.logger import logger
 from heliotrapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
+from heliotrapi.task_queue.store import ResultStore
 from heliotrapi.utils.messenger import DEFAULT_DII_PROCESSED_DESTINATION, Messenger
 from heliotrapi.utils.serialisers import deserialise, serialise
 from heliotrapi.utils.slack_alerts import send_slack_failure
@@ -109,14 +110,32 @@ class QueueManager:
         workers: int = 2,
         messenger: Messenger | None = None,
         slack_webhook_url: str | None = None,
+        db_path: str | Path = ":memory:",
     ):
         self.queue: asyncio.Queue[AnalysisRequest] = asyncio.Queue(maxsize=0)  # 0 = inf
-        self.results: dict[UUID, AnalysisResult] = {}
+        self.results = ResultStore(db_path)
         self.workers = workers
-        self.latest_result: AnalysisResult | None = None
         self.messenger = messenger
         self.slack_webhook_url = slack_webhook_url
+        self.fail_interrupted_jobs()
         logger.info(self.queue)
+
+    @property
+    def latest_result(self) -> AnalysisResult | None:
+        return self.results.latest_finished()
+
+    @latest_result.setter
+    def latest_result(self, result: AnalysisResult) -> None:
+        self.results[result.request_id] = result
+
+    def fail_interrupted_jobs(self):
+        # the queue lives in memory, so jobs still running when the server
+        # stopped will never finish - mark them failed
+        for result in self.results.running():
+            result.status = "failed"
+            result.result = "Server restarted before the analysis finished"
+            result.finished_at = datetime.now()
+            self.results[result.request_id] = result
 
     async def enqueue(self, job: AnalysisRequest) -> AnalysisResponse:
         job.created_at = datetime.now()
@@ -149,7 +168,6 @@ class QueueManager:
             pending_result.result = str(e)
             pending_result.finished_at = datetime.now()
             self.results[job.request_id] = pending_result
-            self.latest_result = pending_result
 
             analysis_response = AnalysisResponse(
                 request_id=job.request_id,
@@ -223,8 +241,6 @@ class QueueManager:
             analysis_result.finished_at = finished_at
 
             self.results[job.request_id] = analysis_result
-            # store latest result
-            self.latest_result = analysis_result
 
             if self.messenger is not None and self.messenger.is_connected():
                 self.messenger.send_message(

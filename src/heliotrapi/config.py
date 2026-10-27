@@ -39,6 +39,8 @@ class ResultsConfig(BaseModel):
     # time to live seconds - how long the results
     # from a process can live before being being valid for removal
     ttl_seconds: int = 3600  # 3600s = 1hr
+    # sqlite file the results are stored in
+    db_path: str = "results.db"
 
 
 class CleanupConfig(BaseModel):

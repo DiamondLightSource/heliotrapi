@@ -79,6 +79,7 @@ config:
     workers: 4
   results:
     ttl_seconds: 3600
+    db_path: /data/results.db # on the PVC, keep in sync with persistence.mountPath
   cleanup:
     interval_seconds: 300
   plugins:
@@ -109,6 +110,16 @@ config:
     stream:
       enabled: true
       level: "DEBUG"
+
+persistence:
+  enabled: true
+  existingClaim: "" # use an existing PVC instead of creating one
+  storageClass: "" # empty uses the cluster default
+  accessMode: ReadWriteOnce
+  size: 1Gi
+  mountPath: /data
+  annotations:
+    helm.sh/resource-policy: keep # don't delete the PVC on helm uninstall
 
 volumeMounts: []
 volumes: []
