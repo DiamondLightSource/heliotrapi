@@ -104,6 +104,10 @@ def validate_inputs(func, inputs: dict):
         raise ValueError("\n".join(errors))
 
 
+# That  db_path: str defaults to memory
+# but Helm overrides it to /data/results.db, which is on the PVC
+
+
 class QueueManager:
     def __init__(
         self,
