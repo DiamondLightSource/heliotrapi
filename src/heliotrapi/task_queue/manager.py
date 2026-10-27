@@ -126,6 +126,7 @@ class QueueManager:
 
     @latest_result.setter
     def latest_result(self, result: AnalysisResult) -> None:
+        assert result.request_id is not None
         self.results[result.request_id] = result
 
     def fail_interrupted_jobs(self):
@@ -135,6 +136,7 @@ class QueueManager:
             result.status = "failed"
             result.result = "Server restarted before the analysis finished"
             result.finished_at = datetime.now()
+            assert result.request_id is not None
             self.results[result.request_id] = result
 
     async def enqueue(self, job: AnalysisRequest) -> AnalysisResponse:
