@@ -60,6 +60,7 @@ async def lifespan(app: FastAPI):
         slack_webhook_url=config.alerts.slack_webhook_url
         if config.alerts.slack_webhook_url != ""
         else None,
+        db_path=config.results.db_path,
     )
 
     workers = [
@@ -105,6 +106,7 @@ async def lifespan(app: FastAPI):
         task.cancel()
 
     cleanup_task.cancel()
+    queue_manager.results.close()
 
     if rabbit_task is not None:
         rabbit_task.cancel()

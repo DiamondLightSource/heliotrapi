@@ -13,6 +13,7 @@ queue:
 
 results:
   ttl_seconds: 3600 #time to live of results before deletion
+  db_path: results.db # sqlite file the results are stored in
 
 cleanup:
   interval_seconds: 300 #frequency of checking for deletable results

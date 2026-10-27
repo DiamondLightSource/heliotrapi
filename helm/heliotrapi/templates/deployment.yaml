@@ -6,6 +6,10 @@ metadata:
     {{- include "heliotrapi.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  {{- if .Values.persistence.enabled }}
+  strategy:
+    type: Recreate
+  {{- end }}
   selector:
     matchLabels:
       {{- include "heliotrapi.selectorLabels" . | nindent 6 }}
@@ -72,6 +76,10 @@ spec:
             - name: config-volume
               mountPath: "/etc/config/config.yaml"
               subPath: config.yaml
+            {{- if .Values.persistence.enabled }}
+            - name: data
+              mountPath: {{ .Values.persistence.mountPath }}
+            {{- end }}
           {{- with .Values.volumeMounts }}
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -84,6 +92,11 @@ spec:
             sources:
             - configMap:
                 name: {{ include "heliotrapi.fullname" . }}-config
+        {{- if .Values.persistence.enabled }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim | default (printf "%s-data" (include "heliotrapi.fullname" .)) }}
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

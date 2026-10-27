@@ -142,10 +142,8 @@ async def get_endpoints():
 @ROUTER.get(RESULTS_ALL_ROUTE, dependencies=[Depends(require_auth)])
 async def get_all_results(request: Request):
     queue_manager: QueueManager = request.app.state.queue_manager
-    # Return all jobs (pending, running, completed, failed), sorted by created_at
-    results = list(queue_manager.results.values())
-    results.sort(key=lambda r: getattr(r, "created_at", None) or 0, reverse=True)
-    return results
+    # Return all jobs (pending, running, completed, failed), newest first
+    return queue_manager.results.values()
 
 
 @ROUTER.get(STREAM_ROUTE, dependencies=[Depends(require_auth)])

@@ -44,7 +44,7 @@ heliotrapi serve
 
 ## Overview
 
-The app accepts analysis jobs via HTTP or the client and stores results in memory for a configurable time-to-live. Jobs can also be ingested from RabbitMQ if `rabbitmq.enabled` is set.
+The app accepts analysis jobs via HTTP or the client and stores results in a sqlite database (`results.db_path`) for a configurable time-to-live. On Kubernetes the database lives on a PersistentVolumeClaim, so results survive pod restarts. Jobs can also be ingested from RabbitMQ if `rabbitmq.enabled` is set.
 
 ## Sending/Recieving results using the python client
 

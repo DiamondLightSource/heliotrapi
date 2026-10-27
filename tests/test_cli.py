@@ -44,9 +44,12 @@ def test_cli_main_no_command_prints_message():
     assert "Please invoke subcommand!" in result.output
 
 
-def test_cli_serve_invokes_uvicorn():
+def test_cli_serve_invokes_uvicorn(tmp_path):
     cmd = [sys.executable, "-m", "heliotrapi", "serve"]
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # run from tmp_path so the server's results.db isn't written into the repo
+    proc = subprocess.Popen(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=tmp_path
+    )
     try:
         stdout, stderr = proc.communicate(timeout=10)
     except subprocess.TimeoutExpired:
