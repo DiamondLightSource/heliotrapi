@@ -8,9 +8,9 @@ from heliotrapi.models import AnalysisResult
 from heliotrapi.task_queue import QueueManager, cleanup_results
 
 
-def make_result(finished_at: datetime) -> AnalysisResult:
+def make_result(request_id: uuid.UUID, finished_at: datetime) -> AnalysisResult:
     return AnalysisResult(
-        request_id=uuid.uuid4(),
+        request_id=request_id,
         analysis_name="double",
         status="completed",
         result=10,
@@ -32,8 +32,10 @@ async def run_cleanup_once(queue_manager, ttl, monkeypatch):
 @pytest.mark.asyncio
 async def test_cleanup_results_removes_expired(monkeypatch):
     qm = QueueManager()
-    result = make_result(datetime.now() - timedelta(seconds=10))
-    qm.results[result.request_id] = result
+    request_id = uuid.uuid4()
+    qm.results[request_id] = make_result(
+        request_id, datetime.now() - timedelta(seconds=10)
+    )
 
     await run_cleanup_once(qm, ttl=1, monkeypatch=monkeypatch)
 
@@ -43,8 +45,8 @@ async def test_cleanup_results_removes_expired(monkeypatch):
 @pytest.mark.asyncio
 async def test_cleanup_results_keeps_fresh(monkeypatch):
     qm = QueueManager()
-    result = make_result(datetime.now())
-    qm.results[result.request_id] = result
+    request_id = uuid.uuid4()
+    qm.results[request_id] = make_result(request_id, datetime.now())
 
     await run_cleanup_once(qm, ttl=60, monkeypatch=monkeypatch)
 
