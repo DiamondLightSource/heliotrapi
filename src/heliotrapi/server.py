@@ -72,7 +72,7 @@ async def lifespan(app: FastAPI):
         cleanup_results(
             queue_manager,
             ttl=config.results.ttl_seconds,
-            interval=config.cleanup.interval_seconds,
+            interval=config.results.cleanup_interval_seconds,
         )
     )
 

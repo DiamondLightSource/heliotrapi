@@ -41,11 +41,8 @@ class ResultsConfig(BaseModel):
     ttl_seconds: int = 3600  # 3600s = 1hr
     # sqlite file the results are stored in
     db_path: str = "results.db"
-
-
-class CleanupConfig(BaseModel):
-    # how frequently the cleanup job actually runs
-    interval_seconds: int = 300
+    # how frequently the cleanup job checks for expired results
+    cleanup_interval_seconds: int = 300
 
 
 class MessageFunctionsConfig(BaseModel):
@@ -101,7 +98,6 @@ class Config(BaseSettings):
     server: ServerConfig = Field(default_factory=ServerConfig)
     queue: QueueConfig = Field(default_factory=QueueConfig)
     results: ResultsConfig = Field(default_factory=ResultsConfig)
-    cleanup: CleanupConfig = Field(default_factory=CleanupConfig)
     plugins: PluginsConfig = Field(default_factory=PluginsConfig)
     alerts: AlertConfig = Field(default_factory=AlertConfig)
 

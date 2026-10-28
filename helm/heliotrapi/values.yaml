@@ -80,8 +80,7 @@ config:
   results:
     ttl_seconds: 3600
     db_path: /data/results.db # on the PVC, keep in sync with persistence.mountPath
-  cleanup:
-    interval_seconds: 300
+    cleanup_interval_seconds: 300 # frequency of checking for deletable results
   plugins:
     paths:
       - ./plugins
