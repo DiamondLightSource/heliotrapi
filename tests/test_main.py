@@ -52,7 +52,7 @@ def test_healthz_log_filter_is_enabled_only_when_configured(monkeypatch):
     monkeypatch.setattr(
         server, "configure_access_log_filter", fake_configure_access_log_filter
     )
-    monkeypatch.setattr(server, "initialize_analyses", lambda register_all: None)
+    monkeypatch.setattr(server, "initialize_analyses", lambda: None)
     monkeypatch.setattr(
         server, "config", Config(server=ServerConfig(suppress_polling_logs=False))
     )
@@ -70,7 +70,7 @@ def test_healthz_log_filter_is_enabled_when_configured(monkeypatch):
     monkeypatch.setattr(
         server, "configure_access_log_filter", fake_configure_access_log_filter
     )
-    monkeypatch.setattr(server, "initialize_analyses", lambda register_all: None)
+    monkeypatch.setattr(server, "initialize_analyses", lambda: None)
     monkeypatch.setattr(
         server, "config", Config(server=ServerConfig(suppress_polling_logs=True))
     )

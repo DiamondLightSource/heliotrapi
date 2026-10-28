@@ -160,31 +160,70 @@ In the config or the helm chart you can changed the following lines:
     plugins:
       paths:
         - ./plugins # local folder for plugins
-      github_repos: # list of Https GitHub repos with analysis code (ending with .git)
-        - https://github.com/DiamondLightSource/xrpd-toolbox.git
-      register_all: False # whether to register all analyses found in plugins or only those decorated
+      github_repos: # Https GitHub repos with analysis code (ending with .git), each configured separately
+        - url: https://github.com/DiamondLightSource/xrpd-toolbox.git
+          register_all: False # read every file in this repo and register every public function
+          include: # dotted paths relative to the repo's src; only these are read when register_all is False
+            - xrpd_toolbox.i15_1.attenuation # whole module
+            # - xrpd_toolbox.i15_1 # whole package
+            # - xrpd_toolbox.i15_1.attenuation.my_func # single function
+      message_functions: # dotted path (relative to a repo's src) of the one function to run for each STOMP message
+        start: null # called with StartMessage fields as kwargs
+        stop: null # called with StopMessage fields as kwargs
+        nexus_started: null # called with NexusMessage fields as kwargs
+        nexus_updated: null # called with NexusMessage fields as kwargs
+        nexus_finished: null # called with NexusMessage fields as kwargs
 ```
 
 In this example plugins will be downloaded and installed to ./plugins. The github repo https://github.com/DiamondLightSource/xrpd-toolbox.git
 will be cloned to the .plugins folder.
 
-To add functions that are in your plugin repo, you can use the analysis decorator:
+Each GitHub repo is configured separately with `register_all` and `include`. A repo can also be given as a plain URL string, which reads and registers nothing.
+
+With `register_all: True`, every file in the repo's `src` is read and every public function is added to heliotrapi's available analyses, except those prefixed with `_` or in files prefixed with `_` or `test_`. This is not recommended for production use, but is useful for testing.
+
+With `register_all: False`, only what is listed under `include` is read and registered. Entries are dotted paths relative to the repo's `src` folder, and hyphens are treated as underscores. An entry can point at a package (`xrpd_toolbox.i15_1`), a module (`xrpd_toolbox.i15_1.attenuation`) or a single function (`xrpd_toolbox.i15_1.attenuation.my_func`).
+
+Functions should be strongly typed and return something, e.g.
 
 ```python
 import math
 
-from heliotrapi import analysis
 
-@analysis
 def my_custom_func(first_number: float, second_number: float) -> float:
 
     return math.log(first_number) / math.log(second_number)
-
 ```
 
-Functions should be be strongly typed and return something. By using @analysis in the plugin repo, and decorating your function, heliotrapi will register this as an available function. 
+### Message handlers
 
-Alternatively, you can set register_all to True all of them will be added to heliotrapi's available analyses. All function in the repo will be added to available analyses, with the exceptions of those prefixed with _ or test_. This is not recommended for production use, but is useful for testing.
+`message_functions` (under `plugins`, not under a repo) maps each STOMP message type to the dotted path of the single function that runs when that message arrives. The path is relative to a repo's `src` and is looked up across all configured repos.
+
+The function is called with every field of the message model as keyword arguments, so it must accept all of them, either as named parameters or with `**kwargs`:
+
+| key | message model | fields passed as kwargs |
+| --- | --- | --- |
+| `start` | `StartMessage` | `name`, `doc`, `task_id` |
+| `stop` | `StopMessage` | `name`, `doc`, `task_id` |
+| `nexus_started` / `nexus_updated` / `nexus_finished` | `NexusMessage` | `status`, `file_path`, `visit_directory`, `swmr_status`, `scan_number`, `scan_dimensions`, `scannables`, `detectors`, `percentage_complete`, `processing_request` |
+
+```python
+from heliotrapi.task_queue.message_models import RunStartDoc
+
+
+def on_start(name: str, doc: RunStartDoc, task_id: str):
+    print(doc.scan_file)
+
+
+def on_nexus_finished(file_path: str, scan_number: int, **kwargs):
+    print(file_path, scan_number)
+```
+
+```yaml
+    plugins:
+      message_functions:
+        start: xrpd_toolbox.i15_1.handlers.on_start
+```
 
 ## Kubernetes deployment
 

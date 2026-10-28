@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Self
 
 import yaml
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -48,10 +48,40 @@ class CleanupConfig(BaseModel):
     interval_seconds: int = 300
 
 
+class MessageFunctionsConfig(BaseModel):
+    # dotted paths (relative to a repo's src) of the function to run on each
+    # STOMP message, e.g. xrpd_toolbox.i15_1.handlers.on_start
+    start: str | None = None
+    stop: str | None = None
+    nexus_started: str | None = None
+    nexus_updated: str | None = None
+    nexus_finished: str | None = None
+
+
+class GithubRepoConfig(BaseModel):
+    url: str
+    # read every file in the repo and register every public function
+    register_all: bool = False
+    # dotted paths (relative to the repo's src) of packages/modules/functions
+    # to register when not register_all
+    include: list[str] = []
+
+
 class PluginsConfig(BaseModel):
     paths: list[str] = []
-    github_repos: list[str] | None = []
-    register_all: bool = False
+    github_repos: list[GithubRepoConfig] | None = []
+    # one function per STOMP message type, looked up across all repos
+    message_functions: MessageFunctionsConfig = Field(
+        default_factory=MessageFunctionsConfig
+    )
+
+    @field_validator("github_repos", mode="before")
+    @classmethod
+    def _repo_urls_to_config(cls, repos: list | None) -> list | None:
+        # allow plain URL strings as shorthand for {url: ...}
+        if repos is None:
+            return None
+        return [{"url": r} if isinstance(r, str) else r for r in repos]
 
 
 class AlertConfig(BaseModel):

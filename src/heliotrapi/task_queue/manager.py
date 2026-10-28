@@ -77,6 +77,9 @@ def validate_inputs(func, inputs: dict):
     errors = []
 
     for name, param in sig.parameters.items():
+        if param.kind in (param.VAR_POSITIONAL, param.VAR_KEYWORD):
+            continue
+
         # Missing required parameter
         if name not in inputs and param.default is inspect.Parameter.empty:
             errors.append(f"Missing required parameter: {name}")
@@ -94,10 +97,11 @@ def validate_inputs(func, inputs: dict):
         except Exception as e:
             errors.append(f"Invalid value for '{name}': {e}")
 
-    # Unknown extra parameters
+    # Unknown extra parameters, unless the function takes **kwargs
     extra = set(inputs) - set(sig.parameters)
+    has_var_kwargs = any(p.kind is p.VAR_KEYWORD for p in sig.parameters.values())
 
-    if extra:
+    if extra and not has_var_kwargs:
         errors.append(f"Unknown parameters: {sorted(extra)}")
 
     if errors:

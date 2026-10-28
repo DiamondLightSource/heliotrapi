@@ -5,33 +5,63 @@ import pkgutil
 import subprocess
 import sys
 import types
+from collections.abc import Callable
 from pathlib import Path
 
 from git import GitCommandError, Repo
+from pydantic import BaseModel
 
 from heliotrapi.analysis_core.async_func import make_function_async
+from heliotrapi.analysis_core.message_names import (
+    FINISHED_NEXUS_ANALYSIS_NAME,
+    START_MESSAGE_ANALYSIS_NAME,
+    STARTED_NEXUS_ANALYSIS_NAME,
+    STOP_MESSAGE_ANALYSIS_NAME,
+    UPDATED_NEXUS_ANALYSIS_NAME,
+)
 from heliotrapi.analysis_core.registry import register_analysis
-from heliotrapi.config import Config
+from heliotrapi.config import Config, MessageFunctionsConfig
 from heliotrapi.logger import logger
+from heliotrapi.task_queue.message_models import (
+    NexusMessage,
+    StartMessage,
+    StopMessage,
+)
+
+# MessageFunctionsConfig field -> (registry name, message type the handler takes)
+_MESSAGE_HANDLERS: dict[str, tuple[str, type[BaseModel]]] = {
+    "start": (START_MESSAGE_ANALYSIS_NAME, StartMessage),
+    "stop": (STOP_MESSAGE_ANALYSIS_NAME, StopMessage),
+    "nexus_started": (STARTED_NEXUS_ANALYSIS_NAME, NexusMessage),
+    "nexus_updated": (UPDATED_NEXUS_ANALYSIS_NAME, NexusMessage),
+    "nexus_finished": (FINISHED_NEXUS_ANALYSIS_NAME, NexusMessage),
+}
 
 
 def load_analyses(package: types.ModuleType) -> list[str]:
-    """Import every sub-module in *package* and return their names."""
+    """Import every sub-module in *package*, register its public functions and
+    return the sub-module names."""
     names: list[str] = []
     for _, module_name, _ in pkgutil.iter_modules(package.__path__):
-        importlib.import_module(f"{package.__name__}.{module_name}")
+        module = importlib.import_module(f"{package.__name__}.{module_name}")
+        register_module_functions(module)
         names.append(module_name)
     return names
 
 
-def register_module_functions(module: types.ModuleType) -> None:
-    """Register every public top-level function defined in *module*.
+def register_module_functions(
+    module: types.ModuleType, names: set[str] | None = None
+) -> None:
+    """Register public top-level functions defined in *module*.
 
-    This is an escape hatch for plugins that cannot use the ``@analysis``
-    decorator.  Prefer the decorator for explicit, intentional registration.
+    Args:
+        module: The module to scan.
+        names: If given, only register functions with these names.
     """
     for name, obj in vars(module).items():
         if name.startswith("_"):
+            continue
+        if names is not None and name not in names:
             continue
         if not inspect.isfunction(obj):
             continue
@@ -40,7 +70,7 @@ def register_module_functions(module: types.ModuleType) -> None:
         _try_register(name, obj, module.__name__)
 
 
-def _try_register(name: str, func: types.FunctionType, source: str) -> None:
+def _try_register(name: str, func: Callable, source: str) -> None:
     try:
         register_analysis(name, make_function_async(func))
     except ValueError:
@@ -134,6 +164,68 @@ def _module_name_for(pyfile: Path, root: Path) -> str:
     return "plugin." + relative.as_posix().replace("/", ".")
 
 
+def _plugin_files(root: Path) -> list[Path]:
+    return [f for f in sorted(root.rglob("*.py")) if not _should_skip(f.stem)]
+
+
+def _resolve(root: Path, dotted: str) -> tuple[list[Path], str | None]:
+    """Resolve a dotted path under *root* to the files it covers.
+
+    Hyphens are treated as underscores.  The path can name a package
+    (``xrpd_toolbox.i15_1``), a module (``xrpd_toolbox.i15_1.attenuation``)
+    or a function in a module (``xrpd_toolbox.i15_1.attenuation.my_func``).
+
+    Returns:
+        The matching ``.py`` files (empty if nothing matches) and the function
+        name, or ``None`` if the path names a package or module.
+    """
+    parts = dotted.replace("-", "_").split(".")
+    target = root.joinpath(*parts)
+    if target.is_dir():
+        return _plugin_files(target), None
+    if target.with_suffix(".py").is_file():
+        return [target.with_suffix(".py")], None
+    if len(parts) > 1:
+        module = root.joinpath(*parts[:-1]).with_suffix(".py")
+        if module.is_file():
+            return [module], parts[-1]
+    return [], None
+
+
+def _check_message_args(func: Callable, message_type: type[BaseModel]) -> None:
+    """Check *func* can be called with every field of *message_type* as kwargs.
+
+    Each field must be a named parameter or be absorbed by ``**kwargs``, and
+    every required parameter must be a field.
+
+    Raises:
+        TypeError: If the signature does not match.
+    """
+    params = inspect.signature(func).parameters
+    fields = set(message_type.model_fields)
+    has_var_kwargs = any(p.kind is p.VAR_KEYWORD for p in params.values())
+
+    unaccepted = fields - set(params)
+    if unaccepted and not has_var_kwargs:
+        raise TypeError(
+            f"{func.__name__} does not accept {sorted(unaccepted)} from "
+            f"{message_type.__name__}; add them as parameters or use **kwargs"
+        )
+
+    unknown = [
+        name
+        for name, p in params.items()
+        if name not in fields
+        and p.default is p.empty
+        and p.kind not in (p.VAR_POSITIONAL, p.VAR_KEYWORD)
+    ]
+    if unknown:
+        raise TypeError(
+            f"{func.__name__} requires {unknown}, which are not fields of "
+            f"{message_type.__name__}"
+        )
+
+
 def _load_module_from_file(module_name: str, pyfile: Path) -> types.ModuleType:
     """Load and execute a Python file as a module.
 
@@ -172,39 +264,103 @@ def _load_module_from_file(module_name: str, pyfile: Path) -> types.ModuleType:
     return module
 
 
-def load_plugins_from_dir(path: str | Path, register_all: bool = False) -> None:
-    """Recursively load Python plugins from *path*.
+def _import_file(pyfile: Path, root: Path) -> types.ModuleType | None:
+    """Import *pyfile* as a plugin module, reusing it if already imported."""
+    module_name = _module_name_for(pyfile, root)
+    existing = sys.modules.get(module_name)
+    if existing is not None and getattr(existing, "__file__", None) == str(pyfile):
+        return existing
+    try:
+        module = _load_module_from_file(module_name, pyfile)
+    except Exception as e:
+        logger.error("Failed to load plugin '%s'", e)
+        return None
+    logger.debug("Loaded plugin: %s", pyfile)
+    return module
 
-    Plugin authors should decorate functions with ``@analysis`` for explicit
-    registration.  Set *register_all* only for legacy or third-party plugins
-    that cannot be modified.
+
+def _find_function(root: Path, dotted: str) -> Callable | None:
+    """Import and return the function *dotted* names under *root*, if any."""
+    files, func_name = _resolve(root, dotted)
+    if not files or func_name is None:
+        return None
+    module = _import_file(files[0], root)
+    func = getattr(module, func_name, None)
+    return func if inspect.isfunction(func) else None
+
+
+def load_plugins_from_dir(
+    path: str | Path,
+    register_all: bool = False,
+    include: list[str] | None = None,
+) -> None:
+    """Load and register plugin functions from *path*.
 
     Args:
-        path: Directory to search for ``*.py`` files.
-        register_all: When ``True``, auto-register every public top-level
-            function in each module in addition to ``@analysis``-decorated ones.
+        path: Directory the dotted paths are relative to (a repo's ``src``).
+        register_all: When ``True``, import every ``*.py`` file under *path*
+            and register every public top-level function.
+        include: Dotted paths of packages, modules or functions to import and
+            register when *register_all* is ``False``; nothing else is read.
     """
     root = Path(path)
     if not root.is_dir():
         return
 
-    for pyfile in sorted(root.rglob("*.py")):
-        if _should_skip(pyfile.stem):
-            continue
+    if register_all:
+        for pyfile in _plugin_files(root):
+            if module := _import_file(pyfile, root):
+                register_module_functions(module)
+        return
 
-        module_name = _module_name_for(pyfile, root)
+    for dotted in include or []:
+        files, func_name = _resolve(root, dotted)
+        if not files:
+            logger.error("Could not find '%s' in '%s'", dotted, root)
+        elif func_name is None:
+            for pyfile in files:
+                if module := _import_file(pyfile, root):
+                    register_module_functions(module)
+        elif func := _find_function(root, dotted):
+            _try_register(func_name, func, dotted)
+        else:
+            logger.error("Could not find function '%s' in '%s'", dotted, root)
+
+
+def register_message_functions(
+    roots: list[Path], message_functions: MessageFunctionsConfig
+) -> None:
+    """Register the function to run for each STOMP start, stop and nexus message.
+
+    Args:
+        roots: Directories to look for the functions in (each repo's ``src``).
+        message_functions: Dotted path of the function for each message type,
+            relative to whichever root contains it.
+    """
+    for field, dotted in message_functions:
+        if dotted is None:
+            continue
+        name, message_type = _MESSAGE_HANDLERS[field]
+        func = next((f for root in roots if (f := _find_function(root, dotted))), None)
+        if func is None:
+            logger.error(
+                "Could not find function '%s' for %s. Nothing will happen on %s",
+                dotted,
+                name,
+                name,
+            )
+            continue
         try:
-            module = _load_module_from_file(module_name, pyfile)
-        except ImportError as e:
-            logger.error("Failed to load plugin '%s'", e)
-            continue
+            _check_message_args(func, message_type)
+            register_analysis(name, make_function_async(func))
         except Exception as e:
-            logger.error("Unexpected error loading plugin '%s'", e)
-            continue
-
-        logger.debug("Loaded plugin: %s", pyfile)
-        if register_all:
-            register_module_functions(module)
+            logger.error(
+                "'%s' cannot handle %s: %s. Nothing will happen on %s",
+                dotted,
+                name,
+                e,
+                name,
+            )
 
 
 def clone_or_update_github_repo(repo_url: str, dest_dir: str | Path) -> Path:
@@ -247,28 +403,35 @@ def clone_or_update_github_repo(repo_url: str, dest_dir: str | Path) -> Path:
     return dest_path
 
 
-def load_plugins(config: Config, register_all: bool = False) -> None:
-    """Load all external plugins from configured local paths and GitHub repos.
+def load_plugins(config: Config) -> None:
+    """Clone (or update) each configured GitHub repo and register its functions.
 
-    Built-in analyses (``heliotrapi.analyses``) are already registered via
-    decorators; this function handles everything external.
+    Built-in analyses (``heliotrapi.analyses``) are registered by
+    ``load_analyses``; this function handles everything external.  Each repo
+    uses its own ``register_all`` and ``include`` settings, then the
+    ``message_functions`` are looked up across all repos.
 
     Args:
-        config: Application config carrying plugin paths and repo URLs.
-        register_all: When ``False``, only ``@analysis``-decorated functions
-            are registered.  When ``True``, every public top-level function
-            is also auto-registered.  Prefer ``False``; set ``True`` only for
-            third-party plugins that cannot use the decorator.
+        config: Application config carrying plugin paths and repo settings.
     """
-    for plugin_path in config.plugins.paths:
-        load_plugins_from_dir(plugin_path, register_all=register_all)
+    repos = config.plugins.github_repos or []
+    if repos and not config.plugins.paths:
+        logger.error("No plugin path configured to clone GitHub repos into")
+        return
 
-    for repo_url in config.plugins.github_repos or []:
-        logger.info("Loading plugin repo: %s", repo_url)
+    roots: list[Path] = []
+    for repo in repos:
+        logger.info("Loading plugin repo: %s", repo.url)
         try:
-            repo_path = clone_or_update_github_repo(repo_url, config.plugins.paths[0])
+            repo_path = clone_or_update_github_repo(repo.url, config.plugins.paths[0])
         except Exception:
-            logger.exception("Unable to clone/update repo '%s'", repo_url)
+            logger.exception("Unable to clone/update repo '%s'", repo.url)
             continue
 
-        load_plugins_from_dir(repo_path / "src", register_all=register_all)
+        root = repo_path / "src"
+        roots.append(root)
+        load_plugins_from_dir(
+            root, register_all=repo.register_all, include=repo.include
+        )
+
+    register_message_functions(roots, config.plugins.message_functions)

@@ -28,14 +28,14 @@ global MODULE_NAMES
 MODULE_NAMES: list[str] = []  # currently empty
 
 
-def initialize_analyses(register_all: bool = False):
+def initialize_analyses():
     """Load built-in analyses and user plugins. Call during server startup."""
 
     package = importlib.import_module("heliotrapi.analyses")
     MODULE_NAMES.extend(load_analyses(package))  # add packages from load_analyses
 
     config = Config.load_config()
-    load_plugins(config, register_all=register_all)
+    load_plugins(config)
 
 
 @asynccontextmanager
@@ -128,7 +128,7 @@ def start_api(debug: bool = False) -> FastAPI:
     if config.server.suppress_polling_logs:
         configure_access_log_filter()
 
-    initialize_analyses(register_all=config.plugins.register_all)
+    initialize_analyses()
     logger.info(f"{MODULE_NAMES} have been loaded")
     logger.info(f"version: {__version__}")
 

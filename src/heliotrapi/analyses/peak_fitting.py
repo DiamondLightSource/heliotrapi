@@ -1,17 +1,13 @@
 import numpy as np
 from scipy.optimize import curve_fit
 
-from heliotrapi.analysis_core.decorator import analysis
 
-
-@analysis()
 def gaussian(
     x: np.ndarray | int | float, amplitude: float, x0: float, sigma: float
 ) -> np.ndarray | float:
     return amplitude * np.exp(-((x - x0) ** 2) / (2 * sigma**2))
 
 
-@analysis()
 def gaussian_fit(x: list[int | float], y: list[int | float]):
     """
     data = {
