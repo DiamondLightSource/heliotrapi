@@ -196,7 +196,9 @@ def test_load_plugins_uses_per_repo_settings(monkeypatch, tmp_path):
 
 
 def test_config_accepts_plain_repo_urls():
-    cfg = Config(plugins={"github_repos": ["https://example.com/repo.git"]})
+    cfg = Config.model_validate(
+        {"plugins": {"github_repos": ["https://example.com/repo.git"]}}
+    )
     assert cfg.plugins.github_repos == [
         GithubRepoConfig(url="https://example.com/repo.git")
     ]
