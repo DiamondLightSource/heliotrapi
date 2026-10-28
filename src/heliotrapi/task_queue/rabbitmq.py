@@ -6,7 +6,7 @@ import time
 import stomp
 from pydantic import BaseModel
 
-from heliotrapi.analysis_core.decorator import (
+from heliotrapi.analysis_core.message_names import (
     FINISHED_NEXUS_ANALYSIS_NAME,
     START_MESSAGE_ANALYSIS_NAME,
     STARTED_NEXUS_ANALYSIS_NAME,
@@ -40,7 +40,7 @@ class _StompListener(stomp.ConnectionListener):
         if message_name in ANALYSIS_REGISTRY:
             return AnalysisRequest(
                 analysis_name=message_name,
-                inputs={"message": validated_model},
+                inputs=dict(validated_model),  # message fields as kwargs
             )
         else:
             return None
@@ -75,7 +75,7 @@ class _StompListener(stomp.ConnectionListener):
 
         elif isinstance(validated_model, NexusMessage):
             status = validated_model.status
-            filepath = validated_model.filePath
+            filepath = validated_model.file_path
             logger.info(f"NexusMessage Received. {status=} {filepath=}")
 
             if status == "STARTED":

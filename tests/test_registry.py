@@ -1,29 +1,9 @@
-import asyncio
-
 import pytest
 
-from heliotrapi.analysis_core.decorator import analysis
 from heliotrapi.analysis_core.registry import (
     ANALYSIS_REGISTRY,
-    get_analysis,
     register_analysis,
 )
-
-
-def test_analysis_decorator_registers_sync_function():
-    original_registry = ANALYSIS_REGISTRY.copy()
-    try:
-
-        @analysis("my_test_double")
-        def my_double(number: int) -> int:
-            return number * 2
-
-        fn = get_analysis("my_test_double")
-        result = asyncio.run(fn(3))
-        assert result == 6
-    finally:
-        ANALYSIS_REGISTRY.clear()
-        ANALYSIS_REGISTRY.update(original_registry)
 
 
 def test_registry_register_duplicate_raises():

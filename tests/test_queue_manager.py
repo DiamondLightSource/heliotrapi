@@ -207,7 +207,7 @@ async def test_worker_sends_slack_message_on_failure():
         inputs={},
     )
 
-    qm = QueueManager(slack_webhook_url="https://slack.example.com")
+    qm = QueueManager(webhook_url="https://slack.example.com")
 
     qm.results[job.request_id] = AnalysisResult(
         request_id=job.request_id,
@@ -252,7 +252,7 @@ def test_enqueue_sends_slack_on_failure():
         inputs={"x": "bad"},
     )
 
-    qm = QueueManager(slack_webhook_url="https://slack.example.com")
+    qm = QueueManager(webhook_url="https://slack.example.com")
 
     with (
         patch(

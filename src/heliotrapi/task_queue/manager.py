@@ -77,6 +77,9 @@ def validate_inputs(func, inputs: dict):
     errors = []
 
     for name, param in sig.parameters.items():
+        if param.kind in (param.VAR_POSITIONAL, param.VAR_KEYWORD):
+            continue
+
         # Missing required parameter
         if name not in inputs and param.default is inspect.Parameter.empty:
             errors.append(f"Missing required parameter: {name}")
@@ -94,10 +97,11 @@ def validate_inputs(func, inputs: dict):
         except Exception as e:
             errors.append(f"Invalid value for '{name}': {e}")
 
-    # Unknown extra parameters
+    # Unknown extra parameters, unless the function takes **kwargs
     extra = set(inputs) - set(sig.parameters)
+    has_var_kwargs = any(p.kind is p.VAR_KEYWORD for p in sig.parameters.values())
 
-    if extra:
+    if extra and not has_var_kwargs:
         errors.append(f"Unknown parameters: {sorted(extra)}")
 
     if errors:
@@ -113,14 +117,14 @@ class QueueManager:
         self,
         workers: int = 2,
         messenger: Messenger | None = None,
-        slack_webhook_url: str | None = None,
+        webhook_url: str | None = None,
         db_path: str | Path = ":memory:",
     ):
         self.queue: asyncio.Queue[AnalysisRequest] = asyncio.Queue(maxsize=0)  # 0 = inf
         self.results = ResultStore(db_path)
         self.workers = workers
         self.messenger = messenger
-        self.slack_webhook_url = slack_webhook_url
+        self.webhook_url = webhook_url
         self.fail_interrupted_jobs()
         logger.info(self.queue)
 
@@ -186,9 +190,9 @@ class QueueManager:
             # log the error and send alert to slack if configured
             logger.error(analysis_response)
 
-            if self.slack_webhook_url is not None:
+            if self.webhook_url is not None:
                 send_slack_failure(
-                    webhook_url=self.slack_webhook_url,
+                    webhook_url=self.webhook_url,
                     message=f"Job {job} failed: {str(e)}",
                 )
 
@@ -227,9 +231,9 @@ class QueueManager:
                 status = "failed"
                 finished_at = datetime.now()
 
-                if self.slack_webhook_url is not None:
+                if self.webhook_url is not None:
                     send_slack_failure(
-                        webhook_url=self.slack_webhook_url,
+                        webhook_url=self.webhook_url,
                         message=f"Job {job} failed: {str(e)}",
                     )
 

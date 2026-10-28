@@ -14,16 +14,24 @@ queue:
 results:
   ttl_seconds: 3600 #time to live of results before deletion
   db_path: results.db # sqlite file the results are stored in
-
-cleanup:
-  interval_seconds: 300 #frequency of checking for deletable results
+  cleanup_interval_seconds: 300 # frequency of checking for deletable results
 
 plugins:
   paths:
     - ./plugins # local folder for plugins
-  github_repos: # list of Https GitHub repos with analysis code (ending with .git)
-    - https://github.com/DiamondLightSource/xrpd-toolbox.git
-  register_all: True # whether to register all analyses found in plugins or only those decorated
+  github_repos: # Https GitHub repos with analysis code (ending with .git), each configured separately
+    - url: https://github.com/DiamondLightSource/xrpd-toolbox.git
+      register_all: False # read every file in this repo and register every public function
+      include: # dotted paths relative to the repo's src; only these are read when register_all is False
+        - xrpd_toolbox.i15_1.attenuation # whole module
+        # - xrpd_toolbox.i15_1 # whole package
+        # - xrpd_toolbox.i15_1.attenuation.my_func # single function
+  message_functions: # dotted path (relative to a repo's src) of the one function to run for each STOMP message
+    start: null # called with StartMessage fields as kwargs
+    stop: null # called with StopMessage fields as kwargs
+    nexus_started: null # called with NexusMessage fields as kwargs
+    nexus_updated: null # called with NexusMessage fields as kwargs
+    nexus_finished: null # called with NexusMessage fields as kwargs
 rabbitmq:
   enabled: True
   host: "i15-1-rabbitmq-daq.diamond.ac.uk"
@@ -37,4 +45,4 @@ rabbitmq:
     - "/topic/public.analysis.trigger" # custom topic for triggering analyses from other services
 
 alerts:
-  slack_webhook_url: "" # Webhook URL for sending alerts to Slack, leave empty to disable
+  webhook_url: "" # Webhook URL for sending failure alerts (e.g. Slack), leave empty to disable

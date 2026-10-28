@@ -22,7 +22,7 @@ def test_config_returns_default_for_missing_file(tmp_path):
 def test_config_default_values():
     cfg = Config()
     assert cfg.results.ttl_seconds == 3600
-    assert cfg.cleanup.interval_seconds == 300
+    assert cfg.results.cleanup_interval_seconds == 300
     assert cfg.server.suppress_polling_logs is False
 
 

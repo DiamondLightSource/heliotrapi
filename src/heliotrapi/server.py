@@ -28,14 +28,14 @@ global MODULE_NAMES
 MODULE_NAMES: list[str] = []  # currently empty
 
 
-def initialize_analyses(register_all: bool = False):
+def initialize_analyses():
     """Load built-in analyses and user plugins. Call during server startup."""
 
     package = importlib.import_module("heliotrapi.analyses")
     MODULE_NAMES.extend(load_analyses(package))  # add packages from load_analyses
 
     config = Config.load_config()
-    load_plugins(config, register_all=register_all)
+    load_plugins(config)
 
 
 @asynccontextmanager
@@ -57,8 +57,8 @@ async def lifespan(app: FastAPI):
     queue_manager = QueueManager(
         workers=config.queue.workers,
         messenger=messenger,
-        slack_webhook_url=config.alerts.slack_webhook_url
-        if config.alerts.slack_webhook_url != ""
+        webhook_url=config.alerts.webhook_url
+        if config.alerts.webhook_url != ""
         else None,
         db_path=config.results.db_path,
     )
@@ -72,7 +72,7 @@ async def lifespan(app: FastAPI):
         cleanup_results(
             queue_manager,
             ttl=config.results.ttl_seconds,
-            interval=config.cleanup.interval_seconds,
+            interval=config.results.cleanup_interval_seconds,
         )
     )
 
@@ -128,7 +128,7 @@ def start_api(debug: bool = False) -> FastAPI:
     if config.server.suppress_polling_logs:
         configure_access_log_filter()
 
-    initialize_analyses(register_all=config.plugins.register_all)
+    initialize_analyses()
     logger.info(f"{MODULE_NAMES} have been loaded")
     logger.info(f"version: {__version__}")
 

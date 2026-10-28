@@ -80,13 +80,21 @@ config:
   results:
     ttl_seconds: 3600
     db_path: /data/results.db # on the PVC, keep in sync with persistence.mountPath
-  cleanup:
-    interval_seconds: 300
+    cleanup_interval_seconds: 300 # frequency of checking for deletable results
   plugins:
     paths:
       - ./plugins
-    github_repos: []
-    register_all: True # whether to register all analyses found in plugins or only those decorated
+    github_repos: [] # Https GitHub repos with analysis code (ending with .git), each configured separately
+    # - url: https://github.com/DiamondLightSource/xrpd-toolbox.git
+    #   register_all: false # read every file in this repo and register every public function
+    #   include: # dotted paths relative to the repo's src; only these are read when register_all is false
+    #     - xrpd_toolbox.i15_1.attenuation
+    message_functions: # dotted path (relative to a repo's src) of the one function to run for each STOMP message
+      start: null
+      stop: null
+      nexus_started: null
+      nexus_updated: null
+      nexus_finished: null
   rabbitmq:
     enabled: true
     host: "ixx-rabbitmq-daq.diamond.ac.uk"
@@ -99,7 +107,7 @@ config:
       - "/topic/gda.messages.processing" # dawn stuff
       - "/topic/public.analysis.trigger" # custom topic for triggering analyses from other services
   alerts:
-    slack_webhook_url: "" # Webhook URL for sending alerts to Slack, leave empty to disable
+    webhook_url: "" # Webhook URL for sending failure alerts (e.g. Slack), leave empty to disable
   uvicorn:
     workers: 1
   logging:

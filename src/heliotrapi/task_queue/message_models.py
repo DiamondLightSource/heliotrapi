@@ -11,10 +11,12 @@ from event_model.basemodels import (
 )
 from pydantic import (
     BaseModel,
+    ConfigDict,
     Field,
     TypeAdapter,
     ValidationError,
 )
+from pydantic.alias_generators import to_camel
 
 from heliotrapi.logger import logger
 from heliotrapi.models import AnalysisRequest
@@ -23,16 +25,19 @@ from heliotrapi.models import AnalysisRequest
 
 
 class NexusMessage(BaseModel):
+    # gda sends camelCase keys; accept those (or snake_case) as aliases
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
     status: Literal["STARTED", "UPDATED", "FINISHED"]
-    filePath: str  # noqa: N815 - because this is gda
-    visitDirectory: str  # noqa: N815 - because this is gda
-    swmrStatus: str  # noqa: N815 - because this is gda
-    scanNumber: int  # noqa: N815 - because this is gda
-    scanDimensions: list[int]  # noqa: N815 - because this is gda
+    file_path: str
+    visit_directory: str
+    swmr_status: str
+    scan_number: int
+    scan_dimensions: list[int]
     scannables: list[Any]
     detectors: list[Any]
-    percentageComplete: float  # noqa: N815 - because this is gda
-    processingRequest: dict[str, Any]  # noqa: N815 - because this is gda
+    percentage_complete: float
+    processing_request: dict[str, Any]
 
 
 ############# blueapi events
