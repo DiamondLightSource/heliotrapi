@@ -49,19 +49,10 @@ def load_analyses(package: types.ModuleType) -> list[str]:
     return names
 
 
-def register_module_functions(
-    module: types.ModuleType, names: set[str] | None = None
-) -> None:
-    """Register public top-level functions defined in *module*.
-
-    Args:
-        module: The module to scan.
-        names: If given, only register functions with these names.
-    """
+def register_module_functions(module: types.ModuleType) -> None:
+    """Register every public top-level function defined in *module*."""
     for name, obj in vars(module).items():
         if name.startswith("_"):
-            continue
-        if names is not None and name not in names:
             continue
         if not inspect.isfunction(obj):
             continue

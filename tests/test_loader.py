@@ -1,12 +1,21 @@
+import subprocess
 import sys
+import types
 from pathlib import Path
 from unittest.mock import Mock
 
+import pytest
+from git import GitCommandError
+
 from heliotrapi.analysis_core.async_func import make_function_async
 from heliotrapi.analysis_core.loader import (
+    _install_repo_and_dependencies,
+    _load_module_from_file,
+    _run_uv,
     clone_or_update_github_repo,
     load_plugins,
     load_plugins_from_dir,
+    register_module_functions,
 )
 from heliotrapi.analysis_core.registry import ANALYSIS_REGISTRY, list_analyses
 from heliotrapi.config import Config, GithubRepoConfig
@@ -246,3 +255,174 @@ def test_loader_register_selects_package(tmp_path):
         ANALYSIS_REGISTRY.update(original_registry)
         for k in [k for k in sys.modules if k.startswith("plugin.")]:
             del sys.modules[k]
+
+
+def _clear_plugin_modules():
+    for k in [k for k in sys.modules if k.startswith("plugin.")]:
+        del sys.modules[k]
+
+
+def test_loader_logs_and_skips_plugins_that_fail_to_load(tmp_path):
+    (tmp_path / "broken.py").write_text("raise RuntimeError('boom')\n")
+    (tmp_path / "missing_dep.py").write_text("import not_a_real_module_xyz\n")
+    (tmp_path / "good.py").write_text("def good_fn():\n    pass\n")
+
+    original_registry = ANALYSIS_REGISTRY.copy()
+    try:
+        load_plugins_from_dir(tmp_path, register_all=True)
+        assert "good_fn" in list_analyses()
+        assert "plugin.broken" not in sys.modules
+        assert "plugin.missing_dep" not in sys.modules
+    finally:
+        ANALYSIS_REGISTRY.clear()
+        ANALYSIS_REGISTRY.update(original_registry)
+        _clear_plugin_modules()
+
+
+def test_load_module_from_file_reports_missing_dependency(tmp_path):
+    pyfile = tmp_path / "missing_dep.py"
+    pyfile.write_text("import not_a_real_module_xyz\n")
+
+    with pytest.raises(ImportError, match="uv pip install not_a_real_module_xyz"):
+        _load_module_from_file("plugin.missing_dep", pyfile)
+    assert "plugin.missing_dep" not in sys.modules
+
+
+def test_load_module_from_file_without_spec(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "heliotrapi.analysis_core.loader.importlib.util.spec_from_file_location",
+        lambda name, location: None,
+    )
+    with pytest.raises(ImportError, match="Cannot create module spec"):
+        _load_module_from_file("plugin.nothing", tmp_path / "nothing.py")
+
+
+def test_loader_include_only_registers_named_function(tmp_path):
+    (tmp_path / "mod.py").write_text(
+        "def picked():\n    pass\n\ndef not_picked():\n    pass\n"
+    )
+
+    original_registry = ANALYSIS_REGISTRY.copy()
+    try:
+        load_plugins_from_dir(
+            tmp_path, include=["mod.picked", "mod.not_there", "nowhere.at_all"]
+        )
+        analyses = list_analyses()
+        assert "picked" in analyses
+        assert "not_picked" not in analyses
+        assert "not_there" not in analyses
+    finally:
+        ANALYSIS_REGISTRY.clear()
+        ANALYSIS_REGISTRY.update(original_registry)
+        _clear_plugin_modules()
+
+
+def test_loader_missing_dir_is_ignored(tmp_path):
+    load_plugins_from_dir(tmp_path / "does_not_exist", register_all=True)
+
+
+def test_register_module_functions_logs_unexpected_errors(monkeypatch):
+    module = types.ModuleType("plugin.fake")
+
+    def fn():
+        pass
+
+    fn.__module__ = module.__name__
+    module.fn = fn  # type: ignore[attr-defined]
+
+    def explode(name, func):
+        raise RuntimeError("registry broken")
+
+    monkeypatch.setattr("heliotrapi.analysis_core.loader.register_analysis", explode)
+    register_module_functions(module)  # should log, not raise
+
+
+def test_load_plugins_logs_clone_failure_and_continues(monkeypatch, tmp_path):
+    cfg = Config()
+    cfg.plugins.paths = [str(tmp_path)]
+    cfg.plugins.github_repos = [
+        GithubRepoConfig(url="https://example.com/bad.git"),
+        GithubRepoConfig(url="https://example.com/good.git", register_all=True),
+    ]
+    good_src = tmp_path / "good" / "src"
+    good_src.mkdir(parents=True)
+    (good_src / "good_mod.py").write_text("def from_good_repo():\n    pass\n")
+
+    def fake_clone(url, dest):
+        if "bad" in url:
+            raise RuntimeError("unable to clone")
+        return Path(dest) / Path(url).stem
+
+    monkeypatch.setattr(
+        "heliotrapi.analysis_core.loader.clone_or_update_github_repo", fake_clone
+    )
+
+    original_registry = ANALYSIS_REGISTRY.copy()
+    try:
+        load_plugins(cfg)
+        assert "from_good_repo" in list_analyses()
+    finally:
+        ANALYSIS_REGISTRY.clear()
+        ANALYSIS_REGISTRY.update(original_registry)
+        _clear_plugin_modules()
+
+
+def test_clone_github_repo_pull_failure_uses_existing_copy(monkeypatch, tmp_path):
+    (tmp_path / "repo").mkdir()
+
+    class FailingRemote:
+        def pull(self):
+            raise GitCommandError("pull", 1)
+
+    class FakeRepo:
+        def __init__(self, path):
+            self.remotes = type("R", (), {"origin": FailingRemote()})()
+
+    added = []
+    monkeypatch.setattr("heliotrapi.analysis_core.loader.Repo", FakeRepo)
+    monkeypatch.setattr(
+        "heliotrapi.analysis_core.loader._add_src_to_path", added.append
+    )
+
+    result = clone_or_update_github_repo("https://example.com/repo.git", tmp_path)
+
+    assert result == tmp_path / "repo"
+    assert added == [tmp_path / "repo"]
+
+
+def test_install_repo_with_pyproject_and_requirements(monkeypatch, tmp_path):
+    (tmp_path / "pyproject.toml").write_text("")
+    (tmp_path / "requirements.txt").write_text("")
+    cmds = []
+    monkeypatch.setattr("heliotrapi.analysis_core.loader._run_uv", cmds.append)
+
+    _install_repo_and_dependencies(tmp_path, requirements=True)
+    _install_repo_and_dependencies(tmp_path, requirements=False)
+
+    assert cmds == [
+        ["uv", "pip", "install", str(tmp_path)],
+        ["uv", "pip", "install", "-r", str(tmp_path / "requirements.txt")],
+        ["uv", "pip", "install", str(tmp_path), "--no-deps"],
+    ]
+
+
+def test_install_repo_with_requirements_only(monkeypatch, tmp_path):
+    (tmp_path / "requirements.txt").write_text("")
+    cmds = []
+    monkeypatch.setattr("heliotrapi.analysis_core.loader._run_uv", cmds.append)
+    monkeypatch.setattr(
+        "heliotrapi.analysis_core.loader._add_src_to_path", lambda path: None
+    )
+
+    _install_repo_and_dependencies(tmp_path, requirements=True)
+
+    assert cmds == [["uv", "pip", "install", "-r", str(tmp_path / "requirements.txt")]]
+
+
+def test_run_uv_raises_on_failure(monkeypatch):
+    monkeypatch.setattr(
+        "heliotrapi.analysis_core.loader.subprocess.run",
+        lambda cmd, **kwargs: subprocess.CompletedProcess(cmd, 1, "out", "err"),
+    )
+    with pytest.raises(subprocess.CalledProcessError):
+        _run_uv(["uv", "pip", "install", "nothing"])
