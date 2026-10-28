@@ -57,8 +57,8 @@ async def lifespan(app: FastAPI):
     queue_manager = QueueManager(
         workers=config.queue.workers,
         messenger=messenger,
-        slack_webhook_url=config.alerts.slack_webhook_url
-        if config.alerts.slack_webhook_url != ""
+        webhook_url=config.alerts.webhook_url
+        if config.alerts.webhook_url != ""
         else None,
         db_path=config.results.db_path,
     )

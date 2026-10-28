@@ -117,14 +117,14 @@ class QueueManager:
         self,
         workers: int = 2,
         messenger: Messenger | None = None,
-        slack_webhook_url: str | None = None,
+        webhook_url: str | None = None,
         db_path: str | Path = ":memory:",
     ):
         self.queue: asyncio.Queue[AnalysisRequest] = asyncio.Queue(maxsize=0)  # 0 = inf
         self.results = ResultStore(db_path)
         self.workers = workers
         self.messenger = messenger
-        self.slack_webhook_url = slack_webhook_url
+        self.webhook_url = webhook_url
         self.fail_interrupted_jobs()
         logger.info(self.queue)
 
@@ -190,9 +190,9 @@ class QueueManager:
             # log the error and send alert to slack if configured
             logger.error(analysis_response)
 
-            if self.slack_webhook_url is not None:
+            if self.webhook_url is not None:
                 send_slack_failure(
-                    webhook_url=self.slack_webhook_url,
+                    webhook_url=self.webhook_url,
                     message=f"Job {job} failed: {str(e)}",
                 )
 
@@ -231,9 +231,9 @@ class QueueManager:
                 status = "failed"
                 finished_at = datetime.now()
 
-                if self.slack_webhook_url is not None:
+                if self.webhook_url is not None:
                     send_slack_failure(
-                        webhook_url=self.slack_webhook_url,
+                        webhook_url=self.webhook_url,
                         message=f"Job {job} failed: {str(e)}",
                     )
 

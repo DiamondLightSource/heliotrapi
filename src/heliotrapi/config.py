@@ -85,7 +85,7 @@ class PluginsConfig(BaseModel):
 
 
 class AlertConfig(BaseModel):
-    slack_webhook_url: str | None = None
+    webhook_url: str | None = None
 
 
 class AuthConfig(BaseModel):
