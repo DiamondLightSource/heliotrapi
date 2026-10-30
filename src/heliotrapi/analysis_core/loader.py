@@ -1,9 +1,11 @@
 import importlib
+import importlib.metadata
 import importlib.util
 import inspect
 import pkgutil
 import subprocess
 import sys
+import tempfile
 import types
 from collections.abc import Callable
 from pathlib import Path
@@ -70,9 +72,37 @@ def _try_register(name: str, func: Callable, source: str) -> None:
         logger.exception("Unable to register '%s' from '%s'", name, source)
 
 
+def _loaded_distribution_pins() -> list[str]:
+    """Return ``name==version`` pins for every distribution already imported.
+
+    Plugin installs must not change packages this process has already loaded:
+    a half-upgraded package (e.g. uvicorn modules imported lazily from a newer
+    version than ``uvicorn.config``) breaks at runtime.
+    """
+    top_level = {name.partition(".")[0] for name in list(sys.modules)}
+    packages = importlib.metadata.packages_distributions()
+    dists = {dist for mod in top_level for dist in packages.get(mod, [])}
+    pins = []
+    for dist in sorted(dists):
+        try:
+            pins.append(f"{dist}=={importlib.metadata.version(dist)}")
+        except importlib.metadata.PackageNotFoundError:
+            continue
+    return pins
+
+
 def _run_uv(cmd: list[str]) -> None:
-    """Run a uv command, raising ``CalledProcessError`` with output on failure."""
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    """Run a uv command, raising ``CalledProcessError`` with output on failure.
+
+    ``uv pip install`` commands are constrained to the versions of packages
+    already imported by this process.
+    """
+    with tempfile.NamedTemporaryFile("w", suffix=".txt") as constraints:
+        if cmd[:3] == ["uv", "pip", "install"]:
+            constraints.write("\n".join(_loaded_distribution_pins()))
+            constraints.flush()
+            cmd = [*cmd, "--constraint", constraints.name]
+        result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
         raise subprocess.CalledProcessError(
             result.returncode,
