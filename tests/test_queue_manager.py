@@ -396,3 +396,48 @@ async def test_cancel_stops_sync_analysis_thread(monkeypatch):
     worker_task.cancel()
     with pytest.raises(asyncio.CancelledError):
         await worker_task
+
+
+@pytest.mark.asyncio
+async def test_cancel_sends_message():
+    messenger = FakeMessenger()
+    queue_manager = QueueManager(workers=1, messenger=cast(Messenger, messenger))
+
+    request_id = uuid4()
+    queue_manager.results[request_id] = AnalysisResult(
+        request_id=request_id, analysis_name="slow", status="running", result=None
+    )
+    queue_manager.cancel(request_id)
+
+    assert len(messenger.sent) == 1
+    sent = AnalysisResult.model_validate_json(messenger.sent[0][1])
+    assert sent.request_id == request_id
+    assert sent.status == "cancelled"
+
+
+@pytest.mark.asyncio
+async def test_worker_shutdown_mid_job_is_not_treated_as_cancel(monkeypatch):
+    queue_manager = QueueManager(workers=1)
+    started = asyncio.Event()
+
+    async def slow_analysis():
+        started.set()
+        await asyncio.sleep(10)
+
+    monkeypatch.setattr(
+        "heliotrapi.task_queue.manager.get_analysis", lambda name: slow_analysis
+    )
+
+    job = AnalysisRequest(analysis_name="slow", inputs={})
+    await queue_manager.enqueue(job)
+
+    worker_task = asyncio.create_task(queue_manager.worker())
+    await asyncio.wait_for(started.wait(), timeout=1.0)
+
+    # cancelling the worker itself (server shutdown) must stop it
+    worker_task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await worker_task
+
+    assert queue_manager.results[job.request_id].status == "running"
+    assert not queue_manager.running_tasks
