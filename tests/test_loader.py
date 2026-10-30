@@ -1,3 +1,4 @@
+import importlib.metadata
 import subprocess
 import sys
 import types
@@ -426,3 +427,18 @@ def test_run_uv_raises_on_failure(monkeypatch):
     )
     with pytest.raises(subprocess.CalledProcessError):
         _run_uv(["uv", "pip", "install", "nothing"])
+
+
+def test_run_uv_constrains_pip_install_to_loaded_packages(monkeypatch):
+    seen = {}
+
+    def fake_run(cmd, **kwargs):
+        seen["cmd"] = cmd
+        seen["constraints"] = Path(cmd[-1]).read_text().splitlines()
+        return subprocess.CompletedProcess(cmd, 0, "", "")
+
+    monkeypatch.setattr("heliotrapi.analysis_core.loader.subprocess.run", fake_run)
+    _run_uv(["uv", "pip", "install", "pkg"])
+
+    assert seen["cmd"][:5] == ["uv", "pip", "install", "pkg", "--constraint"]
+    assert f"pydantic=={importlib.metadata.version('pydantic')}" in seen["constraints"]

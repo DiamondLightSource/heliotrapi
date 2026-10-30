@@ -26,6 +26,10 @@ plugins:
         - xrpd_toolbox.i15_1.attenuation # whole module
         # - xrpd_toolbox.i15_1 # whole package
         # - xrpd_toolbox.i15_1.attenuation.my_func # single function
+    - url: https://github.com/scarlettabrams/KRAIC_I11_1.git
+      register_all: False # read every file in this repo and register every public function
+      include: # dotted paths relative to the repo's src; only these are read when register_all is False
+        - KRAIC_I11_1.fep_subtraction.run_subtraction # whole module
   message_functions: # dotted path (relative to a repo's src) of the one function to run for each STOMP message
     start: null # called with StartMessage fields as kwargs
     stop: null # called with StopMessage fields as kwargs
