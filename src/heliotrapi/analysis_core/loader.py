@@ -296,6 +296,7 @@ def load_plugins_from_dir(
     """
     root = Path(path)
     if not root.is_dir():
+        logger.warning(f"{root} is not a directory. Nothing will be registered")
         return
 
     if register_all:
