@@ -382,3 +382,30 @@ def test_client_without_credentials_leaves_session_auth():
     session = httpx.Client()
     AnalysisClient(session=session)
     assert session.auth is None
+
+
+def test_client_cancel_defaults_to_latest_request_id():
+    request_id = uuid.uuid4()
+    response = Mock()
+    response.json.return_value = {
+        "request_id": str(request_id),
+        "analysis_name": "double",
+        "status": "cancelled",
+        "result": "Cancelled by user",
+    }
+    session = Mock()
+    session.post.return_value = response
+
+    client = AnalysisClient(session=session)
+    client.latest_request_id = request_id
+    result = client.cancel()
+
+    assert result.status == "cancelled"
+    session.post.assert_called_once_with(f"http://127.0.0.1:8000/cancel/{request_id}")
+
+
+def test_client_cancel_no_latest():
+    client = AnalysisClient(session=Mock())
+
+    with pytest.raises(ValueError):
+        client.cancel()

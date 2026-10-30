@@ -10,6 +10,7 @@ import httpx
 from heliotrapi.api.endpoints import (
     ANALYSE_ROUTE,
     ANALYSES_ROUTE,
+    CANCEL_ROUTE,
     ENDPOINTS_ROUTE,
     HEALTH_ROUTE,
     RESULT_BY_ID_ROUTE,
@@ -120,6 +121,21 @@ class AnalysisClient:
         self.latest_request_id = request_id
 
         return request_id
+
+    def cancel(self, request_id: UUID | None = None) -> AnalysisResult:
+        """Cancel a queued or running job. Defaults to the last job this client
+        submitted. Raises if the job doesn't exist or has already finished"""
+
+        if request_id is None:
+            if self.latest_request_id is None:
+                raise ValueError("You have not submitted any analyses!")
+            request_id = self.latest_request_id
+
+        route = CANCEL_ROUTE.format(request_id=request_id)
+        resp = self.session.post(f"{self.base_url}{route}")
+        resp.raise_for_status()
+
+        return AnalysisResult.model_validate(resp.json())
 
     def request_result(self, request_id: UUID) -> AnalysisResult | None:
         """Requests a result once - with a given request_id

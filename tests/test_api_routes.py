@@ -4,6 +4,7 @@ from datetime import datetime
 from fastapi.testclient import TestClient
 
 from heliotrapi.api.endpoints import (
+    CANCEL_ROUTE,
     ENDPOINTS_ROUTE,
     HEALTH_ROUTE,
     RESULT_BY_ID_ROUTE,
@@ -118,3 +119,40 @@ def test_api_result_all_results():
         assert all_response.status_code == 200
         assert len(all_response.json()) == 1
         assert all_response.json()[0]["analysis_name"] == "double"
+
+
+def test_api_cancel_running_job():
+    with TestClient(start_api()) as client:
+        client.auth = AUTH
+        result = AnalysisResult(
+            request_id=uuid.uuid4(),
+            analysis_name="double",
+            status="running",
+            result=None,
+        )
+        client.app.state.queue_manager.results[result.request_id] = result  # type: ignore
+
+        response = client.post(CANCEL_ROUTE.format(request_id=result.request_id))
+
+        assert response.status_code == 200
+        assert response.json()["status"] == "cancelled"
+        stored = client.app.state.queue_manager.results[result.request_id]  # type: ignore
+        assert stored.status == "cancelled"
+
+
+def test_api_cancel_finished_job_conflicts():
+    with TestClient(start_api()) as client:
+        client.auth = AUTH
+        result = AnalysisResult(
+            request_id=uuid.uuid4(),
+            analysis_name="double",
+            status="completed",
+            result=10,
+            finished_at=datetime.now(),
+        )
+        client.app.state.queue_manager.results[result.request_id] = result  # type: ignore
+
+        response = client.post(CANCEL_ROUTE.format(request_id=result.request_id))
+
+        assert response.status_code == 409
+        assert "completed" in response.json()["detail"]
