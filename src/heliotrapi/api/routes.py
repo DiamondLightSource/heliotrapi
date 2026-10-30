@@ -12,6 +12,7 @@ from heliotrapi.api.auth import require_auth
 from heliotrapi.api.endpoints import (
     ANALYSE_ROUTE,
     ANALYSES_ROUTE,
+    CANCEL_ROUTE,
     ENDPOINTS_ROUTE,
     HEALTH_ROUTE,
     RESULT_BY_ID_ROUTE,
@@ -124,6 +125,23 @@ async def result(request: Request, request_id: UUID):
         raise HTTPException(404, "Result not found")
     result = queue_manager.results[request_id]
     return result
+
+
+@ROUTER.post(CANCEL_ROUTE)
+async def cancel(
+    request: Request,
+    request_id: UUID,
+    username: Annotated[str | None, Depends(require_auth)],
+) -> AnalysisResult:
+    logger.info(f"Cancel requested for {request_id} | user: {username}")
+
+    queue_manager: QueueManager = request.app.state.queue_manager
+    try:
+        return queue_manager.cancel(request_id)
+    except KeyError:
+        raise HTTPException(404, "Result not found") from None
+    except ValueError as e:
+        raise HTTPException(409, str(e)) from None
 
 
 @ROUTER.get(ENDPOINTS_ROUTE)

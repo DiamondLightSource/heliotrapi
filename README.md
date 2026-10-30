@@ -108,7 +108,8 @@ If you are getting redirected due to the a proxy use curl -LX ...
 
 ## Authentication
 
-Submitting analyses, streaming, and reading results (`/results/...`) require HTTP Basic auth.
+Submitting analyses, cancelling jobs (`POST /cancel/{request_id}`), streaming, and reading
+results (`/results/...`) require HTTP Basic auth.
 The health check, `/get_analyses` and `/endpoints` are open.
 
 Auth is on by default. Turn it off in the config with:

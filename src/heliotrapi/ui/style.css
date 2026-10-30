@@ -230,6 +230,23 @@ button {
     background: #ff5252;
 }
 
+.btn-warning {
+    background: #ffb347;
+    color: white;
+    padding: 6px 12px;
+    font-size: 12px;
+    width: auto;
+}
+
+.btn-warning:hover {
+    background: #ffa01f;
+}
+
+.result-actions {
+    display: flex;
+    gap: 8px;
+}
+
 .analyses-list {
     max-height: 400px;
     overflow-y: auto;
@@ -287,6 +304,11 @@ button {
 .status-failed {
     background: #f8d7da;
     color: #721c24;
+}
+
+.status-cancelled {
+    background: #e2e3e5;
+    color: #383d41;
 }
 
 .status-error {

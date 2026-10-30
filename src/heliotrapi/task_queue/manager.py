@@ -1,9 +1,12 @@
 import asyncio
+import contextvars
 import inspect
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from uuid import UUID
 
+from heliotrapi.analysis_core.async_func import CURRENT_CANCELLER, ThreadCanceller
 from heliotrapi.analysis_core.registry import get_analysis
 from heliotrapi.logger import logger
 from heliotrapi.models import AnalysisRequest, AnalysisResponse, AnalysisResult
@@ -125,6 +128,10 @@ class QueueManager:
         self.workers = workers
         self.messenger = messenger
         self.webhook_url = webhook_url
+        # running analyses, so they can be cancelled
+        self.running_tasks: dict[UUID, tuple[asyncio.Task, ThreadCanceller]] = {}
+        # jobs cancelled before or while running, so the worker knows to skip them
+        self.cancelled: set[UUID] = set()
         self.fail_interrupted_jobs()
         logger.info(self.queue)
 
@@ -204,9 +211,51 @@ class QueueManager:
 
         return analysis_response
 
+    def cancel(self, request_id: UUID) -> AnalysisResult:
+        """Cancel a queued or running job.
+
+        Raises KeyError if the job doesn't exist, ValueError if it isn't running.
+        Sync analyses are stopped by raising an exception in their thread, see
+        ThreadCanceller for when that can be delayed.
+        """
+        result = self.results[request_id]
+
+        if result.status != "running":
+            raise ValueError(
+                f"Job {request_id} can't be cancelled, its status is '{result.status}'"
+            )
+
+        self.cancelled.add(request_id)
+
+        if request_id in self.running_tasks:
+            task, canceller = self.running_tasks[request_id]
+            task.cancel()  # stops async analyses
+            canceller.cancel()  # stops sync analyses running in a thread
+
+        result.status = "cancelled"
+        result.result = "Cancelled by user"
+        result.finished_at = datetime.now()
+        self.results[request_id] = result
+
+        logger.info(f"Job {request_id} cancelled")
+
+        if self.messenger is not None and self.messenger.is_connected():
+            self.messenger.send_message(
+                DEFAULT_DII_PROCESSED_DESTINATION,
+                result.model_dump_json(),
+            )
+
+        return result
+
     async def worker(self):
         while True:
             job = await self.queue.get()
+
+            # cancelled while still in the queue
+            if job.request_id in self.cancelled:
+                self.cancelled.discard(job.request_id)
+                self.queue.task_done()
+                continue
 
             try:
                 analysis_fn = get_analysis(job.analysis_name)
@@ -217,7 +266,18 @@ class QueueManager:
                 # validate_inputs(analysis_fn, job.inputs)
                 converted_inputs = convert_inputs(job.inputs, annotations)
 
-                result_value = await analysis_fn(**converted_inputs)  # actually run job
+                # run as a task so cancel() can stop it
+                canceller = ThreadCanceller()
+                context = contextvars.copy_context()
+                context.run(CURRENT_CANCELLER.set, canceller)
+                task = asyncio.create_task(
+                    analysis_fn(**converted_inputs), context=context
+                )
+                self.running_tasks[job.request_id] = (task, canceller)
+                try:
+                    result_value = await task  # actually run job
+                finally:
+                    self.running_tasks.pop(job.request_id, None)
 
                 # Convert numpy and other non-serializable types
                 result_value = serialise(result_value)
@@ -225,6 +285,14 @@ class QueueManager:
                 result = result_value
                 status = "completed"
                 finished_at = datetime.now()
+
+            except asyncio.CancelledError:
+                # if the job wasn't cancelled, the worker itself is shutting down
+                if job.request_id not in self.cancelled:
+                    raise
+                # cancel() has already stored the cancelled result
+                self.cancelled.discard(job.request_id)
+                continue
 
             except Exception as e:
                 result = str(e)

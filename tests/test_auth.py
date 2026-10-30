@@ -5,6 +5,7 @@ from heliotrapi import server
 from heliotrapi.api.endpoints import (
     ANALYSE_ROUTE,
     ANALYSES_ROUTE,
+    CANCEL_ROUTE,
     ENDPOINTS_ROUTE,
     HEALTH_ROUTE,
     RESULT_BY_ID_ROUTE,
@@ -124,3 +125,31 @@ def test_discovery_routes_do_not_need_credentials(auth_config, route):
         response = client.get(route)
 
     assert response.status_code == 200
+
+
+CANCEL_URL = CANCEL_ROUTE.format(request_id="00000000-0000-0000-0000-000000000000")
+
+
+def test_cancel_without_credentials_is_rejected(auth_config):
+    auth_config()
+    with TestClient(start_api()) as client:
+        response = client.post(CANCEL_URL)
+
+    assert response.status_code == 401
+
+
+def test_cancel_with_credentials_is_allowed(auth_config):
+    auth_config()
+    with TestClient(start_api()) as client:
+        response = client.post(CANCEL_URL, auth=("admin", "password"))
+
+    # no such job, so 404 - it just mustn't be 401
+    assert response.status_code == 404
+
+
+def test_cancel_is_open_when_auth_disabled(auth_config):
+    auth_config(enabled=False)
+    with TestClient(start_api()) as client:
+        response = client.post(CANCEL_URL)
+
+    assert response.status_code == 404

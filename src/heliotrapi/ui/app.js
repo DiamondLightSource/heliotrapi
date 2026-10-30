@@ -39,6 +39,18 @@ class AnalysisAPI {
         return response.json();
     }
 
+    async cancelJob(requestId) {
+        const response = await fetch(`${this.baseURL}/cancel/${requestId}`, {
+            method: 'POST'
+        });
+
+        if (!response.ok) {
+            const body = await response.json().catch(() => ({}));
+            throw new Error(body.detail || 'Failed to cancel job');
+        }
+        return response.json();
+    }
+
     async getLatestResult() {
         const response = await fetch(`${this.baseURL}/results/latest`);
 
@@ -744,12 +756,26 @@ class AnalysisUI {
                             ${statusHtml}
                         </div>
 
+                        <div class="result-actions">
+                        ${entry.status === 'running'
+                    ? `
+                                <button
+                                    class="btn-warning"
+                                    onclick="ui.cancelJob(${index})"
+                                >
+                                    Cancel
+                                </button>
+                              `
+                    : ''
+                }
+
                         <button
                             class="btn-danger"
                             onclick="ui.deleteResult(${index})"
                         >
                             Delete
                         </button>
+                        </div>
                     </div>
 
                     <div class="result-id">
@@ -804,6 +830,29 @@ class AnalysisUI {
         }
 
         return String(result);
+    }
+
+    async cancelJob(index) {
+        const entry = this.requestHistory[index];
+
+        if (!confirm(`Cancel ${entry.analysisName} (${entry.requestId})?`)) return;
+
+        try {
+            const result = await this.api.cancelJob(entry.requestId);
+
+            entry.status = result.status;
+            entry.result = result.result;
+            entry.finishedAt = result.finished_at;
+
+            this.saveHistoryToStorage();
+            this.renderResults();
+
+            this.showSuccess(`Cancelled ${entry.requestId}`);
+
+        } catch (error) {
+
+            this.showError('Failed to cancel job: ' + error.message);
+        }
     }
 
     deleteResult(index) {

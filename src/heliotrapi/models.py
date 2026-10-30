@@ -83,7 +83,7 @@ class AnalysisStream(AnalysisBaseModel):
 
 class AnalysisResult(AnalysisBaseModel):
     request_id: UUID | None = None
-    status: Literal["error", "failed", "running", "completed"]
+    status: Literal["error", "failed", "running", "completed", "cancelled"]
     analysis_name: str
     inputs: dict[str, Any] | None = None
     result: Any

@@ -1,10 +1,12 @@
 import asyncio
+import threading
 from typing import cast
 from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
 
+from heliotrapi.analysis_core.async_func import make_function_async
 from heliotrapi.models import AnalysisRequest, AnalysisResult
 from heliotrapi.task_queue.manager import QueueManager, validate_inputs
 from heliotrapi.utils.messenger import Messenger
@@ -269,3 +271,128 @@ def test_enqueue_sends_slack_on_failure():
 
     _, kwargs = mock_slack.call_args
     assert "boom" in kwargs["message"]
+
+
+@pytest.mark.asyncio
+async def test_cancel_running_job(monkeypatch):
+    queue_manager = QueueManager(workers=1)
+    started = asyncio.Event()
+
+    async def slow_analysis():
+        started.set()
+        await asyncio.sleep(10)
+
+    monkeypatch.setattr(
+        "heliotrapi.task_queue.manager.get_analysis", lambda name: slow_analysis
+    )
+
+    job = AnalysisRequest(analysis_name="slow", inputs={})
+    await queue_manager.enqueue(job)
+
+    worker_task = asyncio.create_task(queue_manager.worker())
+    await asyncio.wait_for(started.wait(), timeout=1.0)
+
+    queue_manager.cancel(job.request_id)
+    await asyncio.wait_for(queue_manager.queue.join(), timeout=1.0)
+
+    assert queue_manager.results[job.request_id].status == "cancelled"
+    assert not queue_manager.running_tasks
+    assert not queue_manager.cancelled
+    # the worker survives and keeps going
+    assert not worker_task.done()
+
+    worker_task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await worker_task
+
+
+@pytest.mark.asyncio
+async def test_cancel_queued_job_is_skipped(monkeypatch):
+    queue_manager = QueueManager(workers=1)
+    calls = []
+
+    async def analysis():
+        calls.append(1)
+
+    monkeypatch.setattr(
+        "heliotrapi.task_queue.manager.get_analysis", lambda name: analysis
+    )
+
+    job = AnalysisRequest(analysis_name="never_runs", inputs={})
+    await queue_manager.enqueue(job)
+    queue_manager.cancel(job.request_id)
+
+    worker_task = asyncio.create_task(queue_manager.worker())
+    await asyncio.wait_for(queue_manager.queue.join(), timeout=1.0)
+
+    assert not calls
+    assert queue_manager.results[job.request_id].status == "cancelled"
+
+    worker_task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await worker_task
+
+
+@pytest.mark.asyncio
+async def test_cancel_unknown_or_finished_job_raises(monkeypatch):
+    queue_manager = QueueManager(workers=1)
+
+    with pytest.raises(KeyError):
+        queue_manager.cancel(uuid4())
+
+    request_id = uuid4()
+    queue_manager.results[request_id] = AnalysisResult(
+        request_id=request_id, analysis_name="done", status="completed", result=1
+    )
+    with pytest.raises(ValueError, match="can't be cancelled"):
+        queue_manager.cancel(request_id)
+
+
+@pytest.mark.asyncio
+async def test_cancel_stops_sync_analysis_thread(monkeypatch):
+    queue_manager = QueueManager(workers=1)
+    started = threading.Event()
+    stopped = threading.Event()
+
+    def busy_analysis():
+        started.set()
+        try:
+            while True:  # pure python loop, so the cancel exception can land
+                pass
+        finally:
+            stopped.set()
+
+    def quick_analysis():
+        return 42
+
+    analyses = {
+        "busy": make_function_async(busy_analysis),
+        "quick": make_function_async(quick_analysis),
+    }
+    monkeypatch.setattr(
+        "heliotrapi.task_queue.manager.get_analysis", lambda name: analyses[name]
+    )
+
+    busy_job = AnalysisRequest(analysis_name="busy", inputs={})
+    await queue_manager.enqueue(busy_job)
+
+    worker_task = asyncio.create_task(queue_manager.worker())
+    assert await asyncio.to_thread(started.wait, 1.0)
+
+    queue_manager.cancel(busy_job.request_id)
+
+    # the thread itself stops, not just the task waiting on it
+    assert await asyncio.to_thread(stopped.wait, 1.0)
+    assert queue_manager.results[busy_job.request_id].status == "cancelled"
+
+    # the next job runs normally, even if it reuses the same thread
+    quick_job = AnalysisRequest(analysis_name="quick", inputs={})
+    await queue_manager.enqueue(quick_job)
+    await asyncio.wait_for(queue_manager.queue.join(), timeout=1.0)
+
+    assert queue_manager.results[quick_job.request_id].status == "completed"
+    assert queue_manager.results[quick_job.request_id].result == 42
+
+    worker_task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await worker_task
