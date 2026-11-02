@@ -342,6 +342,12 @@ Go to the i15-services repo on gitlab.diamond.ac.uk to see an example of how to 
 module load k8s-ixx
 ```
 
+1.5. See what secrets are currently set, and login (with you fedid and pw) if not:
+
+```bash
+kubectl get secrets
+```
+
 2. Type your password. Nothing shows while you type:
 
 ```bash
