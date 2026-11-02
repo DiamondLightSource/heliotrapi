@@ -264,7 +264,14 @@ class QueueManager:
                 logger.info(annotations)
 
                 # validate_inputs(analysis_fn, job.inputs)
-                converted_inputs = convert_inputs(job.inputs, annotations)
+                converted_inputs = await asyncio.to_thread(
+                    convert_inputs, job.inputs, annotations
+                )
+
+                # cancelled while converting inputs
+                if job.request_id in self.cancelled:
+                    self.cancelled.discard(job.request_id)
+                    continue
 
                 # run as a task so cancel() can stop it
                 canceller = ThreadCanceller()
@@ -280,7 +287,12 @@ class QueueManager:
                     self.running_tasks.pop(job.request_id, None)
 
                 # Convert numpy and other non-serializable types
-                result_value = serialise(result_value)
+                result_value = await asyncio.to_thread(serialise, result_value)
+
+                # cancelled while serialising
+                if job.request_id in self.cancelled:
+                    self.cancelled.discard(job.request_id)
+                    continue
 
                 result = result_value
                 status = "completed"
