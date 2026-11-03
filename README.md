@@ -3,6 +3,8 @@
 [![PyPI](https://img.shields.io/pypi/v/heliotrapi.svg)](https://pypi.org/project/heliotrapi)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
+![Banner](images/HeliotrAPI_light.png)
+
 # heliotrapi
 
 An API for small fast data analysis jobs at Diamond Light Source. It is effectively a cloud-native open source FaaS (Function as a Service) platform.
